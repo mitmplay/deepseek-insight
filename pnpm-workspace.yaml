@@ -1,0 +1,12 @@
+allowBuilds:
+  esbuild: set this to true or false
+minimumReleaseAgeExclude:
+  - '@inlang/paraglide-js@2.25.2'
+  - '@inlang/sdk@3.0.5'
+  - '@lix-js/sdk-darwin-arm64@0.16.1'
+  - '@lix-js/sdk-linux-arm64@0.16.1'
+  - '@lix-js/sdk-linux-x64@0.16.1'
+  - '@lix-js/sdk-win32-x64@0.16.1'
+  - '@lix-js/sdk@0.16.1'
+overrides:
+  cookie: ^0.7.0

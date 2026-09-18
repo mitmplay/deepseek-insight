@@ -1,0 +1,42 @@
+{
+	"chat": {
+		"input": {
+			"maxRows": 15
+		},
+		"accessConfirmTimeoutMs": 12000,
+		"macro": {
+			"maxLines": 25,
+			"maxDepth": 3
+		}
+	},
+	"conversation": {
+		"pollRunningMs": 500,
+		"pollIdleMs": 2000
+	},
+	"home": {
+		"refreshMs": 5000
+	},
+	"server": {
+		"ringCapacity": 500
+	},
+	"panel": {
+		"defaultWidth": 730,
+		"minWidth": 480,
+		"maxWidth": 860,
+		"minZoom": 0.25,
+		"maxZoom": 1.25
+	},
+	"sidebar": {
+		"placement": "none",
+		"defaultWidth": 400,
+		"minWidth": 200,
+		"maxWidth": 500
+	},
+    "prompts": {
+        "autoAdd": false
+    },
+	"dsh": {
+		"authToken": "ABH8g54mNFjaTy0YmxLe6l_7u0jyCPOJVlLdLDc_qTo",
+		"presetEnglish": true
+	}
+}

@@ -1,0 +1,18 @@
+- jika workspace kosong button nambah folder blinking
+- new chat harusnya ngikutin apa yang di select  pas nambah workspace 
+- during fresh run - auto-load skill during fresh installation meaning copy skill in src to ~/.agents/skill/*
+- fixing search in promptmanager  should be label + text search and it should search in any word  not from the first only
+    - there no [ X ] button to cleaar search
+
+
+BUG:
+-  DSH RPC agent-preset/invalid: agent-presets: preset "app-dev" failed to mount: 1 row(s) did not activate: command-compact (@deepseek-ai/dsh-command-compact): waiting for compaction (/Users/wharsojo/.dsh/.agent-presets/app-dev/agent.cordis.yml)
+
+batery included not auto-activated:
+Web search is unavailable (no search API key in this environment), so the library-landscape facts will come from my training knowledge and, where possible, from package metadata I can inspect locally. Continuing with codebase inspection:
+
+BUG:
+forking having problem where next usesr message getting carried over
+
+fixing
+- max width ResizeGutter for WorkspaceFilePanel can be extend to 1024px

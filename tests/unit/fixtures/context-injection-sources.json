@@ -1,0 +1,181 @@
+{
+  "_pinned": "POC-3 W1 task 1.4 — live rc.8 ledger, session-fd80d588-6ad8-4dac-8dd1-a193309c9ae1 (app-dev preset), 2026-08-21. Verbatim source objects for the context-injection producers (fixture for task 2.4); skill-invocation pinned 2026-08-30 from live ledger session-9e80de08-889d-4b40-aa03-61dd17dbbfd6 seq 136193; compaction pinned 2026-08-31 from live ledger session-dab56419-746b-424d-8eda-39dec2057bbe seq 83950; the open-family members (plugin-tool-jobs, plugin-user-approval) pinned 2026-08-31 from the same live ledger (seqs 5817 / 14). Entries/sections trimmed for size; kind/plugin/form are the detection contract. Shape-only members (session-reference, webhook, team-message) are pinned from the DSH MessageSourceMap augmentations, not a live ledger.",
+  "producers": {
+    "agent-instructions": {
+      "event": {
+        "type": "user/message",
+        "seq": 8,
+        "data": {
+          "role": "user",
+          "content": [{ "type": "text", "text": "<system-reminder>\nThe following workspace instructions may be relevant..." }],
+          "source": {
+            "kind": "agent-instructions",
+            "form": "instructions",
+            "baseline": true,
+            "changes": [
+              { "action": "set", "scope": ".\u0000AGENTS.md", "path": "AGENTS.md", "digest": "ff4b48bfff997c2145f119d02d3f913abdfc5134" }
+            ]
+          }
+        }
+      }
+    },
+    "runtime-context": {
+      "event": {
+        "type": "user/message",
+        "seq": 9,
+        "data": {
+          "role": "user",
+          "content": [{ "type": "text", "text": "Current runtime context. This snapshot supersedes earlier runtime-context..." }],
+          "source": {
+            "kind": "plugin",
+            "plugin": "@deepseek-ai/dsh-system-prompt",
+            "form": "snapshot",
+            "sections": [
+              { "name": "sandbox:policy" },
+              { "name": "approval:policy" }
+            ]
+          }
+        }
+      }
+    },
+    "skill-catalog": {
+      "event": {
+        "type": "user/message",
+        "seq": 10,
+        "data": {
+          "role": "user",
+          "content": [{ "type": "text", "text": "<system-reminder>\nA skill is a reusable set of task-specific instruction..." }],
+          "source": {
+            "kind": "skill-catalog",
+            "form": "catalog",
+            "entries": [
+              { "name": "dsh-archive-agent-notes", "description": "Use when adding, auditing, pruning, archiving, restoring, or..." },
+              { "name": "dsh-code-review", "description": "Use when reviewing a pull request in the deepseek-harness re..." },
+              { "name": "dsh-doc-site-sync", "description": "Use when publishing, updating, moving, or removing DeepSeek ..." }
+            ]
+          }
+        }
+      }
+    },
+    "skill-invocation": {
+      "event": {
+        "type": "user/message",
+        "seq": 136193,
+        "data": {
+          "role": "user",
+          "content": [{ "type": "text", "text": "<skill_content name=\"dsh-doc\">\n<skill_resources>\nBase directory for this skill: /Users/wharsojo/agentic-ai/deepseek-harness/.agents/skills/dsh-doc\nResolve relative paths mentioned by this skill against the base directory before using them. Load referenced resources only as needed.\n</skill_resources>" }],
+          "source": {
+            "kind": "skill-invocation",
+            "name": "dsh-doc",
+            "form": "instructions"
+          }
+        }
+      }
+    },
+    "compaction": {
+      "event": {
+        "type": "user/message",
+        "seq": 83950,
+        "data": {
+          "role": "user",
+          "content": [
+            { "type": "text", "text": "This is an automatically generated checkpoint condensing an earlier span of the conversation to free up context. Treat the captured context as established background and build on it without restating it. Continue the task directly from the messages that follow, without acknowledging this checkpoint.\n\n<compacted-summary>" },
+            { "type": "text", "text": "## Primary Request and Intent\n- User loaded three projects: `~/agentic-ai/deepseek-harness` (DSH), `~/agentic-ai/deepseek-insight` (DSI), `~/openclaw-insight` (OCI). …" },
+            { "type": "text", "text": "</compacted-summary>" }
+          ],
+          "source": {
+            "kind": "plugin",
+            "plugin": "compact",
+            "compactionId": "d7f4f8f8-59bd-44f5-815d-5d311049e552",
+            "sourceCommandId": "cmd-9894a9ae-22"
+          }
+        }
+      },
+      "_note": "the checkpoint body is THREE text blocks (frameSummary, dsh-compaction-basic/summarizer.ts): preamble+open tag, summary markdown, close tag — the summary block above is trimmed; no form member"
+    },
+    "plugin-tool-jobs": {
+      "event": {
+        "type": "user/message",
+        "seq": 5817,
+        "data": {
+          "role": "user",
+          "content": [{ "type": "text", "text": "background job bash-2 (bash: cd ~/agentic-ai/deepseek-insight && npx vitest run …) finished [status: completed, exit code: 0]. Read its output with job_output." }],
+          "source": {
+            "kind": "plugin",
+            "plugin": "tool-jobs",
+            "form": "notice",
+            "summary": "background job bash-2 (bash: …) finished [status: completed, exit code: 0]. …"
+          }
+        }
+      },
+      "_note": "live pin — the open plugin family: a background-job notice; falls through to the 'plugin' chip named after the wire plugin string"
+    },
+    "plugin-user-approval": {
+      "event": {
+        "type": "user/message",
+        "seq": 14,
+        "data": {
+          "role": "user",
+          "content": [{ "type": "text", "text": "The approval policy changed from \"ask\" to \"never\" (changed by the user)." }],
+          "source": { "kind": "plugin", "plugin": "user-approval" }
+        }
+      },
+      "_note": "live pin — open plugin family, no form member; 'plugin' chip titled user-approval"
+    },
+    "session-reference": {
+      "event": {
+        "type": "user/message",
+        "seq": 900,
+        "data": {
+          "role": "user",
+          "content": [{ "type": "text", "text": "<recalled-context>…</recalled-context>" }],
+          "source": {
+            "kind": "session-reference",
+            "form": "recall",
+            "version": 1,
+            "references": [
+              { "sessionId": "session-abc", "label": "Fix the mux drop", "capturedThroughSeq": 812, "compacted": false, "originalMessages": 40, "retainedMessages": 12, "omittedMessages": 28, "omittedBytes": 51200, "truncated": false, "inputIndex": 0 }
+            ]
+          }
+        }
+      },
+      "_note": "shape-only pin (SessionReferenceSource, dsh-session-reference/types) — cross-session recall; 'recall' chip named after the first reference label"
+    },
+    "webhook": {
+      "event": {
+        "type": "user/message",
+        "seq": 901,
+        "data": {
+          "role": "user",
+          "content": [{ "type": "text", "text": "Deploy requested by CI." }],
+          "source": { "kind": "webhook", "provider": "github", "source": "wh-src-1", "deliveryId": "wh-d-1", "ruleId": "wh-rule-1", "form": "notice" }
+        }
+      },
+      "_note": "shape-only pin (webhook MessageSourceMap augmentation) — falls through to the 'injected' chip titled by the wire kind"
+    },
+    "team-message": {
+      "event": {
+        "type": "user/message",
+        "seq": 902,
+        "data": {
+          "role": "user",
+          "content": [{ "type": "text", "text": "Teammate handoff: the spec moved to docs/specs/v2." }],
+          "source": { "kind": "team-message", "senderId": "session-team", "senderName": "scout" }
+        }
+      },
+      "_note": "shape-only pin (experimental/agent-team MessageSourceMap augmentation) — 'injected' chip titled team-message"
+    }
+  },
+  "sibling-negative": {
+    "event": {
+      "type": "user/message",
+      "seq": 99,
+      "data": {
+        "role": "user",
+        "content": [{ "type": "text", "text": "plain operator text that merely QUOTES the words: kind plugin, form snapshot, Current runtime context." }],
+        "source": { "kind": "user" }
+      }
+    },
+    "_note": "the only true negative: kind 'user' (the operator) — and a source-less message. Since the 2026-08-31 open-family audit, plugin-kind siblings are no longer negatives: they match the generic 'plugin' chip (see plugin-tool-jobs / plugin-user-approval above)"
+  }
+}

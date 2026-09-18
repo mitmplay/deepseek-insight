@@ -1,0 +1,73 @@
+{
+	"name": "@deepseek-insight/dsi",
+	"version": "0.5.20",
+	"type": "module",
+	"packageManager": "pnpm@11.7.0",
+	"scripts": {
+		"dev": "vite dev --port 5175",
+		"dev:debug": "NODE_OPTIONS='--inspect' vite dev",
+		"build": "vite build",
+		"preview": "vite preview",
+		"prepare": "svelte-kit sync || echo ''",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"test": "vitest run",
+		"test:live": "DSH_LIVE=1 vitest run tests/live",
+		"test:coverage": "vitest run --coverage",
+		"start": "node build",
+		"dsi": "node bin/dsi.mjs",
+		"init:config": "node scripts/init-config.mjs",
+		"prepublishOnly": "pnpm run build",
+		"verify-ui-i18n": "node --experimental-strip-types scripts/verify-ui-i18n.ts",
+		"i18n:compile": "paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide"
+	},
+	"engines": {
+		"node": ">=22.19"
+	},
+	"dsh": {
+		"webVersion": "0.1.6-alpha.2"
+	},
+	"bin": {
+		"dsi": "bin/dsi.mjs"
+	},
+	"files": [
+		".agents",
+		"bin",
+		"build",
+		"template",
+		"scripts/dsh-web-synced.sh",
+		"README.md",
+		"LICENSE",
+		"!build/**/*.map",
+		"!build/**/*.gz",
+		"!build/**/*.br"
+	],
+	"devDependencies": {
+		"@inlang/paraglide-js": "2.25.2",
+		"@lucide/svelte": "^1.34.0",
+		"@playwright/test": "1.61.0",
+		"@sveltejs/adapter-node": "^5.5.7",
+		"@sveltejs/kit": "^2.63.0",
+		"@sveltejs/vite-plugin-svelte": "^7.1.2",
+		"@tailwindcss/vite": "^4.3.1",
+		"@types/node": "^26.0.1",
+		"@types/ws": "^8.18.1",
+		"@vitest/coverage-v8": "^4.1.11",
+		"happy-dom": "^20.10.6",
+		"svelte": "^5.56.1",
+		"svelte-check": "^4.6.0",
+		"tailwindcss": "^4.3.1",
+		"typescript": "^6.0.3",
+		"vite": "^8.0.16",
+		"vitest": "^4.1.9",
+		"ws": "^8.21.3"
+	},
+	"dependencies": {
+		"highlight.js": "^11.12.0",
+		"html-to-image": "^1.11.13",
+		"mermaid": "^11.17.0",
+		"monaco-editor": "^0.56.0",
+		"monaco-yaml": "^5.5.1",
+		"yaml": "^2.9.0"
+	}
+}

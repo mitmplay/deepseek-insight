@@ -1,0 +1,274 @@
+@import 'tailwindcss';
+@import 'highlight.js/styles/github.css';
+
+/* deepseek-insight base — minimal until the conversation page ships (Wave 3). */
+
+/* OCI pattern adoption (2026-08-21): the conversation's two-group color
+ * contract imports OpenClaw Insight's token values verbatim so both
+ * dashboards speak the same visual language —
+ *   PromptBubble   (sent to LLM)  → accent-blue tint, square bottom-right
+ *   AssistantTurn  (LLM output)   → elevated surface,  square bottom-left
+ * Tailwind 4 @theme turns these into utilities (bg-accent-blue/15,
+ * border-surface-border, text-text-primary, …). */
+@theme {
+	--color-surface: #f8f9fa;
+	--color-surface-alt: #f1f3f5;
+	--color-surface-hover: #e9ecef;
+	--color-surface-border: #dee2e6;
+	--color-surface-elevated: #ffffff;
+
+	--color-text-primary: #212529;
+	--color-text-secondary: #6c757d;
+	--color-text-muted: #adb5bd;
+
+	--color-accent-blue: #3b82f6;
+
+	/* OCI ChipButton expanded accent (chip-pattern parity, 2026-08-22) */
+	--color-accent-purple: #8b5cf6;
+
+	/* Plan-mode pill surface (2026-09-01): the pill's lavender fill and its
+	 * ink pair. #9f88fb under the accent-purple text measured 1.49:1, so the
+	 * pill carries its own dark-violet ink — 5.36:1, WCAG AA at text-xs. */
+	--color-accent-purple-soft: #9f88fb;
+	--color-accent-purple-ink: #2e1065;
+
+	/* OCI expanded accent palette (app.css parity, 2026-08-26): status
+	 * chips and state surfaces beyond blue/purple — the a2a chip stack
+	 * and future toggle surfaces need these, not raw hexes. */
+	--color-accent-emerald: #10b981;
+	--color-accent-amber: #f59e0b;
+	--color-accent-rose: #f43f5e;
+	--color-accent-cyan: #06b6d4;
+
+	/* OCI toggle-chip ON accent (2026-08-19 standardization): the unified
+	 * "enabled/armed" surface for rail-level chips (OCI ForkButton/YoloButton
+	 * pattern). -strong is the hover/focus deepen. */
+	--color-accent-pink: #f7a8c4;
+	--color-accent-pink-strong: #f48bb4;
+
+	/* OCI status dots (ChipButton statusConfig parity, 2026-08-22) */
+	--color-status-pass: #10b981;
+	--color-status-fail: #ef4444;
+	--color-status-pending: #f59e0b;
+}
+
+/* SessionStatus run color — app-wide (2026-09-03): the live-motion glyph
+ * paints RED everywhere it renders (sidebar rows, panel title chip, the
+ * think chip) — one token here, no per-host overrides. #b91c1c is the
+ * palette's contrast-calibrated red (SessionStatus notes: 6.47 white /
+ * 5.53 wash / 5.27 hover / 4.55 selected — clears WCAG 1.4.11's 3:1 on
+ * every field). Accepted consequence: run and delegated bars share the
+ * red family — the ×N count badge and the accessible name carry the
+ * delegation split (the documented 1.4.1 non-color carriers). */
+@layer base {
+	:root {
+		--si-run: #b91c1c;
+	}
+}
+
+/* OCI global icon color standard (app.css parity, 2026-08-26): purple is
+ * the DEFAULT icon identity — lucide icons inherit currentColor, so
+ * without this every icon borrows its parent's text color. This rule
+ * reaches EVERY icon, including icons inside buttons and links (copy,
+ * image, chevrons, gear — generic affordances read as one accent).
+ *
+ * Control-owned exceptions are SCOPED where color carries meaning
+ * (revision 2026-08-26: the earlier blanket "button svg { color: inherit }"
+ * guard suppressed the purple default for every control icon and was
+ * removed): saturated controls paint white glyphs on their own surface
+ * (PromptInput send/cancel, BackToTheEdgeButton, UserMessagesButton), pill
+ * selected states follow the on-state text color (Agents/Workspaces/
+ * SessionFilter), and state-semantic toggles carry their state
+ * (StickToBottomToggle maroon/grey). Each states its scoped
+ * ":global(svg) { color: inherit }" next to the surface it belongs to. */
+@layer base {
+	svg {
+		color: var(--color-accent-purple);
+	}
+}
+
+/* OCI scrollbar stack (app.css parity, 2026-08-26): thin themed rail
+ * everywhere, plus the hidden-scrollbar utility for tab bars and
+ * horizontal scrollers. DSI is scroll-dense (split-scroll sidebar, panel
+ * floor, internal-scroll panes) — the default chunky scrollbar in those
+ * thin columns was the biggest visual parity gap. */
+::-webkit-scrollbar {
+	width: 6px;
+}
+::-webkit-scrollbar-track {
+	background: var(--color-surface);
+}
+::-webkit-scrollbar-thumb {
+	background: var(--color-surface-border);
+	border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+	background: var(--color-text-muted);
+}
+.scrollbar-none {
+	-ms-overflow-style: none;
+	scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+	display: none;
+}
+
+/* OCI font contract (app.css parity, 2026-08-22): the same Inter stack on
+ * body and .md-content — PromptBubble renders its markdown body inside
+ * MarkdownContent (.md-content), so the family must be pinned there too or
+ * the body stack leaks through. */
+body {
+	@apply bg-surface text-text-primary antialiased;
+	font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.md-content {
+	font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+	/* Long unbroken tokens (paths, URLs, hashes) must wrap inside the popup —
+	 * an intrinsic min-width would blow out the 80%-width assistant turn and
+	 * scroll the whole transcript horizontally (2026-08-22 width bug). */
+	min-width: 0;
+	overflow-wrap: break-word;
+	word-break: break-word;
+}
+.md-content table {
+	margin: 0.5em 0;
+	border-collapse: collapse;
+	width: 100%;
+	background: rgba(139, 92, 246, 0.04);
+	border: 1px solid rgba(139, 92, 246, 0.2);
+	border-radius: 0.5em;
+	overflow: hidden;
+	display: block;
+	overflow-x: auto;
+	white-space: nowrap;
+}
+
+/* Markdown content — OCI app.css block, verbatim port (2026-08-22).
+ * Fixes the dead-turn bullet bug: Tailwind 4 preflight resets ul/ol to
+ * list-style:none + zero padding, so the PromptBubble's <ul> rendered as
+ * unindented text with no markers. The same overrides OCI carries restore
+ * disc/decimal lists, spacing, headings, tables, and code skins.
+ * NOTE: table rules live ONCE above — that block merges OCI's verbatim
+ * base with DSI's wide-table horizontal-scroll behavior (display:block +
+ * overflow-x + nowrap, 2026-08-22 width fix); the OCI-verbatim restatement
+ * that used to sit below did not reset those three properties. */
+.md-content p {
+	margin-top: 0.5em;
+	margin-bottom: 0.25em;
+}
+.md-content ul {
+	list-style-type: disc;
+	padding-left: 1.5em;
+	margin: 0.2em 0;
+}
+.md-content ol {
+	list-style-type: decimal;
+	padding-left: 1.5em;
+	margin: 0.2em 0;
+}
+.md-content li {
+	display: list-item;
+}
+.md-content h1,
+.md-content h2,
+.md-content h3 {
+	margin: 0.75em 0 0.3em;
+	font-weight: 800;
+	color: var(--color-text-primary);
+}
+.md-content h1 { font-size: 1.25em; }
+.md-content h2 { font-size: 1.1em; }
+.md-content h3 { font-size: 1em; }
+.md-content blockquote {
+	margin: 0.5em 0;
+	padding: 0.3em 0.75em;
+	border-left: 3px solid rgba(139, 92, 246, 0.4);
+	color: var(--color-text-secondary);
+}
+.md-content strong {
+	font-weight: 600;
+	color: var(--color-text-primary);
+}
+.md-content em {
+	color: #7c3aed;
+}
+.md-content hr {
+	margin: 0.5em 0;
+	border: none;
+	border-top: 1px solid var(--color-surface-border);
+}
+.md-content a {
+	color: var(--color-accent-blue);
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+.md-content th {
+	background: rgba(139, 92, 246, 0.12);
+	color: var(--color-text-primary);
+}
+.md-content th,
+.md-content td {
+	padding: 0.35em 0.6em;
+	border: 1px solid rgba(139, 92, 246, 0.15);
+	text-align: left;
+}
+.md-content tbody tr:nth-child(even) {
+	background: rgba(139, 92, 246, 0.03);
+}
+.md-content tbody tr:hover {
+	background: rgba(139, 92, 246, 0.08);
+}
+.md-content code:not(pre code),
+.md-content :not(pre) > code {
+	font-size: 0.8em;
+	padding: 0.15em 0.35em;
+	border-radius: 0.3em;
+	background: rgba(139, 92, 246, 0.08);
+	color: #7c3aed;
+	font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+}
+.md-content pre {
+	margin: 0.5em 0;
+	padding: 0.5em 0.5em;
+	border-radius: 0.5em;
+	background: #f1f3f5;
+	border: 1px solid var(--color-surface-border);
+	overflow-x: auto;
+	font-size: 0.8em;
+	max-width: 100%;
+}
+.md-content pre code {
+	font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+	color: #212529;
+}
+
+/* Assistant-turn text→chips seam (2026-08-23): inside a turn bubble the
+ * markdown body's LAST block is followed by the InlineToolCalls chip row
+ * (or nothing) — its trailing margin was the whole 7px gap between text
+ * and chips. Drop it there; the chip row and the bubble's own bottom
+ * padding provide the separation. Scoped to assistant turns so
+ * PromptBubble's body↔chips rhythm (mt-1 after text) stays as designed. */
+[data-testid='assistant-turn'] .md-content > :last-child {
+	margin-bottom: 0.25em;
+}
+/* Symmetric seam, chips→text: the markdown body's FIRST block after a
+ * chip row carries the same margin on top. */
+[data-testid='assistant-turn'] .md-content > :first-child {
+	margin-top: 0.5em;
+}
+
+
+/* Mermaid diagram placeholders (2026-08-23): centered, capped width —
+ * the mermaid runtime swaps the SVG in client-side (lazy-loaded). */
+.md-content .mermaid-diagram {
+	display: flex;
+	justify-content: center;
+	margin: 0.5em 0;
+	padding: 0.5em;
+	overflow-x: auto;
+}
+.md-content .mermaid-diagram svg {
+	max-width: 100%;
+	height: auto;
+}

@@ -1,0 +1,34 @@
+chat:
+  input:
+    maxRows: 15
+  accessConfirmTimeoutMs: 12000
+  macro:
+    maxLines: 25
+    maxDepth: 3
+conversation:
+  pollRunningMs: 500
+  pollIdleMs: 2000
+  collapsable: true
+  progresiveFold: true
+  statsBar: full-ledger
+home:
+  refreshMs: 5000
+server:
+  ringCapacity: 500
+panel:
+  defaultWidth: 730
+  minWidth: 480
+  maxWidth: 860
+  minZoom: 0.25
+  maxZoom: 1.25
+sidebar:
+  placement: none
+  defaultWidth: 400
+  minWidth: 200
+  maxWidth: 500
+prompts:
+  tags: session lookup macro skill plan git rca kb ptc cordis standard minimal
+  dbPath: ~/agentic-ai/deepseek-insight/template/.dsi/
+dsh:
+  authToken: FPF0nflCaApjA-K-MD99RG_u6PnnSjdrhJqs1fTsbus
+  presetEnglish: true

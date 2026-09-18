@@ -1,0 +1,57 @@
+/**
+ * dsi-cli unit tests — the launcher's Skill Mirror wiring (Wave 2) and the
+ * published-manifest contract (D3). bin/dsi.mjs executes at import, so the
+ * wiring is pinned structurally (source order + syntax) plus a help smoke.
+ */
+import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { join } from 'node:path';
+
+const repoRoot = join(__dirname, '..', '..');
+const cli = readFileSync(join(repoRoot, 'bin', 'dsi.mjs'), 'utf-8');
+const manifest = JSON.parse(readFileSync(join(repoRoot, 'package.json'), 'utf-8')) as {
+	files?: string[];
+};
+
+describe('dsi.mjs — Skill Mirror wiring (Wave 2)', () => {
+	it('imports the mirror module', () => {
+		expect(cli).toContain("from './lib/mirror-skills.mjs'");
+	});
+
+	it('calls the mirror step BEFORE both child spawns (web and sync paths)', () => {
+		// The mirror call must precede each path's actual spawn CALL SITE:
+		// the sync path spawns via runSyncedPair(...), the web path via the
+		// 'const child =' line (both variants resolve there).
+		const def = cli.indexOf('function runSkillsMirror');
+		const calls = [...cli.matchAll(/\trunSkillsMirror\(\);/g)].map((m) => m.index ?? -1);
+		const syncSpawn = cli.indexOf('runSyncedPair('); // first occurrence = the call
+		const webSpawn = cli.indexOf('const child ='); // the web branch's spawn line
+		expect(def).toBeGreaterThan(-1);
+		expect(calls.length).toBe(2); // wired on BOTH paths (web + dsh --sync)
+		const [syncCall, webCall] = calls;
+		expect(syncCall).toBeLessThan(syncSpawn); // mirror runs before the pair
+		expect(webCall).toBeLessThan(webSpawn); // mirror runs before the child
+	});
+});
+
+describe('package.json — the skill source ships (D3)', () => {
+	it('files includes .agents', () => {
+		expect(manifest.files).toContain('.agents');
+	});
+
+	it('the repo carries the six skill directories, each with a SKILL.md', () => {
+		const skills = ['dsi-adr', 'dsi-i18n-migrate', 'dsi-release', 'dsi-spcheck', 'dsi-spec', 'dsi-task'];
+		for (const name of skills) {
+			const entry = join(repoRoot, '.agents', 'skills', name, 'SKILL.md');
+			expect(existsSyncHard(entry), name).toBe(true);
+		}
+	});
+});
+
+// vitest happy-dom environment has no fs-based existsSync import here by
+// design — keep the file dependency-light with one inline check
+import { existsSync } from 'node:fs';
+function existsSyncHard(path: string): boolean {
+	return existsSync(path);
+}
