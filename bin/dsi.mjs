@@ -4,15 +4,18 @@
 // prepares the artifacts, this launcher only runs them. The build is resolved
 // relative to this file, not the cwd, so a globally installed or npx-run
 // package serves its own bundled build from any directory.
-// `dsi zai` bootstraps a fresh DSH install: it adds the ZAI provider and the
-// default model to ~/.dsh/settings.yaml (idempotent — existing entries win).
+// `--zai` (on `dsi web` / `dsi dsh --sync`) bootstraps a fresh DSH install:
+// it adds the ZAI provider and the default model to ~/.dsh/settings.yaml
+// (idempotent — existing entries win). The standalone `dsi zai` command was
+// decommissioned — the flag does the same work before anything boots.
 // `dsi dsh --token <token>` copies a dsh launch token into DSI's config
 // ($DSI_CONFIG_PATH or ~/.dsi/settings.yaml, key dsh.authToken — the same
 // file scripts/dsh-web-synced.sh keeps fresh). `dsi dsh --sync` runs that
 // script AND serves the dsi build — one foreground pair, one Ctrl-C.
 // `--dev` serves the Vite dev server instead of the build (sources only).
 // `dsi dsh --sync-kills` sweeps orphans a lost previous run left behind.
-// `dsi dsh --ov` (or --sync --ov) installs the OpenViking memory plugin into
+// `dsi dsh --ov` (or --sync --ov, or web --ov) installs the OpenViking
+// memory plugin into
 // the active dsh profile by delegating to `dsh plugin ... add` (idempotent).
 
 import { spawn, spawnSync } from 'node:child_process';
@@ -65,11 +68,9 @@ const USAGE = [
 	'',
 	'  All commands (flags — see above):',
 	'',
-	'      dsi web [--zai] [--dev] [--token <token>]',
+	'      dsi web [--zai] [--ov] [--dev] [--token <token>]',
 	'                   serve the DSI page alone (PORT env default 5174,',
 	'                   HOST env default 127.0.0.1)',
-	'      dsi zai      add the ZAI provider + default model to',
-	'                   ~/.dsh/settings.yaml',
 	'      dsi dsh --token <token>',
 	'                   store the dsh launch token in ~/.dsi/settings.yaml',
 	'      dsi dsh --sync [--zai] [--dev] [--ov]',
@@ -87,7 +88,7 @@ if (command === '--help' || command === '-h' || command === 'help') {
 	console.log(USAGE);
 	process.exit(0);
 }
-if (command !== 'web' && command !== 'zai' && command !== 'dsh') {
+if (command !== 'web' && command !== 'dsh') {
 	console.error(command === undefined ? 'dsi: missing command' : `dsi: unknown command "${command}"`);
 	console.error(USAGE);
 	process.exit(64);
@@ -135,11 +136,6 @@ const ZAI_DEFAULT_MODEL = { provider: 'zai', model: 'glm-5.3-flash' };
 
 function isRecord(value) {
 	return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-if (command === 'zai') {
-	addZaiProvider();
-	process.exit(0);
 }
 
 // ── dsi dsh ────────────────────────────────────────────────────────────────
@@ -525,12 +521,14 @@ function startDsiServer(defaultPort = '5174') {
 if (command === 'web') {
 	// Optional dsi-side flags, the same meanings as `dsi dsh --sync`: --zai
 	// bootstraps the ZAI provider BEFORE anything boots (so this run picks it
-	// up), --token stores the dsh launch token before the page serves, --dev
-	// swaps the built server for the Vite dev server. Everything is done
+	// up), --token stores the dsh launch token before the page serves, --ov
+	// installs the OpenViking memory plugin, --dev swaps the built server for
+	// the Vite dev server. Everything is done
 	// first, then the one child spawns and the script falls off the end.
 	const rest = process.argv.slice(3);
 	const withZai = rest.includes('--zai');
 	const withDev = rest.includes('--dev');
+	const withOv = rest.includes('--ov');
 	const tokenIdx = rest.indexOf('--token');
 	let token;
 	if (tokenIdx !== -1) {
@@ -541,7 +539,7 @@ if (command === 'web') {
 		}
 	}
 	const unknown = rest.filter((arg, i) =>
-		arg !== '--zai' && arg !== '--dev'
+		arg !== '--zai' && arg !== '--ov' && arg !== '--dev'
 		&& arg !== '--token' && !(tokenIdx !== -1 && i === tokenIdx + 1)
 	);
 	if (unknown.length > 0) {
@@ -550,9 +548,14 @@ if (command === 'web') {
 		process.exit(64);
 	}
 	if (withZai) addZaiProvider();
+	if (withOv) runOvPlugin();
 	if (token !== undefined) setDshAuthToken(token);
 	runSkillsMirror();
 	const child = withDev ? startDsiDevServer() : startDsiServer();
+	// Same browser-follows-the-UI contract as the pair (runSyncedPair): open
+	// the default browser at the serving port — --dev's Vite server takes
+	// 5175, the built server 5174; PORT/HOST overrides apply.
+	openBrowser(`http://${process.env.HOST ?? '127.0.0.1'}:${process.env.PORT ?? (withDev ? '5175' : '5174')}/`);
 
 	for (const signal of ['SIGINT', 'SIGTERM']) {
 		process.on(signal, () => {
