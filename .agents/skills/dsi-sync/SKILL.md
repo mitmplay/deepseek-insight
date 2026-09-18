@@ -6,14 +6,14 @@ description: Use when the user runs /dsi-sync or says to sync/mirror DeepSeek In
 # DSI → GitHub Mirror Sync
 
 Mirror DSI into a publishable GitHub repo, then commit & push. The mirror lives at
-`/Users/wharsojo/github/deepseek-insight` and has its own `.git` (origin:
+`~/github/deepseek-insight` and has its own `.git` (origin:
 `git@github.com:mitmplay/deepseek-insight.git`). Never touch the mirror's `.git`
 or DSI's `dev/` folder.
 
 ## Source of truth
 
-- SOURCE: `/Users/wharsojo/agentic-ai/deepseek-insight/`
-- MIRROR: `/Users/wharsojo/github/deepseek-insight/`
+- SOURCE: `~/agentic-ai/deepseek-insight/`
+- MIRROR: `~/github/deepseek-insight/`
 - EXCLUDED from sync (always): `dev/`, `.git/`
 - The mirror's own `.git` is protected because rsync excludes `.git/` — with
   `--delete`, excluded target paths are never deleted.
@@ -24,8 +24,8 @@ or DSI's `dev/` folder.
 rsync -a --delete \
   --exclude 'dev/' \
   --exclude '.git/' \
-  /Users/wharsojo/agentic-ai/deepseek-insight/ \
-  /Users/wharsojo/github/deepseek-insight/
+  ~/agentic-ai/deepseek-insight/ \
+  ~/github/deepseek-insight/
 ```
 
 Trailing slashes matter: they copy CONTENTS of source into target, not the folder itself.
@@ -33,8 +33,8 @@ Trailing slashes matter: they copy CONTENTS of source into target, not the folde
 ## 2. Verify the exclusions held
 
 ```bash
-test -d /Users/wharsojo/github/deepseek-insight/dev && echo 'BAD: dev leaked' || echo 'ok: no dev'
-test -d /Users/wharsojo/github/deepseek-insight/.git && echo 'ok: .git intact' || echo 'BAD: .git lost'
+test -d ~/github/deepseek-insight/dev && echo 'BAD: dev leaked' || echo 'ok: no dev'
+test -d ~/github/deepseek-insight/.git && echo 'ok: .git intact' || echo 'BAD: .git lost'
 ```
 
 If either BAD line prints, stop and fix before committing — do not push a broken mirror.
@@ -42,7 +42,7 @@ If either BAD line prints, stop and fix before committing — do not push a brok
 ## 3. Commit & push (skip if nothing changed)
 
 ```bash
-cd /Users/wharsojo/github/deepseek-insight
+cd ~/github/deepseek-insight
 git add -A
 if git diff --cached --quiet; then
   echo 'no changes to sync'
