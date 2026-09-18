@@ -47,12 +47,15 @@ git add -A
 if git diff --cached --quiet; then
   echo 'no changes to sync'
 else
-  git commit -m "sync from DSI $(date +%Y-%m-%d %H:%M)"
+  git commit -m "sync from DSI $(date '+%Y-%m-%d %H:%M')"
   git push origin main
 fi
 ```
 
 - Always use `git add -A` then check the staged diff — never commit blind.
+- Quote the date format: `(date '+%Y-%m-%d %H:%M')` — unquoted, the space
+  word-splits the expansion and `date` errors with "illegal time format"
+  (observed 2026-09-18).
 - Report to the user: file count changed (or "no changes"), commit hash, push result.
 - If push is rejected (non-fast-forward), STOP and ask the user — never force-push
   without explicit approval.
