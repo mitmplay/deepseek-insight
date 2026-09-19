@@ -6,6 +6,10 @@
 
 > A `Prompt Input` with **Slash-command(/)**, **Macros(!)** and **Auto-complete(?)**. Prompt-manager you can search it and to manage macros & autocomplete; user-prompts worth keeping is one-click-away tobe reuse.
 
+> Included skills for:
+> - Spec and Tasks execution, 
+> - Integration helper for [OpenViking](https://openviking.ai/)  
+
 > **Your language.** The interface speaks English, Chinese, Indonesian & Spanish.
 
 <details>
@@ -34,4 +38,5 @@ When it is up, your browser opens the page by itself (default `http://127.0.0.1:
 
 ## License
 
-[Apache-2.0](LICENSE) — Copyright © 2026 Widi Harsojo
+[Apache-2.0](LICENSE) — Copyright © 2026 [Widi Harsojo](https://www.linkedin.com/in/wharsojo/)
+> OPEN TO WORK (SG_PR)

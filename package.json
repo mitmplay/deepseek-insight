@@ -1,6 +1,6 @@
 {
 	"name": "@deepseek-insight/dsi",
-	"version": "0.5.21",
+	"version": "0.5.22",
 	"type": "module",
 	"packageManager": "pnpm@11.7.0",
 	"scripts": {
