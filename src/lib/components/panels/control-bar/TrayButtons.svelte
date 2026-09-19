@@ -27,6 +27,7 @@
 <div class="tray-buttons" data-testid="controlbar-tray-buttons" role="group" aria-label={t(m.floorCapture)}>
 	<CanvasCopyButton
 		container={captureContainer}
+		mode="visible"
 		title={t(m.copyFloorImage)}
 		size={14}
 		class="inline-flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded text-[color:var(--color-text-secondary,#6c757d)] transition-colors hover:bg-surface-hover hover:text-[color:var(--color-text-primary,#212529)]"

@@ -14,6 +14,7 @@
   "selectedRows": "☑ 已选",
   "showOnlySelected": "仅显示已选行",
   "searchPrompts": "搜索提示…",
+  "clearSearch": "清除搜索",
   "close": "关闭",
   "promptsManager": "提示管理器",
   "manageSavedPrompts": "管理已保存的提示",
@@ -173,6 +174,7 @@
   "uses": "使用次数",
   "labelSlashText": "标签 / 文本",
   "macro": "宏",
+  "macroShort": "宏",
   "actions": "操作",
   "tags": "标签",
   "filterByTags": "按标签筛选",
@@ -334,5 +336,9 @@
   "selected": "已选择",
   "promptStreamingPh": "本轮正在生成 — 取消以停止，或等待其完成…",
   "promptDefaultPh": "发送提示…（Enter 发送，Shift+Enter 换行，? 查找已保存的 prompt）",
-  "unknownEventNoPayload": "此事件没有记录任何负载。"
+  "labelSlashTextMode": "标签/文本模式",
+	"modeRawTitle": "原始文本 — 5 行后滚动",
+	"modeNormTitle": "流式预览",
+	"unknownEventNoPayload": "此事件没有记录任何负载。",
+  "copyPanelAsImage": "复制面板为图片（Shift+点击 可保存）"
 }

@@ -8,7 +8,7 @@
  */
 import { mount, unmount, flushSync } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import PromptManagerAdd from '$lib/components/chat/PromptManagerAdd.svelte';
+import PromptManagerAdd from '$lib/components/prompt-manager/PromptManagerAdd.svelte';
 import type { ComponentProps } from 'svelte';
 import PromptManagerAddHost from './PromptManagerAddHost.svelte';
 

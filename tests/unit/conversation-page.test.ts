@@ -374,7 +374,9 @@ describe('+page.svelte — rendering from stubbed data', () => {
 		// PAIRED callId no longer renders. Tests-changed-with-behavior rule.
 		expect(chips).toHaveLength(2);
 		expect(chips[0].getAttribute('data-kind')).toBe('call');
-		expect(chips[0].textContent).toContain('grep');
+		// BC-F naming parity: the chip shows the variant title (grep → Search),
+		// not the wire name — see tool-titles.ts / inline-tool-calls.test.ts.
+		expect(chips[0].textContent).toContain('Search');
 		expect(chips[0].getAttribute('data-status')).toBe('pass'); // paired result flipped the call's lifecycle
 				expect(chips[1].getAttribute('data-kind')).toBe('unknown');
 		expect(chips[1].textContent).toContain('plugin/frobnicated');

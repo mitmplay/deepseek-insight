@@ -14,6 +14,7 @@
   "selectedRows": "☑ Dipilih",
   "showOnlySelected": "Hanya tampilkan baris terpilih",
   "searchPrompts": "Cari prompt…",
+  "clearSearch": "Hapus pencarian",
   "close": "Tutup",
   "promptsManager": "Pengelola prompt",
   "manageSavedPrompts": "Kelola prompt tersimpan",
@@ -173,6 +174,7 @@
   "uses": "Pemakaian",
   "labelSlashText": "Label / Teks",
   "macro": "Makro",
+  "macroShort": "MCR",
   "actions": "Tindakan",
   "tags": "Tag",
   "filterByTags": "Filter menurut tag",
@@ -334,5 +336,9 @@
   "selected": "Dipilih",
   "promptStreamingPh": "Giliran sedang berjalan — Batalkan untuk menghentikan, atau tunggu selesai…",
   "promptDefaultPh": "Kirim prompt… (Enter untuk mengirim, Shift+Enter untuk baris baru, ? untuk mencari prompt tersimpan)",
-  "unknownEventNoPayload": "Tidak ada payload yang tercatat untuk peristiwa ini."
+  "labelSlashTextMode": "Mode label/teks",
+	"modeRawTitle": "Teks mentah — 5 baris, lalu gulir",
+	"modeNormTitle": "Pratinjau mengalir",
+	"unknownEventNoPayload": "Tidak ada payload yang tercatat untuk peristiwa ini.",
+  "copyPanelAsImage": "Salin panel sebagai gambar (Shift+Klik untuk menyimpan)"
 }

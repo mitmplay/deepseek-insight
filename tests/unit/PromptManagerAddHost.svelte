@@ -4,7 +4,7 @@
 	 * reactive props object so the $bindable round-trip (text/label/tags
 	 * reflecting back into the parent) is observable from the unit test.
 	 */
-	import PromptManagerAdd from '$lib/components/chat/PromptManagerAdd.svelte';
+	import PromptManagerAdd from '$lib/components/prompt-manager/PromptManagerAdd.svelte';
 
 	let {
 		onsave,

@@ -19,10 +19,11 @@
 	 * family meet only at /api/prompts).
 	 */
 	import { onMount } from 'svelte';
+	import { X } from '@lucide/svelte';
 	import PromptManagerTDLabel from './PromptManagerTDLabel.svelte';
-	import PromptManagerSearch from './PromptManagerSearch.svelte';
+	import PromptManagerHeader from './PromptManagerHeader.svelte';
+	import PromptManagerContainer from './PromptManagerContainer.svelte';
 	import PromptManagerTDTags from './PromptManagerTDTags.svelte';
-	import PromptManagerTagFilter from './PromptManagerTagFilter.svelte';
 	import PromptManagerTDUses from './PromptManagerTDUses.svelte';
 	import PromptManagerEdit from './PromptManagerEdit.svelte';
 	import PromptManagerAdd from './PromptManagerAdd.svelte';
@@ -60,6 +61,9 @@
 	/** Sort state: null = unsorted (server default), else {col, dir}.
 	 *  Clicking a column cycles: unsorted → asc → desc → unsorted. */
 	let sortState = $state<{ col: 'uses' | 'last_used' | 'display'; dir: 'asc' | 'desc' } | null>(null);
+	/** Label/text cell mode (2026-09-19): 'pre' — the raw text, 5 lines
+	 *  then scroll (the DEFAULT); 'norm' — the flowing preview. */
+	let textMode = $state<'norm' | 'pre'>('pre');
 	let loading = $state(false);
 	let editingId = $state<number | null>(null);
 	/** The row being edited — its table row stays highlighted while the
@@ -80,6 +84,8 @@
 	let newMacro = $state(false);
 	let errorMsg = $state<string | null>(null);
 	let searchTimer: ReturnType<typeof setTimeout> | null = null;
+	/** The panel's root element — the CanvasCopyButton capture target. */
+	let rootEl = $state<HTMLElement | null>(null);
 
 	// ── Tag filter (The Prompt Tags ADR, 2026-09-14, D5/D11) ──
 	// ONE state behind two inputs: the chip row's checked words and the
@@ -211,12 +217,6 @@
 			sortState = null; // back to unsorted
 		}
 		refresh();
-	}
-
-	/** Direction icon for a column header. */
-	function sortIcon(col: 'uses' | 'last_used' | 'display'): string {
-		if (!sortState || sortState.col !== col) return '↕';
-		return sortState.dir === 'asc' ? '▲' : '▼';
 	}
 
 	function startEdit(row: Row) {
@@ -353,109 +353,64 @@
      control — the keydown closes the manager when no sub-form is open,
      and focus reaches it through the column's focus-follow selection. -->
 <div
+	bind:this={rootEl}
 	class="mgr-panel-root"
 	role="region"
 	aria-label={t(m.promptsManager)}
 	tabindex={escapeScope === 'root' ? -1 : undefined}
 	onkeydown={escapeScope === 'root' ? onKeydown : undefined}
 >
-	<!-- Sticky header (OCI user spec 2026-08-14): toolbar row + table-head
-	     row, no gaps, stays pinned while the table body scrolls. -->
-	<div class="mgr-sticky">
-		<div class="mgr-sticky-bar">
-			<button
-				type="button"
-				class="mgr-btn mgr-btn-danger"
-				disabled={selected.size === 0}
-				onclick={deleteSelected}
-				title={selected.size > 0 ? `Delete ${selected.size} selected` : 'Select rows to enable delete'}
-			>
-				{t(m.del)}{selected.size > 0 ? ` (${selected.size})` : ''}
-			</button>
-			<div class="mgr-toolbar">
-    			{#if vocabulary.length > 0}
-    				<!-- D5: the CHIP view of the active filter — the search box's
-    			     +tokens are the same state seen from the other input. -->
-    				<PromptManagerTagFilter {vocabulary} selected={tagFilter} ontoggle={toggleTag} />
-    			{/if}
-				<PromptManagerSearch bind:value={searchQ} oninput={onSearchInput} />
-				{#if addingNew}
-					<button
-						type="button"
-						class="mgr-btn mgr-btn-cancel"
-						onclick={() => {
-							addingNew = false;
-							newText = '';
-							newLabel = '';
-							newTags = '';
-							errorMsg = null;
-						}}
-					>
-						{t(m.cancel)}
-					</button>
-				{:else}
-					<button
-						type="button"
-						class="mgr-btn mgr-btn-add"
-						onclick={() => {
-							addingNew = true;
-							errorMsg = null;
-						}}
-					>
-						{t(m.plusAdd)}
-					</button>
-				{/if}
-			</div>
-		</div>
-
-		{#if !loading && rows.length > 0}
-			<table class="mgr-table mgr-head-table">
-				<thead>
-					<tr>
-						<th class="mgr-sel-col">
-							{#if selected.size > 0}
-								<button
-									type="button"
-									class="mgr-unselect-all"
-									onclick={() => {
-										selected = new Set();
-									}}
-									title={t(m.unselectAll)}
-								>
-									☐
-								</button>
-							{/if}
-						</th>
-						<th>
-							<button
-								type="button"
-								class="mgr-sort-btn"
-								class:active={sortState?.col === 'uses'}
-								onclick={() => sortByCol('uses')}
-							>
-								{t(m.uses)} {sortIcon('uses')}
-							</button>
-						</th>
-						<th>
-							<button
-								type="button"
-								class="mgr-sort-btn"
-								class:active={sortState?.col === 'display'}
-								onclick={() => sortByCol('display')}
-							>
-								{t(m.labelSlashText)} {sortIcon('display')}
-							</button>
-						</th>
-						<th class="mgr-macro-col">{t(m.macro)}</th>
-						<th class="mgr-tags-col">{t(m.tags)}</th>
-					</tr>
-				</thead>
-			</table>
-		{/if}
-	</div>
+	<!-- Header (the former PromptManagerStickyHeader, now normal flow): the panel
+	     keeps the state (selection, search, sort, add-mode); the component
+	     renders the toolbar + head table rows. -->
+	<PromptManagerHeader
+		selectedCount={selected.size}
+		{vocabulary}
+		dbPath={appConfig().prompts.dbPath}
+		container={rootEl}
+		{tagFilter}
+		{sortState}
+		bind:textMode
+		{loading}
+		hasRows={rows.length > 0}
+		{addingNew}
+		bind:searchQ
+		ontoggle={toggleTag}
+		onsearchinput={onSearchInput}
+		ondeleteselected={deleteSelected}
+		onunselectall={() => {
+			selected = new Set();
+		}}
+		onsort={sortByCol}
+		onadd={() => {
+			addingNew = true;
+			errorMsg = null;
+		}}
+		oncanceladd={() => {
+			addingNew = false;
+			newText = '';
+			newLabel = '';
+			newTags = '';
+			errorMsg = null;
+		}}
+	/>
 
 	{#if errorMsg}
-		<div class="mgr-error">{errorMsg}</div>
+		<!-- The NewChatButton selection-alert grammar: role=alert + a
+		     × dismiss (lucide X, aria-hidden, labeled button). Closing
+		     only hides the message — the next failing refresh re-raises. -->
+		<div class="mgr-error" role="alert">
+			<span class="mgr-error-msg">{errorMsg}</span>
+			<button
+				type="button"
+				class="mgr-error-close"
+				aria-label={t(m.dismissAlert)}
+				title={t(m.dismiss)}
+				onclick={() => (errorMsg = null)}
+			>
+				<X size={11} aria-hidden="true" />
+			</button>
+		</div>
 	{/if}
 
 	{#if addingNew}
@@ -481,12 +436,13 @@
 		/>
 	{/if}
 
-	{#if loading}
-		<div class="mgr-loading">{t(m.loading)}</div>
-	{:else if rows.length === 0}
-		<div class="mgr-empty">{searchQ ? t(m.noPromptsMatch) : t(m.noPromptsYet)}</div>
-	{:else}
-		<table class="mgr-table mgr-body-table">
+	<PromptManagerContainer>
+		{#if loading}
+			<div class="mgr-loading">{t(m.loading)}</div>
+		{:else if rows.length === 0}
+			<div class="mgr-empty">{searchQ ? t(m.noPromptsMatch) : t(m.noPromptsYet)}</div>
+		{:else}
+			<table class="mgr-table mgr-body-table">
 			<tbody>
 				{#each visibleRows as row (row.id)}
 					{#if editingId === row.id}
@@ -495,7 +451,7 @@
 						<tr class="mgr-editing">
 							<td></td>
 							<td>{row.use_count}</td>
-							<PromptManagerTDLabel {row} />
+							<PromptManagerTDLabel {row} {textMode} />
 							<td class="mgr-macro-col">{row.macro === 1 ? '✓' : '—'}</td>
 							<PromptManagerTDTags {row} />
 						</tr>
@@ -520,7 +476,7 @@
 								/>
 							</td>
 							<PromptManagerTDUses {row} />
-							<PromptManagerTDLabel {row} />
+							<PromptManagerTDLabel {row} {textMode} />
 							<td class="mgr-macro-col">
 								<button
 									type="button"
@@ -538,11 +494,12 @@
 				{/each}
 			</tbody>
 		</table>
-		{#if total > rows.length}
-			<div class="mgr-footer">{total - rows.length} {t(m.moreRefine)}</div>
+			{#if total > rows.length}
+				<div class="mgr-footer">{total - rows.length} {t(m.moreRefine)}</div>
+			{/if}
 		{/if}
-	{/if}
-</div>
+	</PromptManagerContainer>
+	</div>
 
 {#if editingRow}
 	<!-- Edit dialog extracted to PromptManagerEdit (D8 seam): the panel keeps
@@ -562,97 +519,16 @@
 {/if}
 
 <style>
-	/* Sticky header — one wrapper, two rows (toolbar + table head), zero gaps.
-	   Sticks to the modal's scroll top so the whole header stays visible.
-	   Bleed rides --mgr-bleed (W4): the modal rule's 1rem is the DEFAULT —
-	   the embedded host overrides the var to match its own padding. */
-	.mgr-sticky {
-		position: sticky;
-		top: 0;
-		z-index: 5;
-		margin: 0 calc(-1 * var(--mgr-bleed, 1rem)); /* bleed to the host's edges, flush with borders */
-		background: var(--color-surface-elevated, #fff);
-		box-shadow: 0 1px 4px rgba(139, 92, 246, 0.08);
-	}
-
-	/* Title + close live in the PromptsManagerDialog shell header now;
-	   the panel's sticky bar carries only the toolbar. */
-	.mgr-sticky-bar {
+	/* Flex column (2026-09-19 rework): the header row on top (flex:none),
+	   PromptManagerContainer below taking the rest and owning the scroll.
+	   height:100% chains from the dialog's .mgr-dialog-body flex item. */
+	.mgr-panel-root {
 		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		gap: 0.5rem;
-		padding: 0.375rem 1.25rem;
-	}
-	.mgr-head-table {
-		width: 100%;
-		border-collapse: collapse;
-		table-layout: fixed;
-		margin: 0;
-		border: none;
-		border-radius: 0;
-		background: transparent;
-	}
-	.mgr-head-table thead th {
-		border-left: none;
-		border-right: none;
-	}
-	.mgr-head-table th {
-		text-align: left;
-		padding: 0.35em 0.6em;
-		border: 1px solid rgba(139, 92, 246, 0.15);
-		background: rgba(139, 92, 246, 0.12);
-		color: var(--color-text-primary);
-		font-weight: 600;
-		font-size: 0.6875rem;
-		text-transform: uppercase;
-		white-space: nowrap;
-	}
-	.mgr-unselect-all {
-		border: none;
-		background: transparent;
-		cursor: pointer;
-		font-size: 0.875rem;
-		color: var(--color-text-muted, #888);
-		padding: 0;
-		line-height: 1;
-	}
-	.mgr-unselect-all:hover {
-		color: var(--color-accent-blue, #3b82f6);
+		flex-direction: column;
+		height: 100%;
+		min-height: 0;
 	}
 
-	.mgr-toolbar {
-		display: flex;
-		flex: 1; /* occupy the sticky bar's empty space (search flex-fills inside) */
-		gap: 0.25rem;
-		align-items: center;
-	}
-
-	.mgr-btn {
-		border: 1px solid var(--color-surface-border, #dee2e6);
-		border-radius: 0.25rem;
-		padding: 0.25rem 0.5rem;
-		font-size: 0.75rem;
-		cursor: pointer;
-		background: var(--color-surface, #f8f9fa);
-	}
-	.mgr-btn:hover {
-		background: var(--color-surface-alt, #f1f3f5);
-	}
-	.mgr-btn-add {
-		color: var(--color-accent-blue, #3b82f6);
-	}
-	.mgr-btn-cancel {
-		color: var(--color-text-muted, #888);
-	}
-	.mgr-btn-danger {
-		color: #dc2626;
-	}
-	.mgr-btn-danger:disabled {
-		opacity: 0.4;
-		cursor: not-allowed;
-		color: var(--color-text-muted, #888);
-	}
 	.mgr-error {
 		padding: 0.375rem 0.5rem;
 		margin-bottom: 0.5rem;
@@ -660,6 +536,28 @@
 		border: 1px solid #fecaca;
 		border-radius: 0.25rem;
 		color: #dc2626;
+		/* alert row: message left, × dismiss right (NewChatButton grammar) */
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem;
+		font-size: 0.75rem;
+	}
+	.mgr-error-close {
+		flex-shrink: 0;
+		border: none;
+		background: transparent;
+		cursor: pointer;
+		padding: 0.125rem;
+		line-height: 1;
+		border-radius: 0.25rem;
+		color: #b91c1c;
+		display: inline-flex;
+		align-items: center;
+	}
+	.mgr-error-close:hover {
+		background: #fee2e2;
+		color: #991b1b;
 	}
 
 	/* Add-row styles moved to PromptManagerAdd.svelte */
@@ -675,40 +573,34 @@
 		border-radius: 0.5em;
 		overflow: hidden;
 	}
-	/* Column width contract shared by head + body tables. The td half is
+	/* Column width contract, td half (the th half moved to
+	   PromptManagerHeader with the head table). The td half is
 	   :global because the body cells come from child components
 	   (PromptManagerTDUses/TDLabel) and carry no panel scope class —
 	   without it, fixed layout re-splits those columns (310px regression). */
-	.mgr-table th:nth-child(1),
 	.mgr-table :global(td:nth-child(1)) {
 		width: 2rem;
 	}
-	.mgr-table th:nth-child(2),
 	.mgr-table :global(td:nth-child(2)) {
-		width: 4rem;
+		width: 2.5rem; /* matches the th half — fixed-layout contract */
 	}
-	.mgr-table th:nth-child(3),
+	/* Uses count rides the right edge of its column. Declared HERE, not
+	   in TDUses: this rule out-specifies the child's own .mgr-count. */
+	.mgr-table :global(td:nth-child(2)) {
+		text-align: right;
+	}
 	.mgr-table :global(td:nth-child(3)) {
 		width: auto;
 	}
-	.mgr-table th:nth-child(4),
 	.mgr-table :global(td:nth-child(4)) {
-		width: 3.5rem; /* Macro: title-width only; the space goes to label/text */
+		width: 2.25rem; /* Macro: 'MCR' title-width only; the space goes to label/text */
 	}
 	/* nth-child(5) — the tags column (The Prompt Tags D4) — has NO width
 	   entry: it inherits the leftover of the fixed layout, and the contract
 	   drops from five pinned widths to four. */
-	.mgr-table th {
-		text-align: left;
-		padding: 0.375rem 0.5rem;
-		border-bottom: 1px solid var(--color-surface-border, #dee2e6);
-		font-weight: 600;
-		font-size: 0.6875rem;
-		text-transform: uppercase;
-		color: var(--color-text-muted, #888);
-		white-space: nowrap;
-	}
-	.mgr-table td {
+	/* :global(td) — the body cells come from child components
+	   (TDUses/TDLabel/TDTags) and carry no panel scope class. */
+	.mgr-table :global(td) {
 		padding: 0.35em 0.6em;
 		border: 1px solid rgba(139, 92, 246, 0.15);
 		text-align: left;
@@ -717,7 +609,7 @@
 	.mgr-body-table tbody tr:nth-child(even) {
 		background: rgba(139, 92, 246, 0.03);
 	}
-	.mgr-body-table tbody tr:hover td {
+	.mgr-body-table tbody tr:hover :global(td) {
 		background: rgba(139, 92, 246, 0.08);
 	}
 	.mgr-table tr.sel td {
@@ -730,18 +622,6 @@
 	.mgr-check {
 		cursor: pointer;
 		accent-color: var(--color-accent-blue, #3b82f6);
-	}
-
-	.mgr-sort-btn {
-		border: none;
-		background: transparent;
-		font: inherit;
-		color: inherit;
-		cursor: pointer;
-		text-transform: inherit;
-	}
-	.mgr-sort-btn.active {
-		color: var(--color-accent-blue, #3b82f6);
 	}
 
 
@@ -768,16 +648,9 @@
 		color: var(--color-text-muted, #888);
 		font-size: 0.75rem;
 	}
-	.mgr-tags-col {
-		width: 10rem;
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-
 	/* Row being edited — highlighted while the dialog is open.
 	   Dialog chrome lives in PromptManagerEdit.svelte now. */
-	.mgr-editing td {
+	.mgr-editing :global(td) {
 		background: rgba(139, 92, 246, 0.16) !important;
 	}
 

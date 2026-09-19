@@ -10,6 +10,8 @@
  */
 
 import { json } from '@sveltejs/kit';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import {
 	readA2aConfig,
 	readChatConfig,
@@ -20,8 +22,18 @@ import {
 	readSidebarConfig,
 	readSettingsHomes
 } from '$lib/server/insight-config';
+import { resolvePromptsDbPath } from '$lib/server/prompts/db.js';
 
 import type { RequestHandler } from './$types';
+
+/** Security tilde-collapse: the wire carries `~/…`, never the absolute
+ *  homedir — the browser labels the library, it doesn't map the host. */
+function collapseHome(p: string): string {
+	const home = homedir();
+	if (p === home) return '~';
+	if (p.startsWith(home + '/')) return '~' + p.slice(home.length);
+	return p;
+}
 
 export const GET: RequestHandler = async () => {
 	return json({
@@ -32,9 +44,17 @@ export const GET: RequestHandler = async () => {
 		a2a: readA2aConfig(),
 		panel: readPanelConfig(),
 		sidebar: readSidebarConfig(),
-		// Only the browser-relevant half of the prompts section — the file
-		// path (dbPath) is server-side and never crosses the wire.
-		prompts: { tags: readPromptsConfig().tags },
+		// The browser-relevant half of the prompts section. dbPath crosses
+		// since 2026-09-19: the manager toolbar LABELS the library with its
+		// full file path — resolvePromptsDbPath, the exact path db.ts reads
+		// (a directory-valued config gets /prompts.sqlite composed in; ~
+		// and the env override honored). SECURITY: the homedir prefix is
+		// collapsed BACK to `~` before the wire — the browser never learns
+		// the server's absolute home path. Read-only fact, never tuned.
+		prompts: {
+			tags: readPromptsConfig().tags,
+			dbPath: collapseHome(resolvePromptsDbPath())
+		},
 		// The Settings Tree (ADR 2026-09-18 D2): the verbatim settings home
 		// roots, so /dsisettings · /dshsettings mint explorers with the
 		// server's own homedir truth. Read-only facts, never tuned.

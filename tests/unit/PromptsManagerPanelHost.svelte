@@ -1,5 +1,5 @@
 <script lang="ts">
-	import PromptManagerPanel from '$lib/components/chat/PromptManagerPanel.svelte';
+	import PromptManagerPanel from '$lib/components/prompt-manager/PromptManagerPanel.svelte';
 
 	let {
 		escapeScope = 'window' as 'window' | 'root',

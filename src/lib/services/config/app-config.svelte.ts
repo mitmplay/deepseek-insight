@@ -113,6 +113,9 @@ export interface AppConfig {
 		/** The tag vocabulary for the save popup and the manager chip row
 		 *  (The Prompt Tags ADR, 2026-09-14, D5). */
 		tags: string[];
+		/** The prompts.sqlite FULL path (server-expanded homedir) — the
+		 *  manager toolbar's label. '' when the server sends none. */
+		dbPath: string;
 	};
 	settingsHomes: {
 		/** The verbatim settings home roots (The Settings Tree ADR,
@@ -156,7 +159,7 @@ function freshDefault(): AppConfig {
 			maxWidth: DEFAULT_SIDEBAR_MAX_WIDTH,
 			placement: DEFAULT_SIDEBAR_PLACEMENT
 		},
-		prompts: { tags: [...DEFAULT_PROMPT_TAGS] },
+		prompts: { tags: [...DEFAULT_PROMPT_TAGS], dbPath: '' },
 		settingsHomes: { dsi: '~/.dsi', dsh: '~/.dsh' }
 	};
 }
@@ -289,6 +292,10 @@ function applyConfig(body: Record<string, unknown>): void {
 		.map((w) => w.toLowerCase())
 		.filter(isValidTagWord);
 	if (tags.length > 0) config.prompts.tags = tags;
+	// dbPath — read-only labeling fact; a missing/invalid value keeps ''.
+	if (typeof prompts.dbPath === 'string' && prompts.dbPath.length > 0) {
+		config.prompts.dbPath = prompts.dbPath;
+	}
 
 	// settingsHomes (The Settings Tree ADR 2026-09-18 D2): accept only the
 	// server's two strings; junk keeps the tilde fallbacks.

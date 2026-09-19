@@ -26,6 +26,7 @@
 <div class="rail-header-actions">
 	<CanvasCopyButton
 		container={captureContainer}
+		mode="visible"
 		title={t(m.copyPageImage)}
 		size={14}
 		class="inline-flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded transition-colors hover:bg-surface-hover"

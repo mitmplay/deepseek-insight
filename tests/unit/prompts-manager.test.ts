@@ -151,7 +151,9 @@ describe('PromptsManager — refresh + sort', () => {
 		const call = store.calls.find((c) => c.url.startsWith('/api/prompts?'));
 		expect(call).toBeDefined();
 		expect(call!.url).toContain('sort=last_used'); // server default
-		const previews = Array.from(document.body.querySelectorAll('.mgr-preview')).map((e) => e.textContent);
+		// text mode defaults to 'pre' (raw text, PromptManagerPanel 2026-09-19);
+		// 'norm' mode renders the truncated .mgr-preview instead.
+		const previews = Array.from(document.body.querySelectorAll('.mgr-pre, .mgr-preview')).map((e) => e.textContent);
 		expect(previews).toContain('load project AIP, OCI');
 		expect(modal!.querySelectorAll('tbody tr')).toHaveLength(3);
 		cleanup(h.instance, h.target);

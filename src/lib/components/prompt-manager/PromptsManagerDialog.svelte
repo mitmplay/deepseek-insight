@@ -19,7 +19,7 @@
 	 * escapes the zoom trap"). The host renders this component inside a
 	 * {#if} — onclose unmounts it.
 	 */
-	import PromptManagerPanel from './PromptManagerPanel.svelte';
+	import PromptManagerPanel from '../prompt-manager/PromptManagerPanel.svelte';
 	import { MANAGER_ROW_TITLE } from '$lib/services/panels/panel-rows';
 
 	let {

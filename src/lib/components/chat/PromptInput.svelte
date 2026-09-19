@@ -17,7 +17,7 @@
 	import PromptInputText from './PromptInputText.svelte';
 	import CommandHelpCard from './CommandHelpCard.svelte';
 	import SlashMenu, { slashMenuMatches } from './SlashMenu.svelte';
-	import PromptsManagerDialog from './PromptsManagerDialog.svelte';
+	import PromptsManagerDialog from '../prompt-manager/PromptsManagerDialog.svelte';
 	import {
 		getTrigger,
 		searchKey,

@@ -47,7 +47,7 @@
 	import { appConfig } from '$lib/services/config/app-config.svelte';
 	import AppSidebar from '$lib/components/common/layout/AppSidebar.svelte';
 	import ConversationPanel from '$lib/components/chat/ConversationPanel.svelte';
-	import PromptManagerPanel from '$lib/components/chat/PromptManagerPanel.svelte';
+	import PromptManagerPanel from '$lib/components/prompt-manager/PromptManagerPanel.svelte';
 	import SettingsEditorPanel from '$lib/components/panels/SettingsEditorPanel.svelte';
 	import InjectedDocPanel from '$lib/components/panels/InjectedDocPanel.svelte';
 	import WorkspaceExplorerPanel from '$lib/components/panels/WorkspaceExplorerPanel.svelte';

@@ -14,7 +14,7 @@
 
 <details>
   <summary>Deepseek-insight-panels</summary>
-  <img src="https://raw.githubusercontent.com/mitmplay/deepseek-insight/refs/heads/main/docs/images/deepseek-insight-panels.png"/>
+  <img src="https://raw.githubusercontent.com/mitmplay/deepseek-insight/refs/heads/main/docs/images/dsi-panels.png"/>
 </details>
 
 ---

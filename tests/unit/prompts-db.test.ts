@@ -465,10 +465,16 @@ describe('manager queries (listPrompts / create / update / delete)', () => {
 		expect(page2.rows.map((r) => r.id)).toEqual([1]);
 	});
 
-	it('prefix filter q matches label or text', () => {
+	it('contains filter q matches label or text (mid-string too)', () => {
 		const rows = listPrompts({ q: 'gam' });
 		expect(rows.rows.map((r) => r.id)).toEqual([3]);
 		expect(rows.total).toBe(1);
+		// The 2026-09-19 contains fix: a mid-string word hits (the old
+		// prefix filter `q%` could never match 'suite' in 'run alpha suite').
+		const mid = listPrompts({ q: 'suite' });
+		expect(mid.rows.map((r) => r.id)).toEqual([1]);
+		const midLabel = listPrompts({ q: 'lph' }); // 'lph' inside label 'Alpha'
+		expect(midLabel.rows.map((r) => r.id)).toEqual([1]);
 	});
 
 	it('unknown sort falls back to last_used DESC', () => {
@@ -648,8 +654,8 @@ describe('listPrompts tags — padded LIKE AND semantics (D4)', () => {
 	it('tags compose with q in one WHERE clause', () => {
 		const { rows } = listPrompts({ tags: ['git'], q: 'commit' });
 		expect(rows.map((r) => r.text)).toEqual(['commit all and push']);
-		// q is a PREFIX filter — a word that prefixes no label/text of the
-		// tag-surviving rows is an honest miss.
+		// q is a CONTAINS filter (2026-09-19) — a word matching no
+		// substring of the tag-surviving rows is an honest miss.
 		const { rows: miss } = listPrompts({ tags: ['git'], q: 'zzz' });
 		expect(miss).toEqual([]);
 	});

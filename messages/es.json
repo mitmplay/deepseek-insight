@@ -14,6 +14,7 @@
   "selectedRows": "☑ Seleccionadas",
   "showOnlySelected": "Mostrar solo las filas seleccionadas",
   "searchPrompts": "Buscar prompts…",
+  "clearSearch": "Limpiar búsqueda",
   "close": "Cerrar",
   "promptsManager": "Gestor de prompts",
   "manageSavedPrompts": "Gestionar prompts guardados",
@@ -173,6 +174,7 @@
   "uses": "Usos",
   "labelSlashText": "Etiqueta / Texto",
   "macro": "Macro",
+  "macroShort": "MCR",
   "actions": "Acciones",
   "tags": "Etiquetas",
   "filterByTags": "Filtrar por etiquetas",
@@ -334,5 +336,9 @@
   "selected": "Seleccionado",
   "promptStreamingPh": "Turno en curso — Cancelar para detener, o espera a que termine…",
   "promptDefaultPh": "Envía un prompt… (Enter para enviar, Shift+Enter para nueva línea, ? para buscar un prompt guardado)",
+  "labelSlashTextMode": "Modo etiqueta/texto",
+  "modeRawTitle": "Texto sin formato — 5 líneas, luego desplazamiento",
+  "modeNormTitle": "Vista fluida",
+  "copyPanelAsImage": "Copiar panel como imagen (Shift+Clic para guardar)",
   "unknownEventNoPayload": "No hay carga registrada para este evento."
 }

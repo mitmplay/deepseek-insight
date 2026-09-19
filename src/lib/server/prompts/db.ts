@@ -970,7 +970,9 @@ const SORT_MAP: Record<string, { col: string; asc: string; desc: string }> = {
 };
 
 /**
- * List prompts for the manager (ADR E4). Supports optional prefix filter,
+ * List prompts for the manager (ADR E4). Supports optional contains
+ *  filter (substring match on label/text — mid-string words like the
+ *  `coverage` of `pnpm test:coverage` now hit), sort, and offset paging.
  *  sort, and offset paging. Returns rows + total count (for cap-footer UX).
  */
 export function listPrompts(opts: {
@@ -1004,7 +1006,9 @@ export function listPrompts(opts: {
 
 	try {
 		if (q) {
-			const like = `${escLike(q)}%`;
+			// Contains filter: `%q%` — the 2026-09-19 fix; the old prefix
+			// (`q%`) could never match a word mid-text (e.g. `coverage`).
+			const like = `%${escLike(q)}%`;
 			const where = [qCond, ...tagConds].join(' AND ');
 			const rows = db
 				.prepare(

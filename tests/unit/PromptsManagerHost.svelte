@@ -1,5 +1,5 @@
 <script lang="ts">
-	import PromptsManagerDialog from '$lib/components/chat/PromptsManagerDialog.svelte';
+	import PromptsManagerDialog from '$lib/components/prompt-manager/PromptsManagerDialog.svelte';
 
 	const events = $state<string[]>([]);
 </script>

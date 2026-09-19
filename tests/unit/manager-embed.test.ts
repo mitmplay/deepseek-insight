@@ -8,7 +8,7 @@
  */
 import { mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import PromptManagerPanel from '$lib/components/chat/PromptManagerPanel.svelte';
+import PromptManagerPanel from '$lib/components/prompt-manager/PromptManagerPanel.svelte';
 
 interface Row {
 	id: number;

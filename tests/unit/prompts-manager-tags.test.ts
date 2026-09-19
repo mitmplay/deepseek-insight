@@ -108,15 +108,14 @@ afterEach(() => {
 });
 
 describe('3.1-T — PromptManagerTDTags cell', () => {
-	it('two chips inline; the +n badge at 3+ tags carries the FULL list in its title', async () => {
+	it('ALL tags render as chips (wrap-down 2026-09-19); no +n badge remains', async () => {
 		const h = render();
 		await wait();
 		const first = h.target.querySelectorAll('tbody tr')[0];
-		expect(first.querySelectorAll('.mgr-tag-chip')).toHaveLength(2);
-		expect(first.querySelectorAll('.mgr-tag-chip')[0].textContent).toBe('git');
-		const more = first.querySelector('.mgr-tag-more') as HTMLElement;
-		expect(more.textContent).toBe('+3');
-		expect(more.getAttribute('title')).toBe('git rca kb-writer plan session');
+		const chips = first.querySelectorAll('.mgr-tag-chip');
+		expect(chips).toHaveLength(5);
+		expect(Array.from(chips).map((c) => c.textContent)).toEqual(['git', 'rca', 'kb-writer', 'plan', 'session']);
+		expect(first.querySelector('.mgr-tag-more')).toBeNull();
 		cleanup(h.instance, h.target);
 	});
 

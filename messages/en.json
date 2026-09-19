@@ -14,6 +14,7 @@
   "selectedRows": "☑ Selected",
   "showOnlySelected": "Show only selected rows",
   "searchPrompts": "Search prompts…",
+  "clearSearch": "Clear search",
   "close": "Close",
   "promptsManager": "Prompts manager",
   "manageSavedPrompts": "Manage saved prompts",
@@ -173,6 +174,7 @@
   "uses": "Uses",
   "labelSlashText": "Label / Text",
   "macro": "Macro",
+  "macroShort": "MCR",
   "actions": "Actions",
   "tags": "Tags",
   "filterByTags": "Filter by tags",
@@ -334,5 +336,9 @@
   "selected": "Selected",
   "promptStreamingPh": "Turn in flight — Cancel to stop, or wait for it to finish…",
   "promptDefaultPh": "Send a prompt… (Enter to send, Shift+Enter for a new line, ? to find a saved prompt)",
-  "unknownEventNoPayload": "No payload recorded for this event."
+  "labelSlashTextMode": "Label/text mode",
+	"modeRawTitle": "Raw text — 5 lines, then scroll",
+	"modeNormTitle": "Flowing preview",
+	"unknownEventNoPayload": "No payload recorded for this event.",
+  "copyPanelAsImage": "Copy panel as image (Shift+Click to save)"
 }

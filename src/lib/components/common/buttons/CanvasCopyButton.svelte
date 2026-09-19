@@ -21,12 +21,19 @@
 		container,
 		title = 'Copy canvas as image (Shift+Click to save)',
 		size = 12,
-		class: className = ''
+		class: className = '',
+		mode = 'full'
 	}: {
 		container: HTMLElement | null | undefined;
 		title?: string;
 		size?: number;
 		class?: string;
+		/** 'full' (default) — the whole scrollable content (the historic
+		 *  contract). 'visible' — ONLY what is on screen: the scroll
+		 *  origin is compensated with a translateY(-scrollTop) clone and
+		 *  the render is cropped to the container's client box
+		 *  (PromptManagerToolbar, 2026-09-19). */
+		mode?: 'full' | 'visible';
 	} = $props();
 
 	let state = $state<'idle' | 'busy' | 'done'>('idle');
@@ -173,17 +180,104 @@
 		return container;
 	}
 
+	/**
+	 * Visible-mode render: the CONTAINER ITSELF, cropped to its own
+	 * visible box — with every descendant scroll container's content
+	 * translated UP by its live scrollTop during the clone, so nested
+	 * scrollers (the manager's PromptManagerContainer) show what the
+	 * operator actually sees, not their scroll origin. html-to-image
+	 * clones start at scroll origin and know nothing about scrollTop,
+	 * hence the manual compensation. Transforms are applied to the LIVE
+	 * DOM for the duration of the render and restored in `finally`.
+	 * Single pass — a visible region is never taller than TILE_HEIGHT.
+	 */
+	async function renderVisible(): Promise<Blob> {
+		if (!container) throw new Error('no container');
+		const CLIPPING = new Set(['auto', 'scroll', 'hidden', 'clip']);
+		const scrollers = [container, ...container.querySelectorAll<HTMLElement>('*')].filter(
+			(el) => el.scrollHeight > el.clientHeight + 1 && CLIPPING.has(getComputedStyle(el).overflowY)
+		);
+		/** Inline-style mutations to undo in finally — prop name + the
+		 *  value it held before the render pinned it. */
+		const pinned: { el: HTMLElement; prop: string; prev: string }[] = [];
+		const moved: { el: HTMLElement; prev: string }[] = [];
+		/** Overlays pinned onto scrolled panes during the render (the fake
+		 *  track+thumb below); removed in finally. */
+		const overlays: HTMLElement[] = [];
+		const rootCS = getComputedStyle(document.documentElement);
+		const TRACK_BG = rootCS.getPropertyValue('--color-surface').trim() || '#f8f9fa';
+		const THUMB_BG = rootCS.getPropertyValue('--color-surface-border').trim() || 'rgba(0,0,0,0.25)';
+		for (const el of scrollers) {
+			if (el.scrollTop === 0) continue;
+			// ALL element children shift, not just the first: scrollers like
+			// SidebarSessionsList's .group-rows are multi-child flex columns
+			// (one child per row + gap) — moving only the first child shifts
+			// one row and leaves the rest at their scroll origin (2026-09-19
+			// sidebar bug). Transforms don't affect layout, so every child
+			// moving by the same offset shifts the whole content wholesale.
+			for (const child of el.children) {
+				if (!(child instanceof HTMLElement)) continue;
+				moved.push({ el: child, prev: child.style.transform });
+				child.style.transform = `translateY(-${el.scrollTop}px)`;
+			}
+			// ── Scrollbar fidelity (2026-09-19 "the thumb lied" bug) ──────
+			// html-to-image's clone resets scrollTop to 0, and the browser
+			// paints the styled ::-webkit-scrollbar (app.css:95-104, 6px)
+			// from the CLONE's scroll position — so a pane scrolled to the
+			// bottom captured its thumb at the TOP. The child translation
+			// above fixed the content, the thumb stayed at origin.
+			// Fix: hide the native bar during the render (compensating its
+			// 6px width with padding so nothing reflows) and overlay a fake
+			// track+thumb at the LIVE scroll geometry — inline styles and
+			// appended nodes survive cloneNode, so the artifact shows the
+			// thumb exactly where the operator sees it.
+			const cs = getComputedStyle(el);
+			const BAR_W = 6; // app.css ::-webkit-scrollbar width
+			pinned.push({ el, prop: 'overflowY', prev: el.style.overflowY });
+			pinned.push({ el, prop: 'paddingRight', prev: el.style.paddingRight });
+			pinned.push({ el, prop: 'position', prev: el.style.position });
+			el.style.overflowY = 'hidden';
+			el.style.paddingRight = `${parseFloat(cs.paddingRight) + BAR_W}px`;
+			if (cs.position === 'static') el.style.position = 'relative';
+			const track = document.createElement('div');
+			track.style.cssText =
+				`position:absolute;top:0;right:0;bottom:0;width:${BAR_W}px;pointer-events:none;background:${TRACK_BG};`;
+			const thumb = document.createElement('div');
+			const trackH = el.clientHeight;
+			const thumbH = Math.max((trackH / el.scrollHeight) * trackH, 24);
+			const thumbY = (el.scrollTop / el.scrollHeight) * trackH;
+			thumb.style.cssText =
+				`position:absolute;right:0;width:${BAR_W}px;border-radius:3px;pointer-events:none;background:${THUMB_BG};top:${thumbY}px;height:${thumbH}px;`;
+			track.appendChild(thumb);
+			el.appendChild(track);
+			overlays.push(track);
+		}
+		try {
+			const rect = container.getBoundingClientRect();
+			const blob = await toBlob(container, {
+				pixelRatio: DESIRED_RATIO,
+				backgroundColor: CAPTURE_BACKING,
+				skipAutoScale: true,
+				width: Math.ceil(rect.width),
+				height: Math.ceil(rect.height),
+				style: { width: `${rect.width}px`, maxWidth: 'none' }
+			});
+			if (!blob) throw new Error('toBlob returned null');
+			return blob;
+		} finally {
+			for (const m of moved) m.el.style.transform = m.prev;
+			for (const p of pinned) (p.el.style as any)[p.prop] = p.prev;
+			for (const o of overlays) o.remove();
+		}
+	}
+
 	async function copyToClipboard(): Promise<void> {
-		const target = getCaptureTarget();
-		if (!target) return;
-		const blob = await renderElement(target);
+		const blob = mode === 'visible' ? await renderVisible() : await renderElement(getCaptureTarget()!);
 		await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
 	}
 
 	async function saveAsFile(): Promise<void> {
-		const target = getCaptureTarget();
-		if (!target) return;
-		const blob = await renderElement(target);
+		const blob = mode === 'visible' ? await renderVisible() : await renderElement(getCaptureTarget()!);
 		const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement('a');

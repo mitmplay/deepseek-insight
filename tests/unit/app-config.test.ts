@@ -75,7 +75,7 @@ describe('app-config store', () => {
 				maxZoom: 1.25
 			},
 			sidebar: { defaultWidth: 400, minWidth: 200, maxWidth: 500, placement: 'none' },
-			prompts: { tags: ['session', 'git', 'plan', 'rca', 'kb'] },
+			prompts: { tags: ['session', 'git', 'plan', 'rca', 'kb'], dbPath: '' },
 			settingsHomes: { dsi: '~/.dsi', dsh: '~/.dsh' }
 		});
 	});

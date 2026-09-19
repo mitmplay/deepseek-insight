@@ -154,7 +154,7 @@ test('02 · manager — +word parse, row-click edit, checkbox sweep opens zero d
 
 	// D11: +git +session study → ONE request with tags=git,session&q=study
 	const search = modal.locator('.mgr-search');
-	// q is the old PREFIX text search — 'study' prefixes row 2's text.
+	// q is the contains text search — 'study' matches row 2's text.
 	await search.fill('+git +session study');
 	await page.waitForTimeout(500); // the 300ms debounce
 	const tagsRow = modal.locator('tbody tr');

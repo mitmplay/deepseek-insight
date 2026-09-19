@@ -3,33 +3,36 @@
 
 	/**
 	 * PromptManagerTDTags — the tags body cell (The Prompt Tags ADR,
-	 * 2026-09-14, D4; the TDUses/TDLabel cell seam). Up to TWO tag chips
-	 * inline, then a +n overflow badge whose title carries the FULL list —
-	 * two is the widest honest fit under the fixed column-width contract.
-	 * Untagged ('') renders the em-dash, same as the macro column.
+	 * 2026-09-14, D4; the TDUses/TDLabel cell seam). ALL tag chips render
+	 * and wrap down (2026-09-19) — pre mode's tall rows give the column
+	 * vertical room. Untagged ('') renders the em-dash, same as the
+	 * macro column.
 	 */
 	let { row }: { row: SuggestedPrompt } = $props();
 
 	const words = $derived(row.tags ? row.tags.split(' ').filter(Boolean) : []);
-	const shown = $derived(words.slice(0, 2));
-	const overflow = $derived(words.length - shown.length);
 </script>
 
 <td class="mgr-tags-cell">
 	{#if words.length === 0}
 		<span class="mgr-tag-none">—</span>
 	{:else}
-		{#each shown as w (w)}<span class="mgr-tag-chip">{w}</span>{/each}
-		{#if overflow > 0}<span class="mgr-tag-more" title={words.join(' ')}>+{overflow}</span>{/if}
+		{#each words as w (w)}<span class="mgr-tag-chip">{w}</span>{/each}
 	{/if}
 </td>
 
 <style>
 	.mgr-tags-cell {
 	    width: 10rem;
-		white-space: nowrap;
+		/* Wrap-down (2026-09-19): pre mode makes rows tall, so the tags
+		   column has vertical room — chips flow onto extra lines instead
+		   of one clipped nowrap line. line-height 1.5rem vs the chip's
+		   1.25rem is the (half-step) gap BETWEEN wrapped lines. */
+		white-space: normal;
 		overflow: hidden;
-		text-overflow: ellipsis;
+		vertical-align: top;
+		/* the wrapped lines' row gap (chips are inline-block) */
+		line-height: 1.5rem;
 	}
 	.mgr-tag-chip {
 		display: inline-block;
@@ -44,12 +47,6 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		vertical-align: middle;
-	}
-	.mgr-tag-more {
-		color: var(--color-text-muted, #888);
-		font-size: 0.6875rem;
-		font-weight: 600;
-		cursor: help;
 	}
 	.mgr-tag-none {
 		color: var(--color-text-muted, #adb5bd);
