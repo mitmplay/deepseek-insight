@@ -14,9 +14,9 @@ hard core: the self-audit in §5 is not optional.
 
 Exemplars, in authority order (paths relative to the DSI repo root):
 
-1. `dev/architectural-decission/2026-08-27 - The Lineage Pin — Sub-Agents Below Their Spawner, Swap-Proof.md` — the gold standard: D1–D7, sequence + flowchart + state homes + control matrix, glossary, amendments log.
-2. `dev/architectural-decission/2026-08-24 - The Panel Floor — Many Conversations, One Page.md` — decision set with honest give-ups.
-3. `dev/architectural-decission/2026-08-29 - The Prompt Macro — Bang Runs the Shelf, Line by Line.md` — deep format on a composer-scale feature.
+1. `dev/architectural-decission/2026-08/2026-08-27 - The Lineage Pin — Sub-Agents Below Their Spawner, Swap-Proof.md` — the gold standard: D1–D7, sequence + flowchart + state homes + control matrix, glossary, amendments log.
+2. `dev/architectural-decission/2026-08/2026-08-24 - The Panel Floor — Many Conversations, One Page.md` — decision set with honest give-ups.
+3. `dev/architectural-decission/2026-08/2026-08-29 - The Prompt Macro — Bang Runs the Shelf, Line by Line.md` — deep format on a composer-scale feature.
 
 Read the exemplar closest to your subject before drafting a new ADR kind.
 

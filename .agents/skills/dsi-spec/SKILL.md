@@ -159,7 +159,7 @@ Answer these questions from codebase evidence (not guessing):
 
 ### Document 1: PRD
 
-Save to: `{project-path}/dev/specs/{TODAY} - {Feature Name}/PRD.md`
+Save to: `{project-path}/dev/specs/{YYYY-MM}/{TODAY} - {Feature Name}/PRD.md`
 
 **Contents:**
 1. Current architecture — how it works today (with mermaid flowchart + sequence diagram)
@@ -183,7 +183,7 @@ Save to: `{project-path}/dev/specs/{TODAY} - {Feature Name}/PRD.md`
 
 ### Document 2: Tasks
 
-Save to: `{project-path}/dev/specs/{TODAY} - {Feature Name}/Tasks.md`
+Save to: `{project-path}/dev/specs/{YYYY-MM}/{TODAY} - {Feature Name}/Tasks.md`
 
 **Contents:**
 1. Execution checklist — `⛔ Behavioral Commitments` as PUBLIC checklists (not private anti-patterns)
@@ -200,13 +200,13 @@ Save to: `{project-path}/dev/specs/{TODAY} - {Feature Name}/Tasks.md`
 
 ### Document 3: Karpathy Context
 
-Save to: `{project-path}/dev/specs/{TODAY} - {Feature Name}/karpathy-context.md`
+Save to: `{project-path}/dev/specs/{YYYY-MM}/{TODAY} - {Feature Name}/karpathy-context.md`
 
 **Contents:** All 3 layers as structured markdown. This is the internal context file the task-executor loads when executing.
 
 ### Document 4: Tasks Machine Twin (Tasks.json)
 
-Save to: `{project-path}/dev/specs/{TODAY} - {Feature Name}/Tasks.json`
+Save to: `{project-path}/dev/specs/{YYYY-MM}/{TODAY} - {Feature Name}/Tasks.json`
 
 The binding machine contract — the orchestration register flow maps these keys one-to-one into SQLite. **Rules:**
 

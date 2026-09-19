@@ -13,7 +13,7 @@ This file is the single source of truth for the JSON shape. When the orchestrati
   "$schema": "openclaw-insight/tasks-twin/v1",
   "featureName": "Orchestration Zoom Artifact Fix",
   "featureSlug": "orchestration-zoom-artifact-fix",
-  "specPath": "dev/specs/2026-08-15 - Orchestration Zoom Artifact Fix",
+  "specPath": "dev/specs/2026-08/2026-08-15 - Orchestration Zoom Artifact Fix",
   "waves": [
     {
       "waveNumber": 1,
