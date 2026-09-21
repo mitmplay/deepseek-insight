@@ -23,10 +23,20 @@ export interface ShelfSource {
 	skills: ShelfSkill[];
 }
 
+/** Registry anomaly report (2026-09-21, auto-derivation): enumeration
+ *  derives from the SKR URL itself, so an empty list is a REAL anomaly
+ *  and the snapshot says why. */
+export interface ShelfWarning {
+	code: 'source-no-repo' | 'source-empty';
+	source: string;
+	detail: string;
+}
+
 export interface ShelfSnapshot {
 	v: number;
 	generatedAt: string;
 	sources: ShelfSource[];
+	warnings?: ShelfWarning[];
 }
 
 export interface ShelfApplyItem {

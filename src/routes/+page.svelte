@@ -78,6 +78,7 @@
 		clampPanelWidth,
 		clampPanelZoom,
 		clampTreePct,
+		shelfPanelWidth,
 		loadPanelPrefs,
 		PANEL_WORKSPACE_EXPLORER_WIDTH,
 	PANEL_WORKSPACE_FILE_WIDTH,
@@ -91,6 +92,7 @@
 		DsiEntry,
 		DsiInjectedDocPanel,
 		DsiPanelEntry,
+		DsiSkillShelfPanel,
 		DsiWorkspaceExplorerPanel,
 	DsiWorkspaceFilePanel,
 		DsiPreset,
@@ -201,11 +203,33 @@ import {
 		return {
 			id: nextPanelId(),
 			kind: 'skill-shelf',
-			width: clampPanelWidth(panelWidth)
+			width: shelfPanelWidth()
 		};
 	}
 
 
+
+	/** Skill-shelf chrome intents (hard-reload survival, the
+	 *  explorer-tab pattern): the shelf emits tab / collapsed-set /
+	 *  search changes; the owner writes them onto the persisted entry
+	 *  — panel-prefs saves the blob, a reload restores all three. */
+	function setShelfTab(panelId: string, tab: 'install' | 'uninstall'): void {
+		const idx = panels.findIndex((p) => p.id === panelId);
+		if (idx < 0 || panels[idx].kind !== 'skill-shelf') return;
+		panels = panels.with(idx, { ...(panels[idx] as DsiSkillShelfPanel), tab });
+	}
+
+	function setShelfCollapsed(panelId: string, collapsed: string[]): void {
+		const idx = panels.findIndex((p) => p.id === panelId);
+		if (idx < 0 || panels[idx].kind !== 'skill-shelf') return;
+		panels = panels.with(idx, { ...(panels[idx] as DsiSkillShelfPanel), collapsed });
+	}
+
+	function setShelfSearch(panelId: string, q: string): void {
+		const idx = panels.findIndex((p) => p.id === panelId);
+		if (idx < 0 || panels[idx].kind !== 'skill-shelf') return;
+		panels = panels.with(idx, { ...(panels[idx] as DsiSkillShelfPanel), searchQ: q });
+	}
 
 	/** An injected-doc floor slot (Loadinjected ADR D2): a lineage CHILD of
 	 *  its conversation over the LOGGED payload — the viewer content is
@@ -1598,11 +1622,18 @@ import {
 			/>
 		</div>
 	{:else if panel.kind === 'skill-shelf'}
-		<!-- Skill-shelf branch (The Skill Shelf ADR, 2026-09-20, D1): same
-		     embedding rule as the manager — onclose removing the slot, the
-		     content owns its fetches (/api/skills). -->
+		<!-- Skill-shelf branch (The Skill Shelf ADR, 2026-09-20, D1): the
+		     content owns its fetches (/api/skills); close is PanelColumn's
+		     chrome — the shelf takes no onclose (2026-09-21). -->
 		<div class="panel-manager-body" data-testid="panel-skills">
-			<SettingsSkillsPanel onclose={hostClose ?? (() => removePanel(panel.id))} />
+			<SettingsSkillsPanel
+				initialTab={panel.tab ?? 'install'}
+				initialCollapsed={panel.collapsed ?? null}
+				initialSearch={panel.searchQ ?? ''}
+				ontabchange={(v) => setShelfTab(panel.id, v)}
+				oncollapsedchange={(ids) => setShelfCollapsed(panel.id, ids)}
+				onsearchchange={(q) => setShelfSearch(panel.id, q)}
+			/>
 		</div>
 	{:else if panel.kind === 'settings-editor'}
 		<!-- Settings branch (Settings Panel ADR D3/D6, 2026-09-07): same

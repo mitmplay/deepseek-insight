@@ -78,6 +78,9 @@ describe('DsiPanelEntry kind union — persistence round-trip (2.1-T)', () => {
 		// A manager entry needs no session; a conversation entry still does.
 		expect(isPanelEntry({ id: 'm1', kind: 'prompt-manager' })).toBe(true);
 		expect(isPanelEntry({ id: 'c1', kind: 'conversation' })).toBe(false);
+		// The Skill Shelf ADR: the shelf persists like the manager — no
+		// session fields, kind whitelisted (hard-reload survival fix).
+		expect(isPanelEntry({ id: 'sh1', kind: 'skill-shelf', width: 480 })).toBe(true);
 	});
 
 	it('a kind-tagged blob restores kind-honest panels; session fields never cross kinds', () => {

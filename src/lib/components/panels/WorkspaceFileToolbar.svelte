@@ -4,7 +4,8 @@
 	 * (extracted from WorkspaceFilePanel's .file-toolbar): the FULL-path
 	 * readout on the left (the SettingsHomeToolbar pattern), and the
 	 * delegated Save verb, the dirty / stale indicators, the preview/edit
-	 * tabs (markdown + html kinds only), and the column capture button
+	 * tabs (markdown + html kinds only), the File Eye toggle
+	 * (WorkspaceFileTabGroup), and the column capture button
 	 * right-aligned on the right.
 	 *
 	 * Presentational (Module Communication Map): the panel owns the edit
@@ -14,6 +15,7 @@
 	 */
 	import { workspacePanelCopy as copy } from './workspace-panel-copy';
 	import CanvasCopyButton from '$lib/components/common/buttons/CanvasCopyButton.svelte';
+	import WorkspaceFileTabGroup from './WorkspaceFileTabGroup.svelte';
 	import { t } from '$lib/services/locale/locale-state.svelte';
 	import * as m from '$lib/paraglide/messages';
 
@@ -26,15 +28,7 @@
 	let toolbarEl = $state<HTMLDivElement>();
 	let columnEl = $state<HTMLElement | null>(null);
 	$effect.pre(() => {
-		columnEl = null;
-		let el: HTMLElement | null = toolbarEl ?? null;
-		while (el) {
-			if (el.dataset.testid === 'panel-column') {
-				columnEl = el;
-				break;
-			}
-			el = el.parentElement;
-		}
+		columnEl = toolbarEl?.closest<HTMLElement>('[data-testid="panel-column"]') ?? null;
 	});
 
 	let {
@@ -88,27 +82,7 @@
 	     its right (save, File Eye, chips, tabs, capture) right-aligns. -->
 	<span class="path" title={path}>{path}</span>
 	{#if showToggle}
-		<!-- The File Eye toggle (ADR D6): the chat-mode-toggle segmented
-		     grammar — joined pill, class:on, aria-pressed. Edit is default. -->
-		<div class="seg-group" role="group" aria-label={t(m.fileEyeToggleLabel)} data-testid="file-view-toggle">
-			<button
-				type="button"
-				class="seg left"
-				class:on={view === 'edit'}
-				aria-pressed={view === 'edit'}
-				data-testid="file-view-edit"
-				onclick={() => onviewchange?.('edit')}
-			>{t(m.fileEyeEdit)}</button>
-			<button
-				type="button"
-				class="seg right"
-				class:on={view === 'diff'}
-				disabled={diffDisabled}
-				aria-pressed={view === 'diff'}
-				data-testid="file-view-diff"
-				onclick={() => onviewchange?.('diff')}
-			>{t(m.fileEyeDiff)}</button>
-		</div>
+		<WorkspaceFileTabGroup {view} {diffDisabled} {onviewchange} />
 	{/if}
 	{#if !readonly}
 		<button
@@ -181,34 +155,6 @@
 		cursor: pointer;
 	}
 	.save-btn:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
-	}
-	/* The File Eye toggle: the chat-mode-toggle segmented grammar. */
-	.seg-group {
-		flex-shrink: 0;
-		display: inline-flex;
-	}
-	.seg-group .seg {
-		border: 1px solid var(--color-border, #d0d7de);
-		background: transparent;
-		padding: 0.1rem 0.5rem;
-		font-size: 0.6875rem;
-		cursor: pointer;
-	}
-	.seg-group .seg.left {
-		border-radius: 0.25rem 0 0 0.25rem;
-	}
-	.seg-group .seg.right {
-		border-radius: 0 0.25rem 0.25rem 0;
-		border-left: none;
-	}
-	.seg-group .seg.on {
-		background: var(--color-accent-blue, #3b82f6);
-		border-color: var(--color-accent-blue, #3b82f6);
-		color: #fff;
-	}
-	.seg-group .seg:disabled {
 		opacity: 0.5;
 		cursor: not-allowed;
 	}

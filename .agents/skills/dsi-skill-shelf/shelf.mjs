@@ -19,11 +19,27 @@ const SHELF_LOCALES = ['en', 'zh', 'id', 'es']
 const TIER_RANK = { engineering: 0, productivity: 1, misc: 2, 'in-progress': 3 }
 function tierSortKey(sk) { return (sk.tier !== null && sk.tier in TIER_RANK ? TIER_RANK[sk.tier] : 0) + ':' + sk.path }
 
-// source name -> upstream enumeration spec (ADR D2: names come from the SKR, spec is engine knowledge)
+// source name -> UPSTREAM OVERRIDE (2026-09-21 redesign: the SKR is the
+// registry — every github source enumerates from its own URL by default;
+// a row here only OVERRIDES the derivation, e.g. pstack's nested layout).
 const SOURCE_SPECS = {
   pstack:        { repo: 'cursor/plugins',    prefix: 'pstack/skills', tiered: false },
   mattpocock:    { repo: 'mattpocock/skills', prefix: 'skills',        tiered: true  },
-  superpowers:   { repo: 'obra/superpowers',  prefix: 'skills',        tiered: false }
+  superpowers:   { repo: 'obra/superpowers',  prefix: 'skills',        tiered: false },
+  'web-quality-skills': { repo: 'addyosmani/web-quality-skills', prefix: 'skills', tiered: false }
+}
+
+// Derive the enumeration spec from the SKR line itself: the github URL
+// names the repo, an optional /tree/<branch>/<path> tail hints the
+// prefix. SOURCE_SPECS wins when a row exists (legacy nested layouts).
+function specFor(src) {
+  if (SOURCE_SPECS[src.name]) return SOURCE_SPECS[src.name]
+  // src.url = the raw SKR line; src.repo = a snapshot source (skrRepo's
+  // output). Both carry a github URL the regex can read.
+  const url = src.url || src.repo || ''
+  const m = url.match(/github\.com\/([^/]+)\/([^/]+?)(?:\.git)?(?:\/tree\/[^/]+(?:\/(.*))?)?$/)
+  if (!m) return null
+  return { repo: m[1] + '/' + m[2], prefix: m[3] || '', tiered: false }
 }
 
 function parseArgs(argv) {
@@ -71,12 +87,13 @@ function walkLocal(root) {
   return out
 }
 
-function enumLocal(sourceName, fixtureRoot, skrUrl) {
+function enumLocal(src, fixtureRoot) {
   // fixture tree mirrors the upstream layout under <fixtureRoot>/<sourceName>/
-  const root = join(fixtureRoot, sourceName)
-  if (!existsSync(root)) return []
-  const prefix = SOURCE_SPECS[sourceName] ? SOURCE_SPECS[sourceName].prefix : 'skills'
-  const tiered = SOURCE_SPECS[sourceName] ? SOURCE_SPECS[sourceName].tiered : false
+  const spec = specFor(src)
+  const root = join(fixtureRoot, src.name)
+  if (!spec || !existsSync(root)) return []
+  const prefix = spec.prefix
+  const tiered = spec.tiered
   const skills = walkLocal(root).map((dir) => {
     const rel = dir.slice(root.length + sep.length)
     const parts = rel.split(sep)
@@ -90,11 +107,10 @@ function enumLocal(sourceName, fixtureRoot, skrUrl) {
   return skills
 }
 
-async function enumGitHub(sourceName, skrUrl) {
-  const spec = SOURCE_SPECS[sourceName]
+async function enumGitHub(src) {
+  const spec = specFor(src)
   if (!spec) return []
-  const m = skrUrl.match(/github\.com\/([^/]+)\/([^/]+)/)
-  const repo = m ? m[1] + '/' + m[2].replace(/\.git$/, '') : spec.repo
+  const repo = spec.repo
   const res = await fetch('https://api.github.com/repos/' + repo + '/git/trees/HEAD?recursive=1', { headers: { 'user-agent': 'dsi-skill-shelf' } })
   if (!res.ok) throw new Error('github trees ' + repo + ' -> HTTP ' + res.status)
   const tree = (await res.json()).tree || []
@@ -135,7 +151,17 @@ export function readSignatures(skillsDir) {
 function buildSnapshot(sourcesRaw, enums, skillsDir) {
   const signed = readSignatures(skillsDir)
   const generatedAt = new Date().toISOString()
+  const warnings = []
   const sources = sourcesRaw.map((src, si) => {
+    // Registry-gap warning (2026-09-21, revised): enumeration derives
+    // from the SKR URL itself, so an empty list is a REAL anomaly and
+    // the snapshot says why.
+    const spec = specFor(src)
+    if (!spec) {
+      warnings.push({ code: 'source-no-repo', source: src.name, detail: 'source "' + src.name + '" has no github repo URL in the SKR - cannot enumerate' })
+    } else if ((enums[si] || []).length === 0) {
+      warnings.push({ code: 'source-empty', source: src.name, detail: 'source "' + src.name + '" enumerated zero skills' + (spec.prefix ? ' under prefix "' + spec.prefix + '"' : '') + ' - upstream layout may have moved' })
+    }
     const skills = (enums[si] || []).map((sk, ki) => ({
       n: (si + 1) + '.' + (ki + 1),
       id: sk.id,
@@ -147,11 +173,11 @@ function buildSnapshot(sourcesRaw, enums, skillsDir) {
     }))
     return { id: src.name, name: src.name, author: src.author, repo: skrRepo(src), skills }
   })
-  return { v: CACHE_VERSION, generatedAt, sources }
+  return { v: CACHE_VERSION, generatedAt, sources, warnings }
 }
 
 function skrRepo(src) {
-  const spec = SOURCE_SPECS[src.name]
+  const spec = specFor(src)
   return spec ? 'https://github.com/' + spec.repo + (spec.prefix ? '/tree/main/' + spec.prefix : '') : src.url
 }
 
@@ -169,7 +195,7 @@ async function cmdRefresh(args) {
   const fixtureRoot = args['fixture-root'] ? resolve(args['fixture-root']) : null
   const enums = []
   for (const src of sourcesRaw) {
-    enums.push(fixtureRoot ? enumLocal(src.name, fixtureRoot, src.url) : await enumGitHub(src.name, src.url))
+    enums.push(fixtureRoot ? enumLocal(src, fixtureRoot) : await enumGitHub(src))
   }
   const snapshot = buildSnapshot(sourcesRaw, enums, skillsDir)
   mkdirSync(dirname(cachePath), { recursive: true })
@@ -193,8 +219,9 @@ function copyDirLocal(fixtureRoot, sourceName, relPath, dest) {
   cpSync(srcDir, dest, { recursive: true })
 }
 
-function copyDirGitHub(sourceName, relPath, dest) {
-  const spec = SOURCE_SPECS[sourceName]
+function copyDirGitHub(source, relPath, dest) {
+  const spec = specFor(source)
+  if (!spec) throw new Error('source "' + source.id + '" has no github repo URL - cannot install')
   const tmp = mkdtempSync(join(tmpdir(), 'shelf-clone-'))
   try {
     execFileSync('git', ['clone', '--depth', '1', '--filter=blob:none', '--sparse', 'https://github.com/' + spec.repo, tmp], { stdio: 'pipe' })
@@ -240,7 +267,7 @@ async function cmdApply(args) {
       try {
         if (existsSync(dest)) rmSync(dest, { recursive: true, force: true })
         if (fixtureRoot) copyDirLocal(fixtureRoot, source.id, skill.path, dest)
-        else copyDirGitHub(source.id, skill.path, dest)
+        else copyDirGitHub(source, skill.path, dest)
         const sig = {
           v: CACHE_VERSION, source: source.id, n: skill.n, skillId: skill.id,
           upstreamPath: source.id + '/' + skill.path,

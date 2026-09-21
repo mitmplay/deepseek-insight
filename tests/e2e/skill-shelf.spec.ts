@@ -71,16 +71,22 @@ test('the skill shelf: macro opens the panel, badges render, uninstall is signed
 	await composer.fill('/dsi-skill-shelf');
 	await composer.press('Enter');
 
-	// The panel mounts and renders the snapshot.
+	// The panel mounts and renders the snapshot. The shelf ships ALL
+	// COLLAPSED (The Shelf Chrome, 2026-09-21) - the operator expands
+	// the repo before reading rows.
 	const shelf = page.getByTestId('skill-shelf');
 	await expect(shelf).toBeVisible();
+	await expect(page.getByTestId('shelf-group-pstack')).toBeVisible();
+	await page.getByTestId('shelf-expand-all').click();
 
-	// Rows render with their shelf numbers.
+	// Rows render with their shelf numbers (install tab = uninstalled only).
 	await expect(page.getByTestId('shelf-row-shelf-plain-skill')).toContainText('1.1');
-	await expect(page.getByTestId('shelf-row-shelf-signed-skill')).toContainText('1.2');
+	await expect(page.getByTestId('shelf-row-shelf-signed-skill')).toHaveCount(0);
 
-	// Badges: signed row shows "installed"; the foreign row still shows a
-	// badge but carries NO uninstall button (D5 — signed-only).
+	// The uninstall tab holds the installed rows: badges render; the
+	// foreign row still shows a badge but carries NO uninstall button
+	// (D5 - signed-only).
+	await page.getByTestId('shelf-tab-uninstall').click();
 	const signedRow = page.getByTestId('shelf-row-shelf-signed-skill');
 	await expect(signedRow.getByTestId('shelf-badge')).toBeVisible();
 	await expect(signedRow.getByTestId('shelf-uninstall-shelf-signed-skill')).toBeVisible();
@@ -88,6 +94,10 @@ test('the skill shelf: macro opens the panel, badges render, uninstall is signed
 	const foreignRow = page.getByTestId('shelf-row-shelf-foreign-skill');
 	await expect(foreignRow.getByTestId('shelf-badge')).toBeVisible();
 	await expect(foreignRow.locator('[data-testid^="shelf-uninstall"]')).toHaveCount(0);
+
+	// Back to the install tab: the absent row is installable - checkbox
+	// select + Install posts it.
+	await page.getByTestId('shelf-tab-install').click();
 
 	// The absent row is installable: checkbox select + Install posts it.
 	await page
@@ -116,7 +126,8 @@ test('the shelf speaks the operator language: voice overlay + rescan note', asyn
 
 	const shelf = page.getByTestId('skill-shelf');
 	await expect(shelf).toBeVisible();
-
+	await expect(page.getByTestId('shelf-group-pstack')).toBeVisible();
+	await page.getByTestId('shelf-expand-all').click();
 	// the voice API serves the id-locale sidecar (D5 server contract; the
 	// SLASH MENU overlay consumes this map - unit-covered - while the panel
 	// itself renders shelf state)

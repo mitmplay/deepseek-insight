@@ -22,6 +22,7 @@ import {
 	PANEL_WORKSPACE_FILE_MAX_WIDTH,
 	clampPanelWidth,
 	clampPanelZoom,
+	shelfPanelWidth,
 	clampTreePct,
 	TREE_PCT_DEFAULT,
 	TREE_PCT_MAX,
@@ -237,6 +238,48 @@ describe('panel-prefs — DsiPanelEntry type contract (1.3-T)', () => {
 		expect(isPanelEntry({ id: 'p', kind: 'conversation', sessionId: 's', width: 'wide' })).toBe(false); // string width
 		expect(isPanelEntry({ id: 'p', kind: 'conversation', sessionId: 's', width: Number.NaN })).toBe(false); // NaN width
 		expect(isPanelEntry({ id: 'p', kind: 'conversation', sessionId: 's', extra: 'key', width: 600 })).toBe(true); // unknown keys tolerated
+	});
+
+	it('a skill-shelf entry survives the save/load round-trip (hard-reload fix)', () => {
+		savePanelPrefs({
+			panels: [{ id: 'shelf-1', kind: 'skill-shelf', width: 480 }],
+			selectedPanelId: 'shelf-1',
+			panelWidth: 730,
+			zoom: 1
+		});
+		const loaded = loadPanelPrefs();
+		// Persisted chrome sanitizes to the panel's own defaults.
+		expect(loaded.panels).toEqual([
+			{ id: 'shelf-1', kind: 'skill-shelf', tab: 'install', collapsed: [], searchQ: '', width: 480 }
+		]);
+		expect(loaded.selectedPanelId).toBe('shelf-1');
+	});
+
+	it('skill-shelf chrome persists: tab, collapsed set, and search text', () => {
+		savePanelPrefs({
+			panels: [
+				{
+					id: 'shelf-1',
+					kind: 'skill-shelf',
+					tab: 'uninstall',
+					collapsed: ['src-a'],
+					searchQ: 'adr',
+					width: 500
+				}
+			],
+			selectedPanelId: 'shelf-1',
+			panelWidth: 730,
+			zoom: 1
+		});
+		const loaded = loadPanelPrefs();
+		expect(loaded.panels[0]).toEqual({
+			id: 'shelf-1',
+			kind: 'skill-shelf',
+			tab: 'uninstall',
+			collapsed: ['src-a'],
+			searchQ: 'adr',
+			width: 500
+		});
 	});
 
 	it('DsiPanelEntry field types are pinned (compile-time)', () => {
@@ -674,5 +717,20 @@ describe('panel-prefs — explorer width lane (Settings Tree D1: the wide band i
 		const loaded = loadPanelPrefs();
 		const explorer = loaded.panels[0];
 		expect(explorer && explorer.kind === 'workspace-explorer' ? explorer.width : undefined).toBe(850);
+	});
+});
+
+describe('panel-prefs — the skill shelf pins 480 (The Shelf Chrome D5)', () => {
+	beforeEach(() => {
+		localStorage.clear();
+		resetAppConfigForTests();
+		loadAppConfig();
+	});
+	afterEach(() => {
+		localStorage.clear();
+	});
+
+	it('shelfPanelWidth is 480 regardless of the conversation default width', () => {
+		expect(shelfPanelWidth()).toBe(480);
 	});
 });

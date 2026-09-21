@@ -1,6 +1,7 @@
 <script lang="ts">
 	import SettingsSkillsPanel from '$lib/components/panels/SettingsSkillsPanel.svelte';
-	let { onclose }: { onclose: () => void } = $props();
+	// The shelf takes no onclose (2026-09-21): PanelColumn's chrome owns
+	// close — the host renders the bare panel.
 </script>
 
-<SettingsSkillsPanel {onclose} />
+<SettingsSkillsPanel />

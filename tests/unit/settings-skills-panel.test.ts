@@ -1,9 +1,11 @@
 /**
- * 3.1-T - SettingsSkillsPanel host tests: badge per species, uninstall
- * affordance ONLY on signed rows, reload calls the reload endpoint.
+ * SettingsSkillsPanel tests — The Shelf Chrome tab contract (2.1-T):
+ * install tab lists only uninstalled skills, uninstall tab only
+ * installed ones, uninstall verb gated by the uninstallable set
+ * (Skill Shelf D5), counts interpolate, reload is install-tab-only.
  */
 import { flushSync } from 'svelte';
-import { mount, unmount } from 'svelte';
+import { mount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import SettingsSkillsPanelHost from './SettingsSkillsPanelHost.svelte';
 
@@ -37,9 +39,14 @@ function stubFetch(impl: (input: string, init?: RequestInit) => Promise<Response
 function mountPanel() {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
-	const instance = mount(SettingsSkillsPanelHost, { target, props: { onclose: () => {} } });
+	const instance = mount(SettingsSkillsPanelHost, { target });
 	flushSync();
 	return { target, instance };
+}
+
+function switchTab(target: HTMLElement, side: 'edit' | 'diff'): void {
+	target.querySelector<HTMLButtonElement>(`[data-testid="shelf-tab-${side === 'edit' ? 'install' : 'uninstall'}"]`)!.click();
+	flushSync();
 }
 
 afterEach(() => {
@@ -48,22 +55,113 @@ afterEach(() => {
 });
 
 describe('SettingsSkillsPanel', () => {
-	it('renders the snapshot with per-species badges and NO uninstall control on unsigned/homegrown rows', async () => {
+	it('install tab: only uninstalled rows; badges survive; no uninstall verb anywhere', async () => {
 		stubFetch((input) => Promise.resolve(new Response(JSON.stringify(SNAP), { headers: { 'content-type': 'application/json' } })));
 		const { target } = mountPanel();
 		await vi.waitFor(() => {
-			expect(target.querySelector('[data-testid="shelf-row-signed-one"]')).not.toBeNull();
+			expect(target.querySelector('[data-testid="shelf-group-pstack"]')).not.toBeNull();
 		});
-		// signed row: badge + uninstall affordance
+		// the shelf ships ALL COLLAPSED - expand before asserting rows
+		target.querySelector<HTMLButtonElement>('[data-testid="shelf-expand-all"]')!.click();
+		flushSync();
+		await vi.waitFor(() => {
+			expect(target.querySelector('[data-testid="shelf-row-absent-one"]')).not.toBeNull();
+		});
+		// installed rows are NOT on the install tab (D4)
+		expect(target.querySelector('[data-testid="shelf-row-signed-one"]')).toBeNull();
+		expect(target.querySelector('[data-testid="shelf-row-unsigned-one"]')).toBeNull();
+		// no uninstall affordance exists on the install tab at all
+		expect(target.querySelector('[data-testid^="shelf-uninstall"]')).toBeNull();
+		// toolbar timestamp visible without scrolling (D2)
+		expect(target.querySelector('[data-testid="shelf-generated"]')!.textContent).toContain('2026-09-20T00:00:00Z');
+	});
+
+	it('uninstall tab: only installed rows; uninstall verb ONLY on the signed row (D5); reload hidden', async () => {
+		stubFetch((input) => Promise.resolve(new Response(JSON.stringify(SNAP), { headers: { 'content-type': 'application/json' } })));
+		const { target } = mountPanel();
+		await vi.waitFor(() => {
+			expect(target.querySelector('[data-testid="shelf-group-pstack"]')).not.toBeNull();
+		});
+		// the shelf ships ALL COLLAPSED - expand before asserting rows
+		target.querySelector<HTMLButtonElement>('[data-testid="shelf-expand-all"]')!.click();
+		flushSync();
+		await vi.waitFor(() => {
+			expect(target.querySelector('[data-testid="shelf-row-absent-one"]')).not.toBeNull();
+		});
+		switchTab(target, 'diff');
+		// uninstalled rows are NOT on the uninstall tab (D4)
+		expect(target.querySelector('[data-testid="shelf-row-absent-one"]')).toBeNull();
+		expect(target.querySelector('[data-testid="shelf-row-signed-one"]')).not.toBeNull();
+		expect(target.querySelector('[data-testid="shelf-row-unsigned-one"]')).not.toBeNull();
+		// D5 gate: signed row has the verb, unsigned row does not
 		expect(target.querySelector('[data-testid="shelf-uninstall-signed-one"]')).not.toBeNull();
-		// unsigned (hand-copied) row: badge present, uninstall ABSENT (D5)
-		const unsigned = target.querySelector('[data-testid="shelf-row-unsigned-one"]')!;
-		expect(unsigned.querySelector('[data-testid="shelf-badge"]')).not.toBeNull();
-		expect(unsigned.querySelector('[data-testid="shelf-uninstall-unsigned-one"]')).toBeNull();
-		// absent row: checkbox present (installable), no uninstall
-		const absent = target.querySelector('[data-testid="shelf-row-absent-one"]')!;
-		expect(absent.querySelector('input[type="checkbox"]')).not.toBeNull();
-		expect(absent.querySelector('[data-testid^="shelf-uninstall"]')).toBeNull();
+		expect(target.querySelector('[data-testid="shelf-uninstall-unsigned-one"]')).toBeNull();
+		// D3: reload is an acquisition verb — install tab only
+		expect(target.querySelector('[data-testid="shelf-reload"]')).toBeNull();
+	});
+
+	it('tabs show plain labels; the install bar carries the live count', async () => {
+		stubFetch((input) => Promise.resolve(new Response(JSON.stringify(SNAP), { headers: { 'content-type': 'application/json' } })));
+		const { target } = mountPanel();
+		await vi.waitFor(() => {
+			expect(target.querySelector('[data-testid="shelf-group-pstack"]')).not.toBeNull();
+		});
+		// the shelf ships ALL COLLAPSED - expand before asserting rows
+		target.querySelector<HTMLButtonElement>('[data-testid="shelf-expand-all"]')!.click();
+		flushSync();
+		await vi.waitFor(() => {
+			expect(target.querySelector('[data-testid="shelf-row-absent-one"]')).not.toBeNull();
+		});
+		const checkbox = target.querySelector<HTMLInputElement>('[data-testid="shelf-row-absent-one"] input[type="checkbox"]')!;
+		checkbox.click();
+		flushSync();
+		const tabs = target.querySelector('[data-testid="shelf-tab-group"]')!;
+		expect(tabs.textContent).not.toContain('(');
+		const installBar = target.querySelector('[data-testid="shelf-install"]')!;
+		expect(installBar.textContent).toContain('(1)');
+	});
+
+	it('search filters the active tab by skill id', async () => {
+		stubFetch((input) => Promise.resolve(new Response(JSON.stringify(SNAP), { headers: { 'content-type': 'application/json' } })));
+		const { target } = mountPanel();
+		await vi.waitFor(() => {
+			expect(target.querySelector('[data-testid="shelf-group-pstack"]')).not.toBeNull();
+		});
+		// the shelf ships ALL COLLAPSED - expand before asserting rows
+		target.querySelector<HTMLButtonElement>('[data-testid="shelf-expand-all"]')!.click();
+		flushSync();
+		await vi.waitFor(() => {
+			expect(target.querySelector('[data-testid="shelf-row-absent-one"]')).not.toBeNull();
+		});
+		const input = target.querySelector<HTMLInputElement>('[data-testid="shelf-search"]')!;
+		input.value = 'absent';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		flushSync();
+		expect(target.querySelector('[data-testid="shelf-row-absent-one"]')).not.toBeNull();
+		input.value = 'zzz-no-match';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		flushSync();
+		expect(target.querySelector('[data-testid="shelf-row-absent-one"]')).toBeNull();
+	});
+
+	it('collapse-all / expand-all drive the per-repo groups', async () => {
+		stubFetch((input) => Promise.resolve(new Response(JSON.stringify(SNAP), { headers: { 'content-type': 'application/json' } })));
+		const { target } = mountPanel();
+		await vi.waitFor(() => {
+			expect(target.querySelector('[data-testid="shelf-group-pstack"]')).not.toBeNull();
+		});
+		// the shelf ships ALL COLLAPSED - expand before asserting rows
+		target.querySelector<HTMLButtonElement>('[data-testid="shelf-expand-all"]')!.click();
+		flushSync();
+		await vi.waitFor(() => {
+			expect(target.querySelector('[data-testid="shelf-row-absent-one"]')).not.toBeNull();
+		});
+		(target.querySelector<HTMLButtonElement>('[data-testid="shelf-collapse-all"]')!).click();
+		flushSync();
+		expect(target.querySelector('[data-testid="shelf-row-absent-one"]')).toBeNull();
+		(target.querySelector<HTMLButtonElement>('[data-testid="shelf-expand-all"]')!).click();
+		flushSync();
+		expect(target.querySelector('[data-testid="shelf-row-absent-one"]')).not.toBeNull();
 	});
 
 	it('install flow: select rows then confirm posts the selection', async () => {
@@ -72,6 +170,9 @@ describe('SettingsSkillsPanel', () => {
 		await vi.waitFor(() => {
 			expect(target.querySelector('[data-testid="shelf-install"]')).not.toBeNull();
 		});
+		// all-collapsed default: expand the repo rows first
+		target.querySelector<HTMLButtonElement>('[data-testid="shelf-expand-all"]')!.click();
+		flushSync();
 		const checkbox = target.querySelector<HTMLInputElement>('[data-testid="shelf-row-absent-one"] input[type="checkbox"]')!;
 		checkbox.click();
 		flushSync();
@@ -89,7 +190,7 @@ describe('SettingsSkillsPanel', () => {
 		});
 	});
 
-	it('reload button posts /api/skills/reload', async () => {
+	it('reload button posts /api/skills/reload (visible on install tab)', async () => {
 		const fetchMock = stubFetch((input) => Promise.resolve(new Response(JSON.stringify(input === '/api/skills/snapshot' ? SNAP : { ...SNAP, reused: false }), { headers: { 'content-type': 'application/json' } })));
 		const { target } = mountPanel();
 		await vi.waitFor(() => {

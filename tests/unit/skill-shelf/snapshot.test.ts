@@ -83,4 +83,36 @@ describe('snapshot builder (refresh)', () => {
     const eng = out.snapshot.sources[1].skills.find((s: any) => s.id === 'm-eng-01')
     expect(eng.tier).toBeNull()
   })
+
+  it('unknown SKR source AUTO-DERIVES enumeration from its github URL (2026-09-21 regression)', () => {
+    const { tree, ws } = fresh()
+    // a repo the engine has NEVER seen, laid out like addyosmani/web-quality-skills
+    mkdirSync(join(tree, 'mystery-skills', 'skills', 'myskill-01'), { recursive: true })
+    writeFileSync(join(tree, 'mystery-skills', 'skills', 'myskill-01', 'SKILL.md'), '---\nname: myskill-01\n---\nfixture\n')
+    const skr = join(ws.root, 'skr-custom.md')
+    writeFileSync(
+      skr,
+      '1. [pstack](https://github.com/cursor/plugins) - [Lauren Tan](https://www.linkedin.com/in/laurentan/)\n' +
+        '2. [mystery-skills](https://github.com/someone/mystery-skills) - [Anon](https://www.linkedin.com/in/anon/)\n'
+    )
+    const out = runEngine(['refresh', '--skr', skr, '--cache', ws.cache, '--skills-dir', ws.skillsDir, '--fixture-root', tree])
+    expect(out.ok).toBe(true)
+    const mystery = out.snapshot.sources.find((s: any) => s.id === 'mystery-skills')
+    expect(mystery.skills.length).toBe(1)
+    expect(mystery.skills[0].id).toBe('myskill-01')
+    expect(out.snapshot.warnings ?? []).toEqual([])
+    // known sources keep enumerating
+    expect(out.snapshot.sources.find((s: any) => s.id === 'pstack').skills.length).toBe(47)
+  })
+
+  it('SKR source with a NON-github URL: empty skills AND a source-no-repo warning', () => {
+    const { base, ws } = fresh()
+    const skr = join(ws.root, 'skr-gitlab.md')
+    writeFileSync(skr, '1. [gitlab-only](https://gitlab.com/someone/gitlab-only) - [Anon](https://www.linkedin.com/in/anon/)\n')
+    const out = runEngine(['refresh', '--skr', skr, '--cache', ws.cache, '--skills-dir', ws.skillsDir, '--fixture-root', base[base.length - 1]])
+    expect(out.ok).toBe(true)
+    expect(out.snapshot.sources.find((s: any) => s.id === 'gitlab-only').skills.length).toBe(0)
+    const warn = (out.snapshot.warnings ?? []).find((w: any) => w.source === 'gitlab-only')
+    expect(warn?.code).toBe('source-no-repo')
+  })
 })

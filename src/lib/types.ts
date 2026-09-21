@@ -561,6 +561,14 @@ export interface DsiSkillShelfPanel {
 	kind: 'skill-shelf';
 	/** Panel width in px, always within panel-prefs clamp bounds. */
 	width: number;
+	/** Persisted chrome (hard-reload survival, the explorer-tab
+	 *  pattern): the active pill tab. Junk sanitizes to 'install'. */
+	tab?: 'install' | 'uninstall';
+	/** Collapsed per-source groups (source ids); junk/absent ⇒ the
+	 *  panel's ALL-COLLAPSED default refills it on first load. */
+	collapsed?: string[];
+	/** The toolbar search box text. */
+	searchQ?: string;
 }
 
 /** The conversation branch — renders one DSH session's transcript. */

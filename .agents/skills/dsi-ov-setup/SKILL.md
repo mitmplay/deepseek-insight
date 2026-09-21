@@ -89,7 +89,12 @@ Sandbox warning: server startup acquires a PID lock at
 dies with `PermissionError` / exit 3 at once. Start the server with full file
 access (same as step 2's CLI housekeeping).
 
-For persistence: launchd/nohup/systemd — never rely on an agent shell outliving the session. Verify:
+For persistence: launchd/systemd — never rely on an agent shell outliving the
+session. In a harness session, never start the daemon with `nohup … &` inside a
+**foreground** bash call: the harness reaps the call's process group when the
+call returns and the daemon dies seconds later, health-ok inside the call but
+connection-refused on the next one (RCA 2026-09-21 — The Server That Slept).
+Run it as a harness background job instead. Verify:
 
 ```sh
 curl -s http://127.0.0.1:1933/health   # {"status":"ok","healthy":true,...}

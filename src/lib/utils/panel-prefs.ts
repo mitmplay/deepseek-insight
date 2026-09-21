@@ -133,6 +133,16 @@ export function clampPanelZoom(zoom: number): number {
 function defaultPanelWidth(): number {
 	return clampPanelWidth(appConfig().panel.defaultWidth);
 }
+
+/**
+ * The skill shelf's born width (The Shelf Chrome ADR, D5): a name list,
+ * not a five-column table — the shelf pins 480 (DEFAULT_PANEL_MIN_WIDTH)
+ * instead of the 730 conversation default, clamped through the single
+ * bound site.
+ */
+export function shelfPanelWidth(): number {
+	return clampPanelWidth(480);
+}
 /**
  * Clamp a stored explorer `expanded` list to sane paths (Workspace
  * Explorer restore): non-string members drop and a repeated path keeps
@@ -183,6 +193,7 @@ export function isPanelEntry(value: unknown): value is DsiPanelEntry {
 		entry.kind !== 'prompt-manager' &&
 		entry.kind !== 'settings-editor' &&
 		entry.kind !== 'injected-doc' &&
+		entry.kind !== 'skill-shelf' &&
 		entry.kind !== 'workspace-explorer' &&
 		entry.kind !== 'workspace-file'
 	) {
@@ -231,6 +242,7 @@ export function isPanelEntry(value: unknown): value is DsiPanelEntry {
 	if (
 		entry.kind !== 'prompt-manager' &&
 		entry.kind !== 'settings-editor' &&
+		entry.kind !== 'skill-shelf' &&
 		entry.kind !== 'injected-doc' &&
 		entry.kind !== 'workspace-explorer' &&
 		entry.kind !== 'workspace-file'
@@ -270,7 +282,9 @@ function sanitizePanels(raw: unknown): DsiPanelEntry[] {
 			// Explorer Layout (2026-09-17): the explorer's lane widens when
 			// it hosts the reading surface.
 			const kindDefault =
-				entry.kind === 'workspace-explorer'
+				entry.kind === 'skill-shelf'
+					? shelfPanelWidth() // The Shelf Chrome ADR: the shelf's born 480 lane
+					: entry.kind === 'workspace-explorer'
 					? PANEL_WORKSPACE_FILE_WIDTH // Settings Tree D1: the wide lane is the only lane
 					: entry.kind === 'workspace-file'
 						? PANEL_WORKSPACE_FILE_WIDTH
@@ -292,6 +306,18 @@ function sanitizePanels(raw: unknown): DsiPanelEntry[] {
 					id: entry.id as string,
 					kind: 'settings-editor',
 					target: entry.target as 'dsi' | 'dsh',
+					width
+				} as DsiPanelEntry;
+			}
+			if (entry.kind === 'skill-shelf') {
+				return {
+					id: entry.id as string,
+					kind: 'skill-shelf',
+					// Persisted chrome (the explorer-tab pattern): junk
+					// sanitizes to the defaults the panel picks itself.
+					tab: entry.tab === 'uninstall' ? 'uninstall' : 'install',
+					collapsed: clampExpanded(entry.collapsed),
+					searchQ: typeof entry.searchQ === 'string' ? entry.searchQ : '',
 					width
 				} as DsiPanelEntry;
 			}
