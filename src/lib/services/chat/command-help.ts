@@ -27,6 +27,8 @@
  */
 
 import { parseCommand } from './command-parser';
+import { t } from '$lib/services/locale/locale-state.svelte';
+import * as m from '$lib/paraglide/messages';
 import type { DsiCommandRow, DsiGestureRow, DsiSkillRow } from '$lib/types';
 
 /** One help topic — the command the `?` line asks about. */
@@ -37,7 +39,8 @@ export type CommandHelpTopic =
 	| 'mention'
 	| 'promptmanager'
 	| 'dsisettings'
-	| 'dshsettings';
+	| 'dshsettings'
+	| 'skillshelf';
 
 /**
  * The help topic a draft line asks for, or null when the line is not a
@@ -153,6 +156,43 @@ export const COMMAND_HELP: Record<CommandHelpTopic, CommandHelpEntry> = {
 			}
 		]
 	},
+	skillshelf: {
+		usage: '/dsi-skill-shelf [--reload]',
+		// The Shelf Voice W1.5 (BUG-2 fix): the shelf pilots localized help
+		// copy - getters resolve the ACTIVE locale at read time, so the card
+		// re-renders in the operator's language when the locale flips.
+		get summary() {
+			return t(m.commandHelpSkillshelfSummary);
+		},
+		params: [
+			{
+				name: '--reload',
+				get description() {
+					return t(m.commandHelpSkillshelfParamReload);
+				}
+			}
+		],
+		examples: [
+			{
+				line: '/dsi-skill-shelf',
+				get description() {
+					return t(m.commandHelpSkillshelfExampleBare);
+				}
+			},
+			{
+				line: '/dsi-skill-shelf --reload',
+				get description() {
+					return t(m.commandHelpSkillshelfExampleReload);
+				}
+			},
+			{
+				line: '/dsi-skill-shelf ?',
+				get description() {
+					return t(m.commandHelpSkillshelfExampleHelp);
+				}
+			}
+		]
+	},
 	dshsettings: {
 		usage: '/dshsettings',
 		summary:
@@ -252,6 +292,18 @@ export const MENU_GESTURES: readonly DsiGestureRow[] = [
 		display: '/dshsettings',
 		seed: '/dshsettings ',
 		description: COMMAND_HELP.dshsettings.summary
+	},
+	{
+		name: 'skillshelf',
+		display: '/dsi-skill-shelf',
+		seed: '/dsi-skill-shelf ',
+		// The Shelf Voice W1 (RCA fix, 2026-09-21): one row per COMMAND_HELP,
+		// the zero-extra-names rule holds - and the completeness guard now
+		// enforces it. Getter (W1.5): the description resolves the ACTIVE
+		// locale at render, never frozen at module init.
+		get description() {
+			return t(m.commandHelpSkillshelfSummary);
+		}
 	},
 	{
 		name: '@mention',

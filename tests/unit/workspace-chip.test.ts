@@ -9,20 +9,19 @@ import { createRawSnippet, flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import WorkspaceChip from '$lib/components/common/WorkspaceChip.svelte';
 
-const targets: HTMLElement[] = [];
+const mounted: ReturnType<typeof mount>[] = [];
 
 function render(props: Record<string, unknown>): HTMLElement {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
-	targets.push(target);
-	mount(WorkspaceChip, { target, props: props as never });
+	mounted.push(mount(WorkspaceChip, { target, props: props as never }));
 	flushSync();
 	return target;
 }
 
 afterEach(() => {
-	for (const target of targets) unmount(target);
-	targets.length = 0;
+	for (const app of mounted) unmount(app);
+	mounted.length = 0;
 });
 
 describe('WorkspaceChip', () => {

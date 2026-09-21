@@ -28,7 +28,8 @@ export type PanelAddRequest =
 	| ConversationPanelAddRequest
 	| ManagerPanelAddRequest
 	| SettingsHomePanelAddRequest
-	| InjectedDocAddRequest;
+	| InjectedDocAddRequest
+	| SkillShelfPanelAddRequest;
 
 export interface ConversationPanelAddRequest {
 	/** 'conversation' (default when absent — the pre-D6 legacy shape). */
@@ -96,6 +97,15 @@ export interface InjectedDocAddRequest {
 	sourceSessionId: string;
 	/** The document's shelf name (ADR D7). */
 	displayPath: string;
+	afterSessionId?: string;
+}
+
+/** The /dsi-skill-shelf request (The Skill Shelf ADR, 2026-09-20, D1):
+ *  aims the SettingsSkillsPanel — ONE live shelf, the floor dedupes and
+ *  focuses the open copy (the manager-request grammar). No session: the
+ *  shelf reads the DSI-local /api/skills routes itself. */
+export interface SkillShelfPanelAddRequest {
+	kind: 'skill-shelf';
 	afterSessionId?: string;
 }
 

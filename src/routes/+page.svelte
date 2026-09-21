@@ -48,6 +48,7 @@
 	import AppSidebar from '$lib/components/common/layout/AppSidebar.svelte';
 	import ConversationPanel from '$lib/components/chat/ConversationPanel.svelte';
 	import PromptManagerPanel from '$lib/components/prompt-manager/PromptManagerPanel.svelte';
+	import SettingsSkillsPanel from '$lib/components/panels/SettingsSkillsPanel.svelte';
 	import SettingsEditorPanel from '$lib/components/panels/SettingsEditorPanel.svelte';
 	import InjectedDocPanel from '$lib/components/panels/InjectedDocPanel.svelte';
 	import WorkspaceExplorerPanel from '$lib/components/panels/WorkspaceExplorerPanel.svelte';
@@ -190,6 +191,16 @@ import {
 		return {
 			id: nextPanelId(),
 			kind: 'prompt-manager',
+			width: clampPanelWidth(panelWidth)
+		};
+	}
+
+	/** A skill-shelf floor slot (The Skill Shelf ADR, 2026-09-20, D1):
+	 *  no session, no preset — the panel reads /api/skills itself. */
+	function makeSkillShelfPanel(): DsiPanelEntry {
+		return {
+			id: nextPanelId(),
+			kind: 'skill-shelf',
 			width: clampPanelWidth(panelWidth)
 		};
 	}
@@ -942,6 +953,24 @@ import {
 			insertPanel(makeManagerPanel(), anchorIdx >= 0 ? anchorIdx + 1 : insertionSlot());
 			return;
 		}
+		if (request.kind === 'skill-shelf') {
+			// One live shelf (The Skill Shelf ADR, 2026-09-20, D1): the open
+			// shelf takes the FOCUS; only a miss inserts. Same grammar as the
+			// manager branch above.
+			const open = panels.find((p) => p.kind === 'skill-shelf');
+			if (open) {
+				selectedPanelId = open.id;
+				return;
+			}
+			const anchorIdx =
+				request.afterSessionId !== undefined
+					? panels.findIndex(
+							(p) => p.kind === 'conversation' && p.sessionId === request.afterSessionId
+						)
+					: -1;
+			insertPanel(makeSkillShelfPanel(), anchorIdx >= 0 ? anchorIdx + 1 : insertionSlot());
+			return;
+		}
 		// Injected-doc branch (Loadinjected ADR D3/D5): dedupe per the
 		// (sourceSessionId, displayPath) pair — a prevented double load
 		// FOCUSES the open panel (selection + sidebar highlight, nothing
@@ -1079,7 +1108,7 @@ import {
 		// panel via doAdd and never replace — a stray request of those kinds
 		// is an honest no-op, never a swap. /new and /loadinjected keep
 		// their swaps.
-		if (request.kind === 'prompt-manager' || request.kind === 'settings-home') {
+		if (request.kind === 'prompt-manager' || request.kind === 'settings-home' || request.kind === 'skill-shelf') {
 			return;
 		}
 		// Injected-doc successor-swap (Loadinjected ADR D4: bare
@@ -1115,7 +1144,8 @@ import {
 		if (
 			request.kind === 'prompt-manager' ||
 			request.kind === 'settings-home' ||
-			request.kind === 'injected-doc'
+			request.kind === 'injected-doc' ||
+			request.kind === 'skill-shelf'
 		) {
 			return false; // a swap by session needs a successor session
 		}
@@ -1137,7 +1167,8 @@ import {
 		if (
 			request.kind === 'prompt-manager' ||
 			request.kind === 'settings-home' ||
-			request.kind === 'injected-doc'
+			request.kind === 'injected-doc' ||
+			request.kind === 'skill-shelf'
 		)
 			return; // defensive: a swap needs a successor session
 		const panelId = slotPanelId;
@@ -1565,6 +1596,13 @@ import {
 				escapeScope="root"
 				host="panel"
 			/>
+		</div>
+	{:else if panel.kind === 'skill-shelf'}
+		<!-- Skill-shelf branch (The Skill Shelf ADR, 2026-09-20, D1): same
+		     embedding rule as the manager — onclose removing the slot, the
+		     content owns its fetches (/api/skills). -->
+		<div class="panel-manager-body" data-testid="panel-skills">
+			<SettingsSkillsPanel onclose={hostClose ?? (() => removePanel(panel.id))} />
 		</div>
 	{:else if panel.kind === 'settings-editor'}
 		<!-- Settings branch (Settings Panel ADR D3/D6, 2026-09-07): same

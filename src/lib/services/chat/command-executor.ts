@@ -19,6 +19,23 @@ import { parseCommand } from './command-parser';
 import { shouldRecordPrompt } from './prompt-trigger.js';
 import { buildDeliveredText, mintA2aId } from './a2a-protocol';
 import { addPanelFromSidebar, replacePanelBySession, replacePanelFromRegistry } from '$lib/services/panels/panel-registry';
+
+/** Test seam (Wave 3, skill-shelf): the executor reads the registry
+ *  THROUGH this indirection so a unit test can capture add requests
+ *  without the panel floor. Prod code never calls the setter. */
+let addPanelOverride: ((request: Parameters<typeof addPanelFromSidebar>[0]) => void) | null = null;
+export function setAddPanelFromSidebarForTest(
+	fn: ((request: Parameters<typeof addPanelFromSidebar>[0]) => void) | null
+): void {
+	addPanelOverride = fn;
+}
+function addPanel(request: Parameters<typeof addPanelFromSidebar>[0]): boolean {
+	if (addPanelOverride) {
+		addPanelOverride(request);
+		return true;
+	}
+	return addPanelFromSidebar(request);
+}
 import { resolveInjectedMember } from '$lib/services/conversation/injected-shelf';
 import type { DsiCommandRow, DsiEntry } from '$lib/types';
 
@@ -104,6 +121,7 @@ export async function executeCommand(
 			| 'promptmanager'
 			| 'dsisettings'
 			| 'dshsettings'
+			| 'skillshelf'
 			| 'loadinjected';
 		args: string;
 		agentId?: string;
@@ -119,6 +137,9 @@ export async function executeCommand(
 		a2aId?: string;
 		/** /loadinjected only (2026-09-07, ADR D4) — the parser's filename token. */
 		filename?: string;
+		/** /dsi-skill-shelf only (The Skill Shelf ADR, 2026-09-20, D3) — the
+		 *  '--reload' flag: rebuild the snapshot before the shelf opens. */
+		reload?: boolean;
 	},
 	ctx: ExecutorContext,
 	onNote?: NoteSink
@@ -134,6 +155,9 @@ export async function executeCommand(
 	}
 	if (command.type === 'promptmanager') {
 		return runPromptManager(command.args, ctx, onNote);
+	}
+	if (command.type === 'skillshelf') {
+		return runSkillShelf(command.args, command.reload === true, ctx, onNote);
 	}
 	if (command.type === 'dsisettings' || command.type === 'dshsettings') {
 		return runSettingsEditor(
@@ -304,6 +328,59 @@ async function runPromptManager(
 		return { ok: false, note };
 	}
 	// No note on success — the focused (or fresh) panel IS the feedback.
+	return { ok: true };
+}
+
+/**
+ * /dsi-skill-shelf (The Skill Shelf ADR, 2026-09-20, D1/D3): aim the
+ * SettingsSkillsPanel — the floor dedupes and FOCUSES the open shelf
+ * (the manager-request grammar). Snapshot-first is the ROUTE's contract
+ * (GET /api/skills/snapshot builds when absent, D3); the '--reload' flag
+ * forces the rebuild HERE so the panel's first fetch already carries the
+ * fresh snapshot. No note on success — the focused panel IS the feedback.
+ */
+async function runSkillShelf(
+	args: string,
+	reload: boolean,
+	ctx: ExecutorContext,
+	onNote?: NoteSink
+): Promise<ExecutorResult> {
+	// The parser's leftover-args rule (The Shelf Voice W1, RCA fix): the
+	// parser keeps unknown args raw so this note can be honest about the
+	// grammar instead of silently ignoring them.
+	if (args !== '') {
+		const usage = 'usage: /dsi-skill-shelf [--reload]';
+		onNote?.(false, usage);
+		return { ok: false, note: usage };
+	}
+	if (ctx.panelId == null) {
+		const note = '/dsi-skill-shelf needs a panel floor (open this session on the floor first)';
+		onNote?.(false, note);
+		return { ok: false, note };
+	}
+	if (reload) {
+		try {
+			const res = await fetch('/api/skills/reload', { method: 'POST' });
+			if (!res.ok) {
+				const note = '/dsi-skill-shelf: snapshot rebuild failed (' + res.status + ')';
+				onNote?.(false, note);
+				return { ok: false, note };
+			}
+		} catch {
+			const note = '/dsi-skill-shelf: snapshot rebuild failed (network)';
+			onNote?.(false, note);
+			return { ok: false, note };
+		}
+	}
+	const added = addPanel({
+		kind: 'skill-shelf',
+		afterSessionId: ctx.sessionId
+	});
+	if (!added) {
+		const note = '/dsi-skill-shelf: the floor is not mounted';
+		onNote?.(false, note);
+		return { ok: false, note };
+	}
 	return { ok: true };
 }
 

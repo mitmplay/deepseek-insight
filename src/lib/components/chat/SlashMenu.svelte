@@ -13,7 +13,7 @@
 	 * vocabulary before the operator narrows it.
 	 */
 	export function slashMenuMatches(
-		row: { name: string; description: string },
+		row: { name: string; description: string; display?: string },
 		query: string
 	): boolean {
 		const terms = query
@@ -22,7 +22,11 @@
 			.split(/[;\s]+/)
 			.filter(Boolean);
 		if (terms.length === 0) return true;
-		const hay = `${row.name} ${row.description}`.toLowerCase();
+		// The Shelf Voice W1 fix (RCA 2026-09-20): the DISPLAY token is what
+		// the operator types — a gesture whose name differs from its display
+		// ('skillshelf' vs '/dsi-skill-shelf') must still be findable by the
+		// visible prefix, so the display rides the haystack.
+		const hay = `${row.name} ${row.display ?? ''} ${row.description}`.toLowerCase();
 		return terms.every((t) => hay.includes(t));
 	}
 
@@ -109,6 +113,7 @@
 	 * moves when it appears.
 	 */
 	import type { DsiCommandRow, DsiGestureRow, DsiSkillRow } from '$lib/types';
+	import { ensureVoiceMap, voicedSkillRow } from '$lib/services/chat/skill-voice.svelte';
 
 	interface Props {
 		/** DSI client-gesture rows (layer A) — the menu's first section. */
@@ -154,7 +159,7 @@
 	/** Matched skill rows — host order kept. The collision rule (a name
 	 *  in both catalogs resolves to the COMMAND) is the ladder's, not the
 	 *  menu's — the menu lists every matched row it was given. */
-	const matchedSkills = $derived(skills.filter((row) => slashMenuMatches(row, query)));
+	const matchedSkills = $derived(skills.filter((row) => slashMenuMatches(row, query)).map(voicedSkillRow));
 
 	// Annotation style, NOT the $state<T> generic. NOTE: the destructure
 	// above renames the catalog prop to catalogState deliberately — with a
@@ -163,6 +168,12 @@
 	// (menuEl compiled into a subscribe of the prop → store_invalid_shape
 	// at mount, 2026-09-03). The prop's public name is unchanged.
 	let menuEl: HTMLDivElement | null = $state(null);
+
+	// The Shelf Voice (ADR D5): the voice map is fetched once per session
+	// (the overlay store caches); the menu re-derives rows on locale flips.
+	$effect(() => {
+		void ensureVoiceMap();
+	});
 
 	// Keyboard-follow (2026-09-03 bug fix): the HOST cycles activeIndex
 	// over the whole matched set; a capped menu (max-height + overflow-y)

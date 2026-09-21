@@ -548,8 +548,20 @@ export type DsiPanelEntry =
 	| DsiPromptManagerPanel
 	| DsiSettingsPanel
 	| DsiInjectedDocPanel
+	| DsiSkillShelfPanel
 	| DsiWorkspaceExplorerPanel
 	| DsiWorkspaceFilePanel;
+
+/** The skill-shelf branch (The Skill Shelf ADR, 2026-09-20, D1) — hosts
+ *  SettingsSkillsPanel; no session, no preset chip, no cold/spine facts.
+ *  The content talks to the DSI-local /api/skills routes itself. */
+export interface DsiSkillShelfPanel {
+	/** Stable panel identity — selection and close target this. */
+	id: string;
+	kind: 'skill-shelf';
+	/** Panel width in px, always within panel-prefs clamp bounds. */
+	width: number;
+}
 
 /** The conversation branch — renders one DSH session's transcript. */
 export interface DsiConversationPanel {

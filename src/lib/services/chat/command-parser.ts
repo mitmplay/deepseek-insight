@@ -67,6 +67,7 @@ export interface ParsedCommand {
 		| 'promptmanager'
 		| 'dsisettings'
 		| 'dshsettings'
+		| 'skillshelf'
 		| 'loadinjected';
 	/** The raw remainder after the command token, trimmed (may be empty). */
 	args: string;
@@ -107,6 +108,10 @@ export interface ParsedCommand {
 	 *  flag token and not an '@' token; case preserved verbatim. Absent
 	 *  for the four pre-existing shapes and any malformed remainder. */
 	ws?: string;
+	/** /dsi-skill-shelf only (The Skill Shelf ADR, 2026-09-20, D3) — the
+	 *  exact '--reload' flag: force a snapshot rebuild before the shelf
+	 *  panel opens. Absent for the bare command. */
+	reload?: boolean;
 	/** Mention only — the captured session id (the uuid tail, lowercase);
 	 *  the handler canonicalizes it against the spine rows. */
 	sessionId?: string;
@@ -227,6 +232,15 @@ export function parseCommand(text: string): ParsedCommand | null {
 			// executor usage-errors them, the '/new leftover' rule. The
 			// token maps to the type verbatim.
 			return { type: token.slice(1) as 'promptmanager' | 'dsisettings' | 'dshsettings', args };
+		}
+		case '/dsi-skill-shelf': {
+			// The Skill Shelf ADR (2026-09-20, D1/D3): bare opens the shelf
+			// panel; the ONE flag '--reload' forces a snapshot rebuild before
+			// the panel opens. Any other args keep the raw shape so the
+			// executor usage-errors them (the '/new leftover' rule).
+			if (args === '') return { type: 'skillshelf', args };
+			if (args === '--reload') return { type: 'skillshelf', args: '', reload: true };
+			return { type: 'skillshelf', args };
 		}
 		case '/loadinjected': {
 			// RETIRED as a typed command (2026-09-17, The Retired Typed

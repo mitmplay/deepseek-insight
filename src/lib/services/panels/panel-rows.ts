@@ -81,6 +81,7 @@ export function workspaceFileTitle(path: string): string {
  */
 export function panelHeaderLabel(panel: DsiPanelEntry): string | undefined {
 	if (panel.kind === 'prompt-manager') return MANAGER_ROW_TITLE;
+	if (panel.kind === 'skill-shelf') return 'Skill Shelf';
 	if (panel.kind === 'settings-editor') return SETTINGS_ROW_TITLE[panel.target];
 	if (panel.kind === 'injected-doc') return injectedDocTitle(panel.displayPath);
 	// The explorer variant (2026-09-11): the column header labels the
@@ -138,14 +139,20 @@ export function panelRowsFor(input: PanelRowsInput): PanelRow[] {
 	const { panels, spineRows, coldCache, deadSessions, edgeCache, lineageFacts, moveFacts } = input;
 	const openSessionIds = openSessionIdsOf(panels);
 	return panels.map<PanelRow>((p, index) => {
-		if (p.kind === 'prompt-manager' || p.kind === 'settings-editor') {
+		if (p.kind === 'prompt-manager' || p.kind === 'settings-editor' || p.kind === 'skill-shelf') {
 			// Kind-honest non-session facts (ADR §8 required case; the
 			// settings-editor branch rides the same rule — Settings Panel
 			// ADR D3): never running/dead, depth 0, no lineage keys; move
 			// verbs are positional (neither belongs to a family).
+			const title =
+				p.kind === 'prompt-manager'
+					? MANAGER_ROW_TITLE
+					: p.kind === 'skill-shelf'
+						? 'Skill Shelf'
+						: SETTINGS_ROW_TITLE[p.target];
 			return {
 				panel: p,
-				title: p.kind === 'prompt-manager' ? MANAGER_ROW_TITLE : SETTINGS_ROW_TITLE[p.target],
+				title,
 				workspace: null,
 				dead: false,
 				running: false,
