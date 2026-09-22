@@ -20,7 +20,8 @@
 	import SettingsSkillsToolbar from './SettingsSkillsToolbar.svelte';
 	import SettingsSkillsContainer from './SettingsSkillsContainer.svelte';
 	import SettingsSkillsTabgroup from './SettingsSkillsTabgroup.svelte';
-	import { RotateCw, ChevronsDownUp, ChevronsUpDown, ChevronDown, ChevronRight } from '@lucide/svelte';
+	import SettingsSkillsSelfSection from './SettingsSkillsSelfSection.svelte';
+	import { RotateCw, ChevronsDownUp, ChevronsUpDown } from '@lucide/svelte';
 
 	interface ShelfSkill {
 		n: string;
@@ -30,6 +31,7 @@
 		installed: boolean;
 		signed: boolean;
 		installedFrom: string | null;
+		overview: string | null;
 	}
 	interface ShelfSource {
 		id: string;
@@ -112,7 +114,7 @@
 			// set (initialCollapsed) or an already-toggled session set
 			// wins — the default only fills the first, unrestored load.
 			if (collapsed === null) {
-				collapsed = new Set((body.snapshot as ShelfSnapshot).sources.map((s) => s.id));
+				collapsed = allCollapsedIds(snapshot);
 			}
 		} catch (e) {
 			loadError = String((e as Error).message);
@@ -128,16 +130,22 @@
 		selected = next;
 	}
 
+	/** The ALL-COLLAPSED default set — every source id in the snapshot.
+	 *  The one expression behind the first-load seed, the group toggle's
+	 *  null fallback, and the collapse-all verb. */
+	function allCollapsedIds(snap: ShelfSnapshot | null): ReadonlySet<string> {
+		return new Set(snap?.sources.map((s) => s.id) ?? []);
+	}
+
 	function toggleGroup(sourceId: string): void {
-		const next = new Set(collapsed ?? snapshot?.sources.map((s) => s.id) ?? []);
+		const next = new Set(collapsed ?? allCollapsedIds(snapshot));
 		if (next.has(sourceId)) next.delete(sourceId);
 		else next.add(sourceId);
 		collapsed = next;
 	}
 
 	function collapseAll(): void {
-		if (!snapshot) return;
-		collapsed = new Set(snapshot.sources.map((s) => s.id));
+		collapsed = allCollapsedIds(snapshot);
 	}
 
 	function expandAll(): void {
@@ -238,12 +246,6 @@
 	onMount(() => {
 		void loadSnapshot();
 	});
-
-	function badgeFor(skill: ShelfSkill): string | null {
-		if (skill.signed) return t(m.skillsShelfBadgeInstalled);
-		if (skill.installed) return t(m.skillsShelfBadgeForeign);
-		return null;
-	}
 </script>
 
 <div class="skill-shelf" bind:this={rootEl} data-testid="skill-shelf">
@@ -303,40 +305,19 @@
 		{/each}
 		<SettingsSkillsContainer>
 			{#each visibleSources as g (g.source.id)}
-				<section class="shelf-source" data-testid={'shelf-source-' + g.source.id}>
-					<button
-						type="button"
-						class="shelf-group-head"
-						data-testid={'shelf-group-' + g.source.id}
-						aria-expanded={!groupHidden(g.source.id)}
-						onclick={() => toggleGroup(g.source.id)}
-					>
-						<span class="shelf-caret">{#if groupHidden(g.source.id)}<ChevronRight size={12} aria-hidden="true" />{:else}<ChevronDown size={12} aria-hidden="true" />{/if}</span>
-						{g.source.id}
-						<span class="shelf-author">{g.source.author}</span>
-						<span class="shelf-count">{g.skills.length}</span>
-					</button>
-					{#if !groupHidden(g.source.id)}
-						<ul class="shelf-rows">
-							{#each g.skills as skill (skill.n)}
-								<li class="shelf-row" data-testid={'shelf-row-' + skill.id}>
-									<label class="shelf-row-main">
-										<input type="checkbox" aria-label={skill.id} checked={selected.has(skill.n)} onchange={() => toggle(skill.n)} />
-										<span class="shelf-n">{skill.n}</span>
-										<span class="shelf-id">{skill.id}</span>
-									</label>
-									{#if skill.tier}<span class="shelf-tier" data-testid="shelf-tier">{skill.tier}</span>{/if}
-									{#if badgeFor(skill)}
-										<span class="shelf-badge" data-testid="shelf-badge">{badgeFor(skill)}</span>
-									{/if}
-									{#if tab === 'uninstall' && uninstallable.has(skill.id)}
-										<button type="button" class="shelf-uninstall" data-testid={'shelf-uninstall-' + skill.id} onclick={() => runUninstall(skill.id)} disabled={busy}>{t(m.skillsShelfUninstall)}</button>
-									{/if}
-								</li>
-							{/each}
-						</ul>
-					{/if}
-				</section>
+				<SettingsSkillsSelfSection
+					sourceId={g.source.id}
+					author={g.source.author}
+					skills={g.skills}
+					hidden={groupHidden(g.source.id)}
+					selected={selected}
+					uninstallable={uninstallable}
+					{tab}
+					{busy}
+					ontoggle={(n) => toggle(n)}
+					ontogglegroup={() => toggleGroup(g.source.id)}
+					onuninstall={(id) => runUninstall(id)}
+				/>
 			{/each}
 			{#if visibleSources.length === 0}
 				<p class="shelf-note" data-testid="shelf-empty">—</p>
@@ -445,85 +426,6 @@
 	}
 	.shelf-warn {
 		color: #b45309;
-	}
-	.shelf-group-head {
-		display: flex;
-		align-items: center;
-		gap: 0.375rem;
-		width: 100%;
-		border: none;
-		background: transparent;
-		font-size: 0.8rem;
-		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.04em;
-		cursor: pointer;
-		padding: 0.25rem 0;
-		text-align: left;
-	}
-	.shelf-caret {
-		font-size: 0.7rem;
-	}
-	.shelf-author {
-		font-weight: 400;
-		opacity: 0.6;
-		text-transform: none;
-		letter-spacing: normal;
-	}
-	.shelf-count {
-		margin-left: auto;
-		font-weight: 400;
-		font-variant-numeric: tabular-nums;
-		opacity: 0.6;
-	}
-	.shelf-rows {
-		list-style: none;
-		margin: 0;
-		padding: 0 0 0.25rem;
-	}
-	.shelf-row {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		padding: 0.15rem 0.25rem;
-		border-radius: 4px;
-	}
-	.shelf-row:hover {
-		background: color-mix(in srgb, currentColor 6%, transparent);
-	}
-	.shelf-row-main {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		flex: 1;
-		min-width: 0;
-		cursor: pointer;
-	}
-	.shelf-n {
-		opacity: 0.55;
-		font-variant-numeric: tabular-nums;
-	}
-	.shelf-id {
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-	.shelf-tier {
-		font-size: 0.7rem;
-		padding: 0.05rem 0.35rem;
-		border-radius: 999px;
-		border: 1px solid #e67e22;
-		color: #e67e22;
-	}
-	.shelf-badge {
-		font-size: 0.7rem;
-		padding: 0.05rem 0.35rem;
-		border-radius: 999px;
-		background: color-mix(in srgb, #27ae60 18%, transparent);
-		color: #27ae60;
-	}
-	.shelf-uninstall {
-		font-size: 0.7rem;
 	}
 	.shelf-install-bar {
 		position: sticky;

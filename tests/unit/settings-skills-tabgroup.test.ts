@@ -5,7 +5,7 @@
 import { flushSync } from 'svelte';
 import { mount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import SettingsSkillsTabgroup from '$lib/components/panels/SettingsSkillsTabgroup.svelte';
+import SettingsSkillsTabgroup from '$lib/components/settings-skills/SettingsSkillsTabgroup.svelte';
 
 function mountGroup(props: Record<string, unknown> = {}) {
 	const target = document.createElement('div');

@@ -5,7 +5,7 @@
 import { flushSync } from 'svelte';
 import { mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import SettingsSkillsToolbar from '$lib/components/panels/SettingsSkillsToolbar.svelte';
+import SettingsSkillsToolbar from '$lib/components/settings-skills/SettingsSkillsToolbar.svelte';
 
 function mountToolbar(props: Record<string, unknown> = {}) {
 	const target = document.createElement('div');

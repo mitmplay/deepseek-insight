@@ -13,6 +13,7 @@ export interface ShelfSkill {
 	installed: boolean; // folder exists on disk
 	signed: boolean; // valid .dsi-provenance.json present (D5)
 	installedFrom: string | null; // source id from the signature
+	overview: string | null; // SKILL.md description/Overview text (installed only; null = unavailable)
 }
 
 export interface ShelfSource {

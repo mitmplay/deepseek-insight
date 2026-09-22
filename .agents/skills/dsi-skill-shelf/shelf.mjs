@@ -3,7 +3,7 @@
 // Plain Node ESM, no dependencies. All output is JSON on stdout: { v: 1, ok, ... }
 
 import { createHash } from 'node:crypto'
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { copyFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { basename, dirname, join, resolve, sep } from 'node:path'
@@ -22,24 +22,42 @@ function tierSortKey(sk) { return (sk.tier !== null && sk.tier in TIER_RANK ? TI
 // source name -> UPSTREAM OVERRIDE (2026-09-21 redesign: the SKR is the
 // registry — every github source enumerates from its own URL by default;
 // a row here only OVERRIDES the derivation, e.g. pstack's nested layout).
+// single: true (2026-09-22) = the repo hosts exactly ONE skill at its
+// canonical root (prefix 'skill', entry SKILL.md or SKILL.src.md; the id
+// comes from the frontmatter name). impeccable ships one skill mirrored
+// into ~20 host dirs — prefixless enumeration would yield duplicate rows.
 const SOURCE_SPECS = {
   pstack:        { repo: 'cursor/plugins',    prefix: 'pstack/skills', tiered: false },
   mattpocock:    { repo: 'mattpocock/skills', prefix: 'skills',        tiered: true  },
   superpowers:   { repo: 'obra/superpowers',  prefix: 'skills',        tiered: false },
-  'web-quality-skills': { repo: 'addyosmani/web-quality-skills', prefix: 'skills', tiered: false }
+  'web-quality-skills': { repo: 'addyosmani/web-quality-skills', prefix: 'skills', tiered: false },
+  impeccable:    { repo: 'pbakaus/impeccable', prefix: 'skill',        tiered: false, single: true }
 }
 
 // Derive the enumeration spec from the SKR line itself: the github URL
-// names the repo, an optional /tree/<branch>/<path> tail hints the
-// prefix. SOURCE_SPECS wins when a row exists (legacy nested layouts).
+// names the repo, an optional tail hints the prefix — either the classic
+// /tree/<branch>/<path> or (2026-09-22, single-skill repos) a bare path
+// like .../repo/skill. A prefix that IS 'skill' or ends in '/skill'
+// marks single-skill mode. SOURCE_SPECS wins when a row exists.
+const SINGLE_SKILL_RE = /(^|\/)skill$/
 function specFor(src) {
   if (SOURCE_SPECS[src.name]) return SOURCE_SPECS[src.name]
   // src.url = the raw SKR line; src.repo = a snapshot source (skrRepo's
   // output). Both carry a github URL the regex can read.
   const url = src.url || src.repo || ''
-  const m = url.match(/github\.com\/([^/]+)\/([^/]+?)(?:\.git)?(?:\/tree\/[^/]+(?:\/(.*))?)?$/)
+  const m = url.match(/github\.com\/([^/]+)\/([^/]+?)(?:\.git)?(?:\/tree\/[^/]+(?:\/(.*))?|\/(.+))?$/)
   if (!m) return null
-  return { repo: m[1] + '/' + m[2], prefix: m[3] || '', tiered: false }
+  const prefix = m[3] || m[4] || ''
+  return { repo: m[1] + '/' + m[2], prefix, tiered: false, single: SINGLE_SKILL_RE.test(prefix) }
+}
+
+// Skill entry files the shelf can enumerate (2026-09-22): the classic
+// SKILL.md and the single-skill repos' authored SKILL.src.md.
+const ENTRY_FILES = ['SKILL.md', 'SKILL.src.md']
+function frontmatterName(text) {
+  const fm = text.match(/^---\r?\n([\s\S]*?)\r?\n---/)
+  const m = fm && fm[1].match(/^name:\s*(.+)$/m)
+  return m ? m[1].trim() : null
 }
 
 function parseArgs(argv) {
@@ -92,6 +110,16 @@ function enumLocal(src, fixtureRoot) {
   const spec = specFor(src)
   const root = join(fixtureRoot, src.name)
   if (!spec || !existsSync(root)) return []
+  if (spec.single) {
+    // Single-skill repo: one entry at <prefix>/, id from the frontmatter
+    // name (falls back to the folder name when the entry carries none).
+    const dir = join(root, spec.prefix)
+    const entry = ENTRY_FILES.find((f) => existsSync(join(dir, f)))
+    if (!entry) return []
+    let id = basename(spec.prefix)
+    try { id = frontmatterName(readFileSync(join(dir, entry), 'utf8')) || id } catch { /* keep folder name */ }
+    return [{ id, path: spec.prefix, tier: null, entry }]
+  }
   const prefix = spec.prefix
   const tiered = spec.tiered
   const skills = walkLocal(root).map((dir) => {
@@ -107,18 +135,62 @@ function enumLocal(src, fixtureRoot) {
   return skills
 }
 
+// GitHub API auth (2026-09-22): unauthenticated api.github.com allows
+// only 60 req/hr per IP — one exhausted window aborts the whole refresh
+// (observed: HTTP 403 on cursor/plugins). Prefer GITHUB_TOKEN / GH_TOKEN
+// or the gh CLI credential when present (5000 req/hr).
+function ghAuthHeaders() {
+  const headers = { 'user-agent': 'dsi-skill-shelf' }
+  let token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || ''
+  if (!token) {
+    try { token = execFileSync('gh', ['auth', 'token'], { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim() } catch { /* no gh CLI */ }
+  }
+  if (token) headers.authorization = 'Bearer ' + token
+  return headers
+}
+
+// One trees call per source; failure is DATA ({ skills: [], error }),
+// never an exception — one dead source must not abort the whole snapshot.
+async function fetchTree(repo) {
+  try {
+    const res = await fetch('https://api.github.com/repos/' + repo + '/git/trees/HEAD?recursive=1', { headers: ghAuthHeaders() })
+    if (!res.ok) {
+      const hint = res.status === 403 ? ' (api.github.com rate limited? set GITHUB_TOKEN or run: gh auth login)' : ''
+      return { tree: null, error: 'github trees ' + repo + ' -> HTTP ' + res.status + hint }
+    }
+    return { tree: (await res.json()).tree || [], error: null }
+  } catch (e) {
+    return { tree: null, error: 'github trees ' + repo + ' -> ' + String(e.message || e) }
+  }
+}
+
 async function enumGitHub(src) {
   const spec = specFor(src)
-  if (!spec) return []
+  if (!spec) return { skills: [], error: null }
   const repo = spec.repo
-  const res = await fetch('https://api.github.com/repos/' + repo + '/git/trees/HEAD?recursive=1', { headers: { 'user-agent': 'dsi-skill-shelf' } })
-  if (!res.ok) throw new Error('github trees ' + repo + ' -> HTTP ' + res.status)
-  const tree = (await res.json()).tree || []
+  if (spec.single) {
+    // Single-skill repo (2026-09-22): exactly one skill at <prefix>/, so
+    // pick the entry file directly instead of scanning every SKILL.md
+    // blob (impeccable mirrors its one skill into ~20 host dirs — a tree
+    // scan would enumerate duplicates). The id is the frontmatter name.
+    const { tree, error } = await fetchTree(repo)
+    if (error) return { skills: [], error }
+    const entry = ENTRY_FILES.find((f) => tree.some((n) => n.type === 'blob' && n.path === spec.prefix + '/' + f))
+    if (!entry) return { skills: [], error: null }
+    let id = basename(spec.prefix)
+    try {
+      const raw = await fetch('https://raw.githubusercontent.com/' + repo + '/HEAD/' + spec.prefix + '/' + entry, { headers: { 'user-agent': 'dsi-skill-shelf' } })
+      if (raw.ok) id = frontmatterName(await raw.text()) || id
+    } catch { /* keep folder name */ }
+    return { skills: [{ id, path: spec.prefix, tier: null, entry }], error: null }
+  }
+  const { tree, error } = await fetchTree(repo)
+  if (error) return { skills: [], error }
   const skills = []
   for (const node of tree) {
     if (node.type !== 'blob') continue
     const parts = node.path.split('/')
-    if (parts[parts.length - 1] !== 'SKILL.md') continue
+    if (!ENTRY_FILES.includes(parts[parts.length - 1])) continue
     if (spec.prefix && !node.path.startsWith(spec.prefix + '/')) continue
     const dirParts = parts.slice(0, -1)
     const id = dirParts[dirParts.length - 1]
@@ -129,7 +201,7 @@ async function enumGitHub(src) {
     skills.push({ id, path: dirParts.join('/'), tier: tier && UNSTABLE_TIERS.has(tier) ? tier : null })
   }
   skills.sort((a, b) => tierSortKey(a).localeCompare(tierSortKey(b)))
-  return skills
+  return { skills, error: null }
 }
 
 // --- signatures / reconciliation (ADR D5: signature is the uninstall authority) ---
@@ -148,31 +220,92 @@ export function readSignatures(skillsDir) {
   return signed
 }
 
-function buildSnapshot(sourcesRaw, enums, skillsDir) {
+// Skill overview (card UI, 2026-09-22): prefer the SKILL.md
+// frontmatter `description:` line, else the first paragraph under an
+// `## Overview` heading. Installed skills read from disk; uninstalled
+// ones fetch the raw SKILL.md from the source repo (raw.githubusercontent
+// is outside the API rate limit) so the card never lies about a missing
+// overview. Parse failure still yields null — the honest fallback.
+const OVERVIEW_MAX = 280
+function parseOverview(text) {
+  let out = null
+  const fm = text.match(/^---\r?\n([\s\S]*?)\r?\n---/)
+  if (fm) {
+    const desc = fm[1].match(/^description:\s*(.+)$/m)
+    if (desc) out = desc[1].trim()
+  }
+  if (!out) {
+    const ov = text.match(/^##\s*Overview\s*\r?\n([\s\S]*?)(?=\n##\s|$)/m)
+    if (ov) out = ov[1].trim()
+  }
+  if (!out) return null
+  return out.length > OVERVIEW_MAX ? out.slice(0, OVERVIEW_MAX - 1).trimEnd() + '\u2026' : out
+}
+function readOverview(skillsDir, id, entry) {
+  const files = entry ? [entry] : ENTRY_FILES
+  for (const f of files) {
+    const mdPath = join(skillsDir, id, f)
+    if (!existsSync(mdPath)) continue
+    try {
+      return parseOverview(readFileSync(mdPath, 'utf8'))
+    } catch { return null }
+  }
+  return null
+}
+async function fetchOverview(repo, relPath, entry) {
+  const files = entry ? [entry] : ENTRY_FILES
+  for (const f of files) {
+    try {
+      const res = await fetch('https://raw.githubusercontent.com/' + repo + '/HEAD/' + relPath + '/' + f, { headers: { 'user-agent': 'dsi-skill-shelf' } })
+      if (!res.ok) continue
+      const out = parseOverview(await res.text())
+      if (out) return out
+    } catch { /* try next entry file */ }
+  }
+  return null
+}
+
+async function buildSnapshot(sourcesRaw, enums, skillsDir) {
   const signed = readSignatures(skillsDir)
   const generatedAt = new Date().toISOString()
   const warnings = []
-  const sources = sourcesRaw.map((src, si) => {
+  const sources = []
+  for (let si = 0; si < sourcesRaw.length; si++) { const src = sourcesRaw[si]
     // Registry-gap warning (2026-09-21, revised): enumeration derives
     // from the SKR URL itself, so an empty list is a REAL anomaly and
     // the snapshot says why.
     const spec = specFor(src)
+    const enumed = enums[si] || { skills: [], error: null }
     if (!spec) {
       warnings.push({ code: 'source-no-repo', source: src.name, detail: 'source "' + src.name + '" has no github repo URL in the SKR - cannot enumerate' })
-    } else if ((enums[si] || []).length === 0) {
+    } else if (enumed.error) {
+      // Enumeration failure (rate limit, network) degrades to a warning —
+      // the rest of the shelf still lands in the snapshot (2026-09-22).
+      warnings.push({ code: 'source-enum-failed', source: src.name, detail: enumed.error })
+    } else if (enumed.skills.length === 0) {
       warnings.push({ code: 'source-empty', source: src.name, detail: 'source "' + src.name + '" enumerated zero skills' + (spec.prefix ? ' under prefix "' + spec.prefix + '"' : '') + ' - upstream layout may have moved' })
     }
-    const skills = (enums[si] || []).map((sk, ki) => ({
-      n: (si + 1) + '.' + (ki + 1),
-      id: sk.id,
-      path: sk.path,
-      tier: sk.tier,
-      installed: existsSync(join(skillsDir, sk.id)),
-      signed: signed.has(sk.id),
-      installedFrom: signed.has(sk.id) ? signed.get(sk.id).source : null
-    }))
-    return { id: src.name, name: src.name, author: src.author, repo: skrRepo(src), skills }
-  })
+    const skills = []
+    for (let ki = 0; ki < enumed.skills.length; ki++) {
+      const sk = enumed.skills[ki]
+      const installed = existsSync(join(skillsDir, sk.id))
+      // Overview: disk first, then the source repo's raw SKILL.md for
+      // uninstalled rows (sequential — gentle on raw.githubusercontent).
+      let overview = readOverview(skillsDir, sk.id, sk.entry)
+      if (!overview && spec) overview = await fetchOverview(spec.repo, sk.path, sk.entry)
+      skills.push({
+        n: (si + 1) + '.' + (ki + 1),
+        id: sk.id,
+        path: sk.path,
+        tier: sk.tier,
+        installed,
+        signed: signed.has(sk.id),
+        installedFrom: signed.has(sk.id) ? signed.get(sk.id).source : null,
+        overview
+      })
+    }
+    sources.push({ id: src.name, name: src.name, author: src.author, repo: skrRepo(src), skills })
+  }
   return { v: CACHE_VERSION, generatedAt, sources, warnings }
 }
 
@@ -195,9 +328,9 @@ async function cmdRefresh(args) {
   const fixtureRoot = args['fixture-root'] ? resolve(args['fixture-root']) : null
   const enums = []
   for (const src of sourcesRaw) {
-    enums.push(fixtureRoot ? enumLocal(src, fixtureRoot) : await enumGitHub(src))
+    enums.push(fixtureRoot ? { skills: enumLocal(src, fixtureRoot), error: null } : await enumGitHub(src))
   }
-  const snapshot = buildSnapshot(sourcesRaw, enums, skillsDir)
+  const snapshot = await buildSnapshot(sourcesRaw, enums, skillsDir)
   mkdirSync(dirname(cachePath), { recursive: true })
   writeFileSync(cachePath, JSON.stringify(snapshot, null, 2))
   return { snapshot, reused: false }
@@ -235,7 +368,11 @@ function copyDirGitHub(source, relPath, dest) {
 }
 
 function hashSkillFile(skillDir) {
-  return 'sha256:' + createHash('sha256').update(readFileSync(join(skillDir, 'SKILL.md'))).digest('hex')
+  // Single-skill repos author SKILL.src.md (2026-09-22): hash whichever
+  // entry file the installed skill actually carries.
+  const entry = ENTRY_FILES.find((f) => existsSync(join(skillDir, f)))
+  if (!entry) throw new Error('no SKILL.md / SKILL.src.md in installed skill dir: ' + skillDir)
+  return 'sha256:' + createHash('sha256').update(readFileSync(join(skillDir, entry))).digest('hex')
 }
 
 async function cmdApply(args) {
@@ -268,6 +405,14 @@ async function cmdApply(args) {
         if (existsSync(dest)) rmSync(dest, { recursive: true, force: true })
         if (fixtureRoot) copyDirLocal(fixtureRoot, source.id, skill.path, dest)
         else copyDirGitHub(source, skill.path, dest)
+        // Single-skill repos author SKILL.src.md (2026-09-22), but the
+        // DSH host skill provider only scans SKILL.md — without it the
+        // skill installs fine yet never appears in the host catalog and
+        // cannot be invoked. Materialize SKILL.md from the authored src.
+        const mdPath = join(dest, 'SKILL.md')
+        if (!existsSync(mdPath) && existsSync(join(dest, 'SKILL.src.md'))) {
+          copyFileSync(join(dest, 'SKILL.src.md'), mdPath)
+        }
         const sig = {
           v: CACHE_VERSION, source: source.id, n: skill.n, skillId: skill.id,
           upstreamPath: source.id + '/' + skill.path,

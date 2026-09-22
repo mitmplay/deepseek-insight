@@ -48,7 +48,7 @@
 	import AppSidebar from '$lib/components/common/layout/AppSidebar.svelte';
 	import ConversationPanel from '$lib/components/chat/ConversationPanel.svelte';
 	import PromptManagerPanel from '$lib/components/prompt-manager/PromptManagerPanel.svelte';
-	import SettingsSkillsPanel from '$lib/components/panels/SettingsSkillsPanel.svelte';
+	import SettingsSkillsPanel from '$lib/components/settings-skills/SettingsSkillsPanel.svelte';
 	import SettingsEditorPanel from '$lib/components/panels/SettingsEditorPanel.svelte';
 	import InjectedDocPanel from '$lib/components/panels/InjectedDocPanel.svelte';
 	import WorkspaceExplorerPanel from '$lib/components/panels/WorkspaceExplorerPanel.svelte';
