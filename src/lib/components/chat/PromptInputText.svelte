@@ -1,6 +1,7 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages';
 	import { t } from '$lib/services/locale/locale-state.svelte';
+	import ClearIconButton from '$lib/components/common/buttons/ClearIconButton.svelte';
 	/**
 	 * PromptInputText — the composer's textarea (extracted from
 	 * PromptInput 2026-09-04). Pure wiring, no logic: every handler
@@ -23,6 +24,13 @@
 	 * rows=2 at rest; the OWNER measures and sets height from
 	 * `data-max-rows` (it owns MAX_ROWS and isOverflow — the child only
 	 * mirrors the overflow class).
+	 *
+	 * Clear disc (2026-09-22): a ClearIconButton at the bottom-right
+	 * while the draft is non-empty and the box is unlocked — it empties
+	 * the draft, re-focuses the box, and re-fires `oninput` so the
+	 * owner's autosize + draft flush run (the same contract the prompt
+	 * manager search uses). The wrapper is position:relative for it;
+	 * display:block keeps the wrapper collapsed onto the box.
 	 */
 	let {
 		el = $bindable(undefined),
@@ -65,24 +73,35 @@
 		oncompositionstart: () => void;
 		oncompositionend: () => void;
 	} = $props();
+
+	function clear() {
+		value = '';
+		oninput(); // owner autosize + draft flush run on the emptied draft
+		// re-focus lives in ClearIconButton via the target prop
+	}
 </script>
 
-<textarea
-	bind:this={el}
-	bind:value
-	rows="2"
-	data-max-rows={maxRows}
-	placeholder={isStreaming
-		? t(m.promptStreamingPh)
-		: (placeholder ?? t(m.promptDefaultPh))}
-	disabled={locked}
-	onkeydown={onkeydown}
-	onpaste={onpaste}
-	oninput={oninput}
-	onfocus={onfocus}
-	onblur={onblur}
-	oncompositionstart={oncompositionstart}
-	oncompositionend={oncompositionend}
-	data-testid="prompt-textarea"
-	class="block min-h-[2.75rem] w-full resize-none rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 disabled:cursor-not-allowed disabled:bg-slate-50 {isOverflow ? 'overflow-y-auto' : 'overflow-y-hidden'} {isStreaming || awaiting ? 'pr-8' : ''}"
-></textarea>
+<div class="relative block">
+	<textarea
+		bind:this={el}
+		bind:value
+		rows="2"
+		data-max-rows={maxRows}
+		placeholder={isStreaming
+			? t(m.promptStreamingPh)
+			: (placeholder ?? t(m.promptDefaultPh))}
+		disabled={locked}
+		onkeydown={onkeydown}
+		onpaste={onpaste}
+		oninput={oninput}
+		onfocus={onfocus}
+		onblur={onblur}
+		oncompositionstart={oncompositionstart}
+		oncompositionend={oncompositionend}
+		data-testid="prompt-textarea"
+		class="block min-h-[2.75rem] w-full resize-none rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 disabled:cursor-not-allowed disabled:bg-slate-50 {isOverflow ? 'overflow-y-auto' : 'overflow-y-hidden'} {isStreaming || awaiting ? 'pr-7' : value.length > 0 && !locked ? 'pr-4' : ''}"
+	></textarea>
+	{#if value.length > 0 && !locked}
+		<ClearIconButton onclick={clear} label={t(m.promptClearDraft)} target={el} />
+	{/if}
+</div>

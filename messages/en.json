@@ -15,6 +15,7 @@
 	"showOnlySelected": "Show only selected rows",
 	"searchPrompts": "Search prompts…",
 	"clearSearch": "Clear search",
+	"promptClearDraft": "Clear draft",
 	"close": "Close",
 	"promptsManager": "Prompts manager",
 	"manageSavedPrompts": "Manage saved prompts",

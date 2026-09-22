@@ -15,6 +15,7 @@
 	"showOnlySelected": "Mostrar solo las filas seleccionadas",
 	"searchPrompts": "Buscar prompts…",
 	"clearSearch": "Limpiar búsqueda",
+	"promptClearDraft": "Borrar borrador",
 	"close": "Cerrar",
 	"promptsManager": "Gestor de prompts",
 	"manageSavedPrompts": "Gestionar prompts guardados",

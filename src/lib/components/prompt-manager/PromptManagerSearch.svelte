@@ -1,15 +1,18 @@
 <script lang="ts">
 	import { t } from '$lib/services/locale/locale-state.svelte';
 	import * as m from '$lib/paraglide/messages';
+	import ClearIconButton from '$lib/components/common/buttons/ClearIconButton.svelte';
 	/**
 	 * PromptManagerSearch — the debounced search input of the prompts
 	 * manager toolbar (extracted from PromptManagerPanel.svelte).
 	 * Value binds to the host's `searchQ`; each keystroke calls `oninput`
 	 * (the host owns the 300ms debounce + refresh).
 	 *
-	 * A clear button (`(x)`) sits at the bottom-right INSIDE the textarea
-	 * whenever the box is non-empty; one click empties the box and fires
-	 * `oninput` so the host's debounced refresh runs (2026-09-19).
+	 * A clear disc (ClearIconButton, the native search-cancel look) sits
+	 * at the bottom-right INSIDE the textarea whenever the box is
+	 * non-empty; one click empties the box and fires `oninput` so the
+	 * host's debounced refresh runs (2026-09-19; the button became the
+	 * shared ClearIconButton 2026-09-22 so PromptInputText reuses it).
 	 */
 	let {
 		value = $bindable(''),
@@ -24,7 +27,7 @@
 	function clear() {
 		value = '';
 		oninput();
-		textarea?.focus(); // cleared, not dismissed — typing continues
+		// re-focus lives in ClearIconButton via the target prop
 	}
 </script>
 
@@ -38,14 +41,7 @@
 		oninput={oninput}
 	></textarea>
 	{#if value.length > 0}
-		<button
-			type="button"
-			class="mgr-search-clear"
-			aria-label={t(m.clearSearch)}
-			title={t(m.clearSearch)}
-			onclick={clear}
-		>(x)</button
-		>
+		<ClearIconButton onclick={clear} label={t(m.clearSearch)} target={textarea} />
 	{/if}
 </div>
 
@@ -67,21 +63,5 @@
 		height: calc(2 * 1.2em + 0.5rem + 2px); /* 2 text lines + padding + border */
 		resize: none; /* keep the toolbar row height stable */
 		background: var(--color-surface, #f8f9fa);
-	}
-	.mgr-search-clear {
-		position: absolute;
-		right: 0.25rem;
-		bottom: 0.25rem;
-		border: none;
-		background: transparent;
-		cursor: pointer;
-		font-size: 0.6875rem;
-		line-height: 1;
-		border-radius: 0.25rem;
-		color: var(--color-text-muted, #888);
-	}
-	.mgr-search-clear:hover {
-		background: var(--color-surface-alt, #f1f3f5);
-		color: var(--color-text-primary, #333);
 	}
 </style>
