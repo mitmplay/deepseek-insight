@@ -1,5 +1,5 @@
 // 2.2-T - route handlers against a mocked engine runner.
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { setEngineRunner } from '../../../../src/lib/server/skills/engine';
 import { GET as getSnapshot } from '../../../../src/routes/api/skills/snapshot/+server';
@@ -91,5 +91,106 @@ describe('POST /api/skills/reload', () => {
     const body = await res.json();
     expect(body.ok).toBe(true);
     expect(calls[0]).toContain('--reload');
+  });
+});
+
+/** A Request whose body is not JSON — hits the route's parse-failure arm. */
+const rawReq = (body: string) => new Request('http://x/', { method: 'POST', body });
+
+describe('POST /api/skills/install — edge arms', () => {
+  it('unreadable JSON body is a 400 with the malformed marker', async () => {
+    const res = await postInstall({ request: rawReq('{nope') } as never);
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.ok).toBe(false);
+    expect(body.error).toBe('malformed JSON body');
+  });
+
+  it('empty targets array is a 400', async () => {
+    const res = await postInstall({ request: req({ targets: [] }) } as never);
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toContain('non-empty array');
+  });
+
+  it('a non-string target is a 400', async () => {
+    const res = await postInstall({ request: req({ targets: ['1.1', 42] }) } as never);
+    expect(res.status).toBe(400);
+  });
+
+  it('an empty-string target is a 400', async () => {
+    const res = await postInstall({ request: req({ targets: [''] }) } as never);
+    expect(res.status).toBe(400);
+  });
+
+  it('a per-target failure aggregates ok:false without failing the route', async () => {
+    setEngineRunner(async () => JSON.stringify({ v: 1, ok: false, results: [{ n: '1.1', ok: false, error: 'not found on any shelf' }, { n: '1.3', ok: true }] }));
+    const res = await postInstall({ request: req({ targets: ['1.1', '1.3'] }) } as never);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(false);
+    expect(body.results).toHaveLength(2);
+    expect(body.results[0].error).toContain('not found');
+  });
+
+  it('engine failure maps to 503', async () => {
+    setEngineRunner(async () => { throw new Error('boom'); });
+    const res = await postInstall({ request: req({ targets: ['1.3'] }) } as never);
+    expect(res.status).toBe(503);
+    expect((await res.json()).ok).toBe(false);
+  });
+
+  it('a non-engine failure maps to 500', async () => {
+    // results truthy but not an array → results.every throws inside the try
+    setEngineRunner(async () => JSON.stringify({ v: 1, ok: true, results: 5 }));
+    const res = await postInstall({ request: req({ targets: ['1.3'] }) } as never);
+    expect(res.status).toBe(500);
+    expect((await res.json()).ok).toBe(false);
+  });
+});
+
+describe('POST /api/skills/uninstall — edge arms', () => {
+  it('unreadable JSON body is a 400 with the malformed marker', async () => {
+    const res = await postUninstall({ request: rawReq('not json') } as never);
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe('malformed JSON body');
+  });
+
+  it('empty ids array is a 400', async () => {
+    const res = await postUninstall({ request: req({ ids: [] }) } as never);
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toContain('non-empty array');
+  });
+
+  it('a non-string id is a 400', async () => {
+    const res = await postUninstall({ request: req({ ids: [7] }) } as never);
+    expect(res.status).toBe(400);
+  });
+
+  it('engine failure maps to 503', async () => {
+    setEngineRunner(async () => { throw new Error('boom'); });
+    const res = await postUninstall({ request: req({ ids: ['signed-one'] }) } as never);
+    expect(res.status).toBe(503);
+  });
+
+  it('a non-unsigned per-item failure stays 200 with ok:false', async () => {
+    setEngineRunner(async () => JSON.stringify({ v: 1, ok: false, results: [{ id: 'ghost', ok: false, error: 'not installed' }] }));
+    const res = await postUninstall({ request: req({ ids: ['ghost'] }) } as never);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(false);
+    expect(body.results[0].error).toBe('not installed');
+  });
+
+  it('a non-engine failure maps to 500', async () => {
+    setEngineRunner(async () => JSON.stringify({ v: 1, ok: true, results: 5 }));
+    const res = await postUninstall({ request: req({ ids: ['signed-one'] }) } as never);
+    expect(res.status).toBe(500);
+  });
+
+  it('a failure item with no error field still matches the unsigned probe (?? fallback)', async () => {
+    setEngineRunner(async () => JSON.stringify({ v: 1, ok: false, results: [{ id: 'ghost', ok: false }] }));
+    const res = await postUninstall({ request: req({ ids: ['ghost'] }) } as never);
+    expect(res.status).toBe(200);
+    expect((await res.json()).ok).toBe(false);
   });
 });

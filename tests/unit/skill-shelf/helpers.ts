@@ -41,8 +41,14 @@ export function makeWorkspace() {
 }
 
 export function runEngine(args: string[]) {
+  // shelf.mjs fetches raw overviews for uninstalled skills even under
+  // --fixture-root (buildSnapshot -> fetchOverview is not fixture-gated).
+  // The engine runs in a child process, so stub fetch there via a preload.
+  const env = { ...process.env }
+  const stub = '--require ' + join(import.meta.dirname, 'no-fetch.cjs')
+  env.NODE_OPTIONS = env.NODE_OPTIONS ? env.NODE_OPTIONS + ' ' + stub : stub
   try {
-    const stdout = execFileSync('node', [ENGINE, ...args], { encoding: 'utf8' })
+    const stdout = execFileSync('node', [ENGINE, ...args], { encoding: 'utf8', env })
     return JSON.parse(stdout)
   } catch (e) {
     return JSON.parse((e as { stdout: string }).stdout)

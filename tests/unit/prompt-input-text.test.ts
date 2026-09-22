@@ -11,7 +11,7 @@
  *  - locked disables the box;
  *  - the placeholder swaps with isStreaming;
  *  - isOverflow picks the scroll class;
- *  - isStreaming/awaiting add the pr-8 indicator room;
+ *  - isStreaming/awaiting add the pr-7 indicator room; a non-empty unlocked draft reserves pr-4 (ClearIconButton room);
  *  - focus, blur and composition events report upward.
  *
  * Two-way harness: mount() needs GETTER/SETTER props for $bindable
@@ -22,12 +22,14 @@ import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import PromptInputText from '$lib/components/chat/PromptInputText.svelte';
 
-function mountText(overrides: { isStreaming?: boolean; locked?: boolean; awaiting?: boolean; isOverflow?: boolean } = {}) {
+function mountText(
+	overrides: { isStreaming?: boolean; locked?: boolean; awaiting?: boolean; isOverflow?: boolean; value?: string } = {}
+) {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
 	const bound = {
 		el: undefined as HTMLTextAreaElement | undefined,
-		value: 'draft'
+		value: overrides.value ?? 'draft'
 	};
 	const handlers = {
 		onkeydown: vi.fn(),
@@ -143,15 +145,34 @@ describe('PromptInputText — states', () => {
 		unmount(full.instance);
 	});
 
-	it('isStreaming/awaiting add the pr-8 indicator room', () => {
-		const idle = mountText();
-		expect(box(idle.target).className).not.toContain('pr-8');
-		unmount(idle.instance);
+	it('isStreaming/awaiting add the pr-7 indicator room', () => {
 		const streaming = mountText({ isStreaming: true });
-		expect(box(streaming.target).className).toContain('pr-8');
+		expect(box(streaming.target).className).toContain('pr-7');
 		unmount(streaming.instance);
 		const awaiting = mountText({ awaiting: true });
-		expect(box(awaiting.target).className).toContain('pr-8');
+		expect(box(awaiting.target).className).toContain('pr-7');
 		unmount(awaiting.instance);
+	});
+
+	it('a non-empty unlocked draft reserves pr-4 (ClearIconButton room); empty reserves nothing', () => {
+		// non-empty draft: pr-4 reserve + the clear button is rendered
+		const drafted = mountText();
+		expect(box(drafted.target).className).toContain('pr-4');
+		expect(drafted.target.querySelector('button')).not.toBeNull();
+		unmount(drafted.instance);
+
+		// empty draft: no reserve, no clear button
+		const empty = mountText({ value: '' });
+		expect(box(empty.target).className).not.toContain('pr-4');
+		expect(empty.target.querySelector('button')).toBeNull();
+		unmount(empty.instance);
+	});
+
+	it('the ClearIconButton empties the draft back through bind:value', () => {
+		const cleared = mountText();
+		cleared.target.querySelector('button')!.click();
+		flushSync();
+		expect(cleared.bound.value).toBe('');
+		unmount(cleared.instance);
 	});
 });

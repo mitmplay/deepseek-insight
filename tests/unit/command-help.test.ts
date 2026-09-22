@@ -245,6 +245,46 @@ describe('COMMAND_HELP — /promptmanager (Focus Command)', () => {
 	});
 });
 
+describe('COMMAND_HELP.skillshelf — locale-resolving getters (W1.5)', () => {
+	it('summary resolves at read time through the active locale (non-empty)', () => {
+		// The getters (lines that freeze at module init would miss) resolve
+		// t(...) per read — assert they produce real copy, not a frozen string.
+		expect(typeof COMMAND_HELP.skillshelf.summary).toBe('string');
+		expect(COMMAND_HELP.skillshelf.summary.length).toBeGreaterThan(0);
+		expect(COMMAND_HELP.skillshelf.usage).toBe('/dsi-skill-shelf [--reload]');
+	});
+
+	it('param and example getters resolve real copy on each read', () => {
+		const [reload] = COMMAND_HELP.skillshelf.params;
+		expect(reload?.name).toBe('--reload');
+		expect(reload?.description.length).toBeGreaterThan(0);
+		// re-read: a getter, not a once-frozen plain object field
+		expect(COMMAND_HELP.skillshelf.params[0]?.description).toBe(reload?.description);
+
+		const examples = COMMAND_HELP.skillshelf.examples;
+		expect(examples.map((e) => e.line)).toEqual([
+			'/dsi-skill-shelf',
+			'/dsi-skill-shelf --reload',
+			'/dsi-skill-shelf ?'
+		]);
+		for (const ex of examples) {
+			expect(ex.description.length).toBeGreaterThan(0);
+		}
+		expect(COMMAND_HELP.skillshelf.examples[0]?.description).toBe(examples[0]?.description);
+	});
+
+	it('the MENU_GESTURES skillshelf row resolves its description lazily too', () => {
+		const row = MENU_GESTURES.find((g) => g.name === 'skillshelf');
+		expect(row).toBeDefined();
+		expect(row?.description).toBe(COMMAND_HELP.skillshelf.summary);
+		expect(row?.seed).toBe('/dsi-skill-shelf ');
+	});
+
+	it('/dsi-skill-shelf ? routes to the skillshelf topic', () => {
+		expect(commandHelpTopic('/dsi-skill-shelf ?')).toBe('skillshelf');
+	});
+});
+
 // ── Retired Typed Command 3.1-T — /loadinjected help retired (2026-09-17) ──
 describe('COMMAND_HELP — /loadinjected retirement (3.1-T)', () => {
 	it('the topic is gone from COMMAND_HELP and the topic union', () => {

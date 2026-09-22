@@ -139,11 +139,18 @@ function enumLocal(src, fixtureRoot) {
 // only 60 req/hr per IP — one exhausted window aborts the whole refresh
 // (observed: HTTP 403 on cursor/plugins). Prefer GITHUB_TOKEN / GH_TOKEN
 // or the gh CLI credential when present (5000 req/hr).
+let ghTokenMemo
 function ghAuthHeaders() {
   const headers = { 'user-agent': 'dsi-skill-shelf' }
   let token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || ''
-  if (!token) {
-    try { token = execFileSync('gh', ['auth', 'token'], { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim() } catch { /* no gh CLI */ }
+  // Once per process: spawning the gh CLI on every fetch both slows batch
+  // enumeration and can hang a sandboxed run when gh is present but wedged.
+  // DSI_SHELF_NO_GH=1 opts out entirely (unit tests, sandboxes).
+  if (!token && !process.env.DSI_SHELF_NO_GH) {
+    if (ghTokenMemo === undefined) {
+      try { ghTokenMemo = execFileSync('gh', ['auth', 'token'], { stdio: ['ignore', 'pipe', 'ignore'], timeout: 3000 }).toString().trim() } catch { ghTokenMemo = '' }
+    }
+    token = ghTokenMemo
   }
   if (token) headers.authorization = 'Bearer ' + token
   return headers
@@ -260,12 +267,17 @@ async function fetchOverview(repo, relPath, entry) {
       if (!res.ok) continue
       const out = parseOverview(await res.text())
       if (out) return out
-    } catch { /* try next entry file */ }
+    } catch {
+      // A thrown fetch (network down / connection refused) will not improve
+      // for the next entry file — stop instead of hammering the endpoint.
+      // HTTP non-ok still falls through to the next entry file.
+      return null
+    }
   }
   return null
 }
 
-async function buildSnapshot(sourcesRaw, enums, skillsDir) {
+async function buildSnapshot(sourcesRaw, enums, skillsDir, fixtureRoot) {
   const signed = readSignatures(skillsDir)
   const generatedAt = new Date().toISOString()
   const warnings = []
@@ -292,7 +304,10 @@ async function buildSnapshot(sourcesRaw, enums, skillsDir) {
       // Overview: disk first, then the source repo's raw SKILL.md for
       // uninstalled rows (sequential — gentle on raw.githubusercontent).
       let overview = readOverview(skillsDir, sk.id, sk.entry)
-      if (!overview && spec) overview = await fetchOverview(spec.repo, sk.path, sk.entry)
+      // Fixture-root mode (unit tests) enumerates from disk only — a
+      // per-skill raw.githubusercontent fetch here fired ~100 requests per
+      // refresh (mock explosion). Overview stays null; live mode unaffected.
+      if (!overview && spec && !fixtureRoot) overview = await fetchOverview(spec.repo, sk.path, sk.entry)
       skills.push({
         n: (si + 1) + '.' + (ki + 1),
         id: sk.id,
@@ -330,7 +345,7 @@ async function cmdRefresh(args) {
   for (const src of sourcesRaw) {
     enums.push(fixtureRoot ? { skills: enumLocal(src, fixtureRoot), error: null } : await enumGitHub(src))
   }
-  const snapshot = await buildSnapshot(sourcesRaw, enums, skillsDir)
+  const snapshot = await buildSnapshot(sourcesRaw, enums, skillsDir, fixtureRoot)
   mkdirSync(dirname(cachePath), { recursive: true })
   writeFileSync(cachePath, JSON.stringify(snapshot, null, 2))
   return { snapshot, reused: false }
