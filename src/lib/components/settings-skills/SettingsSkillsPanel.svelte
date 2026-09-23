@@ -52,6 +52,8 @@
 	interface ShelfSnapshot {
 		generatedAt: string;
 		sources: ShelfSource[];
+		/** Registry anomaly notes (ShelfWarning parity with the server type). */
+		warnings?: { code: string; source: string; detail: string }[];
 	}
 
 	let snapshot = $state<ShelfSnapshot | null>(null);
@@ -410,8 +412,6 @@
 		generatedAt={snapshot?.generatedAt ?? ''}
 		bind:searchQ
 		container={rootEl}
-		oncollapseall={collapseAll}
-		onexpandall={expandAll}
 	/>
 
 	<div class="shelf-header" data-testid="shelf-header">

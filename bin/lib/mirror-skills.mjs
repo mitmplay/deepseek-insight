@@ -14,7 +14,7 @@ import { join } from 'node:path';
  * @returns {{copied: string[], skipped: string[], warned: string[]}}
  */
 export function mirrorSkills(sourceDir, mirrorDir) {
-	const report = { copied: [], skipped: [], warned: [] };
+	const report = /** @type {{copied: string[], skipped: string[], warned: string[]}} */ ({ copied: [], skipped: [], warned: [] });
 	let sourceIsDir = false;
 	try {
 		sourceIsDir = existsSync(sourceDir) && statSync(sourceDir).isDirectory();

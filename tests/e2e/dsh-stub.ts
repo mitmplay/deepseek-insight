@@ -1126,7 +1126,9 @@ export class DshStubHost {
 		running: boolean;
 		blank: boolean;
 		updatedAt: number;
-		cwd: string;
+		// string | null: a null cwd IS a meaningful wire row (the fresh-install
+		// analog) — the consumer treats a non-string cwd as no workspace.
+		cwd: string | null;
 		title?: string;
 		parentSessionId?: string;
 		origin?: 'subagent';

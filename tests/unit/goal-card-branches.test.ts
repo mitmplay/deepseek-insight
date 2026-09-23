@@ -8,7 +8,7 @@ import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import GoalCard from '$lib/components/message/GoalCard.svelte';
 
-function render(props: Record<string, unknown>) {
+function render(props: Record<string, unknown> & { toolName: string }) {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
 	const instance = mount(GoalCard, { target, props });

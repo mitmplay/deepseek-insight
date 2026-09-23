@@ -34,7 +34,7 @@ describe('probe3', () => {
     refreshSpineFeed();
     await settle();
     console.log('spine rows:', JSON.stringify(spineFeed.rows.map((r) => [r.sessionId, r.title])));
-    expect(addPanelFromSidebar({ sessionId: 'sub' })).toBe(true);
+    expect(addPanelFromSidebar({ sessionId: 'sub', agentPreset: null })).toBe(true);
     for (let i = 0; i < 40; i++) { flushSync(); await Promise.resolve(); await new Promise((r) => setTimeout(r, 25)); }
     flushSync();
     console.log('rows later:', JSON.stringify(spineFeed.rows.map((r) => [r.sessionId, r.title])));

@@ -303,7 +303,10 @@ describe('+page.svelte — panel loupe cycle', () => {
 		flushSync();
 		expect(document.querySelector('[data-testid="panel-loupe"]')).not.toBeNull();
 		const loupeColumn = document.querySelector<HTMLElement>('[data-testid="panel-loupe"] [data-testid="panel-column"]');
-		expect(replacePanelFromRegistry(column.dataset.panelId ?? '', { kind: 'settings-editor', target: 'dsi' })).toBe(true);
+		// a CONVERSATION successor swap (the only id-addressed swap the floor
+		// still performs — the settings kinds are doAdd-only, Focus Command D4):
+		// the fresh panel id clears the loupe through clearLoupeIfGone
+		expect(replacePanelFromRegistry(column.dataset.panelId ?? '', { sessionId: 's-editor', agentPreset: null })).toBe(true);
 		await settle();
 		// the lens content's close closes the LENS copy only
 		expect(document.querySelector('[data-testid="panel-loupe"]')).toBeNull();
@@ -318,7 +321,7 @@ describe('+page.svelte — floor registry edges (batch 2)', () => {
 		// registry true = a live handler ran; the unknown id no-ops PAGE-side
 		expect(replacePanelFromRegistry('panel-nope', { sessionId: 's2', agentPreset: null })).toBe(true);
 		// by-session refusals: no successor session kinds, and an unknown session
-		expect(replacePanelBySession('s-ghost', { kind: 'settings-editor', target: 'dsi' })).toBe(false);
+		expect(replacePanelBySession('s-ghost', { kind: 'skill-shelf' })).toBe(false);
 		expect(replacePanelBySession('s-ghost', { sessionId: 's2', agentPreset: null })).toBe(false);
 		// same-session swap is an honest true no-op
 		expect(replacePanelBySession('s-floor', { sessionId: 's-floor', agentPreset: null })).toBe(true);

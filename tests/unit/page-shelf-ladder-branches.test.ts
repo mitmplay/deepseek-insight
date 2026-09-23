@@ -66,7 +66,7 @@ function stageSeed(): void {
 function stageBare(): void {
 	reactiveTestPage.params = {};
 	reactiveTestPage.url = new URL('http://dsi/');
-	reactiveTestPage.data = undefined;
+	(reactiveTestPage as { data: unknown }).data = undefined;
 }
 
 async function mountPage(stage: () => void): Promise<HTMLElement> {

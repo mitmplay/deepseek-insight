@@ -164,6 +164,7 @@
 		return homeDir !== null && full.startsWith(homeDir + '/') ? '~' + full.slice(homeDir.length) : full;
 	});
 
+	// svelte-ignore state_referenced_locally
 	onclose; // referenced for prop completeness; the owner owns removal
 
 	async function fetchFile(): Promise<void> {

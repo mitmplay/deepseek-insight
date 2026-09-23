@@ -126,20 +126,25 @@ describe('DsiPanelEntry kind union — persistence round-trip (2.1-T)', () => {
 describe('settings-editor branch (Settings Panel ADR D3)', () => {
 	afterEach(() => resetPanelRegistryForTests());
 
-	it('REGISTRY — a settings request reaches the add handler verbatim, target intact', () => {
+	it('REGISTRY — a settings-home request reaches the add handler verbatim, home intact', () => {
 		const seen: PanelAddRequest[] = [];
 		registerAddPanel((r) => seen.push(r));
 		expect(
-			addPanelFromSidebar({ kind: 'settings-editor', target: 'dsh', afterSessionId: 'session-1' })
+			addPanelFromSidebar({ kind: 'settings-home', home: 'dsh', afterSessionId: 'session-1' })
 		).toBe(true);
-		expect(seen).toEqual([{ kind: 'settings-editor', target: 'dsh', afterSessionId: 'session-1' }]);
+		expect(seen).toEqual([{ kind: 'settings-home', home: 'dsh', afterSessionId: 'session-1' }]);
 	});
 
-	it('TYPE-LEVEL — the branch carries target and never sessionId', () => {
-		expectTypeOf<Extract<PanelAddRequest, { kind: 'settings-editor' }>>().toHaveProperty('target');
+	it('TYPE-LEVEL — the branch carries home and never sessionId; the retired settings-editor request kind is gone', () => {
+		// Settings Tree ADR D2: /dsisettings & /dshsettings mint a settings-home
+		// request — the retired single-file settings-editor kind is no longer
+		// in the request union.
+		expectTypeOf<PanelAddRequest['kind']>().not.toHaveProperty('settings-editor');
+		expectTypeOf<Extract<PanelAddRequest, { kind: 'settings-home' }>>().toHaveProperty('home');
 		expectTypeOf<
-			Extract<PanelAddRequest, { kind: 'settings-editor' }>
+			Extract<PanelAddRequest, { kind: 'settings-home' }>
 		>().not.toHaveProperty('sessionId');
+		// The settings-editor PANEL ENTRY survives as a legacy blob shape only.
 		expectTypeOf<DsiSettingsPanel>().toEqualTypeOf<{
 			id: string;
 			kind: 'settings-editor';
@@ -249,11 +254,17 @@ describe('workspace branches (Workspace Explorer ADR D2)', () => {
 		expectTypeOf<DsiWorkspaceExplorerPanel>().toEqualTypeOf<{
 			id: string;
 			kind: 'workspace-explorer';
-			sessionId: string;
+			// Settings Tree ADR D3: null for a session-less (settings-home)
+			// explorer; provenance only — root is the dedupe key.
+			sessionId: string | null;
 			root: string;
+			title?: string;
+			home?: 'dsi' | 'dsh';
 			expanded: string[];
 			tab?: 'explorer' | 'changes';
 			collapsedRepos?: string[];
+			openTabs?: string[];
+			activeFile?: string | null;
 			width: number;
 		}>();
 		expectTypeOf<DsiWorkspaceFilePanel>().toEqualTypeOf<{
@@ -357,7 +368,7 @@ describe('workspace branches (Workspace Explorer ADR D2)', () => {
 			zoom: 1
 		} as unknown as PanelPrefs);
 		const loaded = loadPanelPrefs();
-		const homeExplorer = loaded.panels[0] as Record<string, unknown>;
+		const homeExplorer = loaded.panels[0] as unknown as Record<string, unknown>;
 		expect(homeExplorer.sessionId).toBeNull();
 		expect('title' in homeExplorer).toBe(false); // junk title sanitized away
 		expect(loaded.panels[1]).toMatchObject({ id: 'p3', kind: 'settings-editor', target: 'dsh' });

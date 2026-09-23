@@ -56,22 +56,26 @@ function jsonResponse(body: unknown, status = 200): Response {
 	return new Response(JSON.stringify(body), { status });
 }
 
+/** A canned GET/POST outcome: a Response, a factory (fresh Response per
+ *  call — canned ones are single-read), or a thrown value. */
+type Canned =
+	| Response
+	| (() => Response | Promise<Response> | { reject: unknown })
+	| { reject: unknown };
+
 /** Stub fetch with canned GET/POST bodies; either may be a Response or a thrown value. */
-function stubFetch(
-	get: (() => Response | Promise<Response>) | { reject: unknown },
-	post?: () => Response | Promise<Response> | { reject: unknown }
-): ReturnType<typeof vi.fn> {
+function stubFetch(get: Canned, post?: Canned): ReturnType<typeof vi.fn> {
 	const f = vi.fn(async (url: string | URL, init?: RequestInit) => {
 		if (init?.method === 'POST') {
-			if (post === undefined) throw new Error('unexpected POST');
-			const r = post();
+			if (typeof post !== 'function') throw new Error('unexpected POST');
+			const r = await post();
 			if (r instanceof Response) return r;
 			throw r.reject;
 		}
-		if (get instanceof Object && 'reject' in get) throw get.reject;
-		if (typeof get === 'function') return get();
+		if (typeof get === 'function') return await get();
+		if ('reject' in get) throw get.reject;
 		// a canned Response is single-read — clone() so repeated loads work
-		return get instanceof Response ? get.clone() : get;
+		return get.clone();
 	});
 	vi.stubGlobal('fetch', f);
 	return f;

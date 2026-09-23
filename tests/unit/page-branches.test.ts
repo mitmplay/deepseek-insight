@@ -71,7 +71,7 @@ function stageSeed(fixture: Record<string, unknown>): void {
 function stageBare(): void {
 	reactiveTestPage.params = {};
 	reactiveTestPage.url = new URL('http://dsi/');
-	reactiveTestPage.data = undefined;
+	reactiveTestPage.data = {};
 }
 
 async function mountSeeded(fixture: Record<string, unknown> = { sessionId: 's-seed', entries: [], lastSeq: -1, running: false }) {
@@ -85,7 +85,7 @@ async function mountSeeded(fixture: Record<string, unknown> = { sessionId: 's-se
 	return target;
 }
 
-function rows(): Array<{ panel: { kind: string; id: string; sessionId?: string }; parentSessionId?: string | null }> {
+function rows(): Array<{ panel: { kind: string; id: string; sessionId?: string; title?: string }; parentSessionId?: string | null }> {
 	return (getWorkspaceState()?.rows ?? []) as never;
 }
 
@@ -190,13 +190,13 @@ describe('+page.svelte branch arms — conversation add ladder', () => {
 		expect(ids()).toEqual(['s-seed']);
 
 		// afterSource placement: fork-child slot + add-time parent edge
-		expect(addPanelFromSidebar({ sessionId: 's-child', afterSessionId: 's-seed' })).toBe(true);
+		expect(addPanelFromSidebar({ sessionId: 's-child', agentPreset: null, afterSessionId: 's-seed' })).toBe(true);
 		await settle();
 		const childRow = rows().find((r) => r.panel.sessionId === 's-child');
 		expect(childRow?.parentSessionId).toBe('s-seed');
 
 		// keepSelection: the anchor keeps the highlight, not the newcomer
-		expect(addPanelFromSidebar({ sessionId: 's-keep', keepSelection: true })).toBe(true);
+		expect(addPanelFromSidebar({ sessionId: 's-keep', agentPreset: null, keepSelection: true })).toBe(true);
 		await settle();
 		// keepSelection restores the selection that held BEFORE the add —
 		// the s-child panel (insertPanel had selected it), not the seed.
@@ -214,21 +214,21 @@ describe('+page.svelte branch arms — conversation add ladder', () => {
 		// A manager request can never swap by session
 		expect(replacePanelBySession('s-seed', { kind: 'prompt-manager' })).toBe(false);
 		// Session not on the floor
-		expect(replacePanelBySession('s-ghost', { sessionId: 's-other' })).toBe(false);
+		expect(replacePanelBySession('s-ghost', { sessionId: 's-other', agentPreset: null })).toBe(false);
 		// Same session → true without a swap
-		expect(replacePanelBySession('s-seed', { sessionId: 's-seed' })).toBe(true);
+		expect(replacePanelBySession('s-seed', { sessionId: 's-seed', agentPreset: null })).toBe(true);
 		expect(ids()).toEqual(['s-seed']);
 		// Real swap — plain placement with focus
-		expect(replacePanelBySession('s-seed', { sessionId: 's-new', focus: true })).toBe(true);
+		expect(replacePanelBySession('s-seed', { sessionId: 's-new', agentPreset: null, focus: true })).toBe(true);
 		await settle();
 		expect(ids()).toEqual(['s-new']);
 		// And the typed-id replace of the same session is a no-op arm
 		const newId = panelIdFor('s-new');
-		expect(replacePanelFromRegistry(newId, { sessionId: 's-new' })).toBe(true);
+		expect(replacePanelFromRegistry(newId, { sessionId: 's-new', agentPreset: null })).toBe(true);
 		await settle();
 		expect(ids()).toEqual(['s-new']);
 		// Unknown slot id → no-op
-		expect(replacePanelFromRegistry('panel-none', { sessionId: 's-x' })).toBe(true);
+		expect(replacePanelFromRegistry('panel-none', { sessionId: 's-x', agentPreset: null })).toBe(true);
 		// Select garbage → guarded no-op
 		expect(selectPanelFromRegistry('panel-none')).toBe(true);
 	});

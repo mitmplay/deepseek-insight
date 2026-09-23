@@ -159,7 +159,7 @@ describe('SettingsSkillsPanel branches', () => {
 	});
 
 	it('a busy install swallows the second click; a successful install flags the rescan note', async () => {
-		const gated = mountGated('skills/install', () => jsonRes({ ok: true, ...SNAP }), { 'skills/snapshot': jsonRes(SNAP) });
+		const gated = mountGated('skills/install', () => jsonRes(SNAP), { 'skills/snapshot': jsonRes(SNAP) });
 		await waitLoaded(gated.target);
 		selectRow(gated.target, 'absent-one');
 		click(gated.target, 'shelf-install');

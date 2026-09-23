@@ -87,7 +87,7 @@ describe('voiceFor homegrown + sidecar arms (non-en locale)', () => {
 		const voice = voiceFor('dsi-adr');
 		expect(voice).not.toBeNull();
 		expect(voice?.name).toBe('dsi-adr');
-		expect(voice?.description).toBe((messages as Record<string, () => string>).skillsVoiceDsiAdr());
+		expect(voice?.description).toBe((messages as unknown as Record<string, () => string>).skillsVoiceDsiAdr());
 		// the overlay swaps the description in, keeps the rest of the row
 		const row = { name: 'dsi-adr', description: 'wire english', extra: 7 };
 		const voiced = voicedSkillRow(row);

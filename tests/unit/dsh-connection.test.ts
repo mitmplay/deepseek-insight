@@ -986,6 +986,7 @@ describe('dsh-connection — RPC forwards', () => {
 		// The host answers the follow open with a snapshot whose projections
 		// block carries the child's folded title.
 		const socket = muxSocket();
+		if (!socket) throw new Error('mux socket missing');
 		openSocket(socket); // fire the mux open (subscribe parks until then)
 		for (let i = 0; i < 50 && sentOpens(socket).find((s) => s.startsWith('follow-child')) === undefined; i++) {
 			await new Promise((r) => setTimeout(r, 20));
@@ -1022,6 +1023,7 @@ describe('dsh-connection — RPC forwards', () => {
 		});
 		await conn.listSessions();
 		const socket = muxSocket();
+		if (!socket) throw new Error('mux socket missing');
 		openSocket(socket);
 		for (let i = 0; i < 50 && sentOpens(socket).find((s) => s.startsWith('follow-child')) === undefined; i++) {
 			await new Promise((r) => setTimeout(r, 20));

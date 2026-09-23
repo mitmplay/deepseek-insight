@@ -33,7 +33,7 @@ function mountPanel(root: string, expanded: readonly string[] = [], tab: 'explor
 	document.body.appendChild(target);
 	const instance = mount(WorkspaceExplorerPanel, {
 		target,
-		props: { sessionId: 's1', root, expanded, tab, onToggle, onOpenTab, onCollapseAll: vi.fn(), onTabChange: vi.fn() }
+		props: { sessionId: 's1', root, expanded, tab, onToggle, onOpenTab, onOpenFile: vi.fn(), onCollapseAll: vi.fn(), onTabChange: vi.fn() }
 	});
 	return {
 		target,

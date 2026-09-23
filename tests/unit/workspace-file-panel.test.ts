@@ -717,7 +717,7 @@ describe('WorkspaceFilePanel — ring-failure + subrepo arms (coverage pass 2026
 		});
 		const view = mountFile().view;
 		await view.settle();
-		const gen = (): unknown => StubEventSource.instances[0];
+		const gen = (): StubEventSource => StubEventSource.instances[0]!;
 		gen().emit('generation', '5'); // baseline
 		await view.settle();
 		diskText = 'v2';

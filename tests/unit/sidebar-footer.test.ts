@@ -21,8 +21,8 @@ import { APP_VERSION, DSH_VERSION } from '$lib/version';
 // strings — the nullish arm never runs against them — so a mutable
 // holder drives the mock to undefined for one render to cover it.
 const versions = vi.hoisted(() => ({
-	app: '0.0.0-test',
-	dsh: '0.0.0-test'
+	app: '0.0.0-test' as string | undefined,
+	dsh: '0.0.0-test' as string | undefined
 }));
 vi.mock('$lib/version', () => ({
 	get APP_VERSION() {

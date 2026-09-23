@@ -67,7 +67,7 @@ function stageSeed(fixture: Record<string, unknown>): void {
 function stageBare(): void {
 	reactiveTestPage.params = {};
 	reactiveTestPage.url = new URL('http://dsi/');
-	reactiveTestPage.data = undefined;
+	reactiveTestPage.data = {};
 }
 
 async function mountPage(stage: () => void): Promise<HTMLElement> {
@@ -79,7 +79,7 @@ async function mountPage(stage: () => void): Promise<HTMLElement> {
 	return target;
 }
 
-function rows(): Array<{ panel: { kind: string; id: string; sessionId?: string; title?: string; activeFile?: string | null; openTabs?: string[]; expanded?: string[]; collapsedRepos?: string[] }; parentSessionId?: string | null }> {
+function rows(): Array<{ panel: { kind: string; id: string; sessionId?: string; title?: string; activeFile?: string | null; openTabs?: string[]; expanded?: string[]; collapsedRepos?: string[]; tab?: string; width?: number }; parentSessionId?: string | null }> {
 	return (getWorkspaceState()?.rows ?? []) as never;
 }
 

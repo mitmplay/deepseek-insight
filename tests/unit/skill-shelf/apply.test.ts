@@ -80,14 +80,14 @@ describe('signed apply', () => {
   it('apply flips the cache flags so the panel refetch shows true state (live-verified BUG)', () => {
     const { ws, apply } = fresh();
     apply('install', ['1.1']);
-    const cache1 = JSON.parse(readFileSync(ws.cache, 'utf8'));
-    const installed = cache1.sources[0].skills.find((s) => s.id === 'p-skill-01');
+    const cache1 = JSON.parse(readFileSync(ws.cache, 'utf8')) as { sources: { skills: { id: string; installed: boolean; signed: boolean; installedFrom: string | null }[] }[] };
+    const installed = cache1.sources[0].skills.find((s) => s.id === 'p-skill-01')!;
     expect(installed.installed).toBe(true);
     expect(installed.signed).toBe(true);
     expect(installed.installedFrom).toBe('pstack');
     apply('uninstall', ['p-skill-01']);
-    const cache2 = JSON.parse(readFileSync(ws.cache, 'utf8'));
-    const uninstalled = cache2.sources[0].skills.find((s) => s.id === 'p-skill-01');
+    const cache2 = JSON.parse(readFileSync(ws.cache, 'utf8')) as { sources: { skills: { id: string; installed: boolean; signed: boolean; installedFrom: string | null }[] }[] };
+    const uninstalled = cache2.sources[0].skills.find((s) => s.id === 'p-skill-01')!;
     expect(uninstalled.installed).toBe(false);
     expect(uninstalled.signed).toBe(false);
     expect(uninstalled.installedFrom).toBeNull();

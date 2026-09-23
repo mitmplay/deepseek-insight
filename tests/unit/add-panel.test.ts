@@ -92,7 +92,7 @@ describe('AddPanel — whitespace-only input never reaches the floor', () => {
 		registerAddPanel((request) => {
 			if (
 				request.kind !== 'prompt-manager' &&
-				request.kind !== 'settings-editor' &&
+				request.kind !== 'settings-home' &&
 				request.kind !== 'injected-doc' &&
 				request.kind !== 'skill-shelf'
 			)
@@ -111,7 +111,7 @@ describe('AddPanel — whitespace-only input never reaches the floor', () => {
 		registerReplaceSelected((request) => {
 			if (
 				request.kind !== 'prompt-manager' &&
-				request.kind !== 'settings-editor' &&
+				request.kind !== 'settings-home' &&
 				request.kind !== 'injected-doc' &&
 				request.kind !== 'skill-shelf'
 			)

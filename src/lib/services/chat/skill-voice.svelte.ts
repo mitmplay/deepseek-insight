@@ -63,7 +63,7 @@ export function voiceFor(id: string): VoiceEntry | null {
 	if (locale === 'en') return null;
 	const key = HOMEGROWN_VOICE_KEYS[id];
 	if (key) {
-		const message = (m as Record<string, () => string>)[key];
+		const message = (m as unknown as Record<string, () => string>)[key];
 		if (typeof message === 'function') return { name: id, description: message(), whenToUse: '' };
 	}
 	return null;

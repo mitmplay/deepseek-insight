@@ -813,7 +813,7 @@ async function runWorkspaceLine(
 		try {
 			const res = await fetch('/api/dsh/directory');
 			const body = (await res.json().catch(() => null)) as
-				| { ok?: boolean; listing?: { home?: string } }
+				| { ok?: boolean; listing?: { home?: string }; error?: { message?: string } }
 				| null;
 			const home = body?.listing?.home;
 			if (!res.ok || body?.ok !== true || typeof home !== 'string' || home === '') {

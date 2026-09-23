@@ -58,7 +58,7 @@ describe('TurnUsagePanel — branch arms', () => {
 	it('no routes but provider+model defined: fallback single-route arm renders provider/model', () => {
 		const h = mountPanel({
 			usage: { inputTokens: 5, outputTokens: 6, provider: 'openai', model: 'gpt-4o' }
-		} as DsiTokenUsage);
+		});
 		const popup = h.open();
 		expect(popup.textContent).toContain('Provider / model');
 		expect(popup.textContent).toContain('openai/gpt-4o');

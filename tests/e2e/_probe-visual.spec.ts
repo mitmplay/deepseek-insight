@@ -7,7 +7,7 @@ test('probe visual explorer layout', async ({ page }) => {
   await expect(page.getByTestId('session-workspace').first()).toBeVisible();
   await page.getByTestId('session-workspace').first().click();
   await expect(page.getByTestId('workspace-explorer')).toBeVisible();
-  const col = page.getByTestId('panel-column', { has: page.getByTestId('workspace-explorer') });
+  const col = page.getByTestId('panel-column').filter({ has: page.getByTestId('workspace-explorer') });
   const box = await col.boundingBox();
   console.log('PROBE explorer column width =', box?.width, 'height =', box?.height);
   await page.screenshot({ path: 'test-results/probe-1-explorer-open.png' });

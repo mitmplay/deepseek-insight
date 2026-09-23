@@ -395,7 +395,7 @@ describe('ControlBar tray (task 5.1-T)', () => {
 		registerAddPanel((request) => {
 			if (
 				request.kind !== 'prompt-manager' &&
-				request.kind !== 'settings-editor' &&
+				request.kind !== 'settings-home' &&
 				request.kind !== 'injected-doc' &&
 				request.kind !== 'skill-shelf'
 			)
@@ -445,7 +445,7 @@ describe('ControlBar tray (task 5.1-T)', () => {
 		registerReplaceSelected((request) => {
 			if (
 				request.kind !== 'prompt-manager' &&
-				request.kind !== 'settings-editor' &&
+				request.kind !== 'settings-home' &&
 				request.kind !== 'injected-doc' &&
 				request.kind !== 'skill-shelf'
 			)
@@ -454,7 +454,7 @@ describe('ControlBar tray (task 5.1-T)', () => {
 		registerAddPanel((request) => {
 			if (
 				request.kind !== 'prompt-manager' &&
-				request.kind !== 'settings-editor' &&
+				request.kind !== 'settings-home' &&
 				request.kind !== 'injected-doc' &&
 				request.kind !== 'skill-shelf'
 			)

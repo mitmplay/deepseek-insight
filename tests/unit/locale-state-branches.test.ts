@@ -43,8 +43,7 @@ describe('currentLocale — runtime arms', () => {
 		await setLocale('id');
 		// force tracked state out of the fleet — simulates a stale mirror
 		const st = localeState() as { locale: unknown };
-		// @ts-expect-error deliberate corruption
-		st.locale = 'xx';
+		st.locale = 'xx'; // deliberate corruption
 		getLocaleMock.mockReturnValue('xx' as never);
 		expect(currentLocale()).toBe('en');
 	});

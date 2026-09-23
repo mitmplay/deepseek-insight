@@ -63,7 +63,7 @@ function goalProjection(phase: 'active' | 'paused' = 'active') {
 }
 
 interface StubStateView {
-	goal?: unknown;
+	goal?: { goal?: { objective?: string } } | null;
 	goalCalls: string[];
 	ledger: Array<{ event: { type: string } }>;
 }
