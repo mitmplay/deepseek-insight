@@ -15,6 +15,7 @@
  * dropped, and a non-array `panels` value means the whole blob is junk.
  */
 import type { DsiPanelEntry } from '$lib/types';
+import type { ReloadFeedback } from '$lib/utils/skill-shelf-reload-machine';
 import { appConfig } from '$lib/services/config/app-config.svelte';
 import { dsiKey } from '$lib/utils/storage-profile';
 
@@ -310,13 +311,23 @@ function sanitizePanels(raw: unknown): DsiPanelEntry[] {
 				} as DsiPanelEntry;
 			}
 			if (entry.kind === 'skill-shelf') {
-				// Reload blob sanitize (2026-09-22): only a well-formed loading
-				// or unexpired done survives; junk/expired clears to idle.
-				let reload: { state: 'loading' | 'done'; doneAt?: number } | null = null;
-				const r = entry.reload as { state?: unknown; doneAt?: unknown } | undefined;
-				if (r && r.state === 'loading') reload = { state: 'loading' };
-				else if (r && r.state === 'done' && typeof r.doneAt === 'number' && r.doneAt > Date.now()) {
-					reload = { state: 'done', doneAt: r.doneAt };
+				// Reload blob sanitize (the Reload Rememberer ADR D1/D3, shape
+				// pinned 2026-09-23): only a well-formed loading (numeric
+				// startedAt) or unexpired done (numeric startedAt + doneAt)
+				// survives; junk, the legacy `state`-keyed blob, and expired
+				// dones all clear to idle.
+				let reload: ReloadFeedback | null = null;
+				const r = entry.reload as Partial<ReloadFeedback> | undefined;
+				if (r && r.phase === 'loading' && typeof r.startedAt === 'number') {
+					reload = { phase: 'loading', startedAt: r.startedAt };
+				} else if (
+					r &&
+					r.phase === 'done' &&
+					typeof r.startedAt === 'number' &&
+					typeof r.doneAt === 'number' &&
+					r.doneAt > Date.now()
+				) {
+					reload = { phase: 'done', startedAt: r.startedAt, doneAt: r.doneAt };
 				}
 				return {
 					id: entry.id as string,

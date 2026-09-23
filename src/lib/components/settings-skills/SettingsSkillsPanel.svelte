@@ -22,6 +22,12 @@
 	import SettingsSkillsTabgroup from './SettingsSkillsTabgroup.svelte';
 	import SettingsSkillsSelfSection from './SettingsSkillsSelfSection.svelte';
 	import { RotateCw, ChevronsDownUp, ChevronsUpDown, LoaderCircle, Check } from '@lucide/svelte';
+	import {
+		reduceReload,
+		visiblePhase,
+		type ReloadEvent,
+		type ReloadFeedback
+	} from '$lib/utils/skill-shelf-reload-machine';
 
 	interface ShelfSkill {
 		n: string;
@@ -56,31 +62,55 @@
 	let busy = $state(false);
 	let note = $state<string | null>(null);
 	let rescanNote = $state(false);
-	// Reload button feedback (2026-09-22): idle icon while quiet, spinner
-	// while the reload round-trips (it can take minutes on the live
-	// registry), a check for 5s on success, then back to idle.
-	let reloadState = $state<'idle' | 'loading' | 'done'>('idle');
+	// Reload feedback machine (the Reload Rememberer ADR D1/D2, shape
+	// pinned 2026-09-23): the stored facts are { phase, startedAt, doneAt? };
+	// what the button SHOWS is derived from the wall clock every tick.
+	// Every mutation flows through reduceReload; a timer only schedules
+	// windowExpired — its death is harmless because the tick re-derives.
+	let reload = $state<ReloadFeedback | null>(null);
+	// Once the page starts unloading, a dying fetch's catch fires
+	// reloadFailed and would CLOBBER the persisted loading blob before the
+	// next document reads it (observed headed 2026-09-23: net::ERR_ABORTED
+	// rejection wrote null mid-teardown, so the restore saw null and never
+	// re-issued). After pagehide nothing this document emits is truth —
+	// the next document owns the machine (it re-issues a loading blob).
+	let pageUnloading = $state(false);
+	let nowTick = $state(Date.now());
 	let reloadDoneTimer: ReturnType<typeof setTimeout> | undefined;
-	$effect(() => () => clearTimeout(reloadDoneTimer));
+	$effect(() => {
+		const tick = setInterval(() => (nowTick = Date.now()), 250);
+		return () => {
+			clearInterval(tick);
+			clearTimeout(reloadDoneTimer);
+		};
+	});
+	const reloadState = $derived(visiblePhase(reload, nowTick));
 
 	/** Idle is the ABSENCE on the persisted entry — emit null so the
-	 *  floor clears the blob; loading/done land with their expiry. */
-	function emitReload(state: 'loading' | 'done' | 'idle', doneAt?: number): void {
-		emit(onreloadchange, state === 'idle' ? null : { state, doneAt });
+	 *  floor clears the blob; loading/done land with their expiry.
+	 *  Suppressed once unloading (see pageUnloading). */
+	function emitReload(r: ReloadFeedback | null): void {
+		if (pageUnloading) return;
+		emit(onreloadchange, r);
 	}
-	function enterDone(): void {
-		reloadState = 'done';
-		emitReload('done', Date.now() + 5_000);
+	/** The ONLY mutation path: named event -> pure reducer -> emit. */
+	function dispatch(event: ReloadEvent): void {
+		reload = reduceReload(reload, event, Date.now());
+		emitReload(reload);
+		scheduleExpiry();
+	}
+	/** One timer at the absolute deadline — an optimization, not truth. */
+	function scheduleExpiry(): void {
 		clearTimeout(reloadDoneTimer);
-		reloadDoneTimer = setTimeout(() => {
-			reloadState = 'idle';
-			emitReload('idle');
-		}, 5_000);
+		const at = reload?.doneAt;
+		if (reload?.phase === 'done' && typeof at === 'number') {
+			reloadDoneTimer = setTimeout(() => dispatch('windowExpired'), Math.max(0, at - Date.now()));
+		}
 	}
 
-	// Hard-reload survival (the explorer-tab pattern): a persisted done
-	// lives out only its REMAINING window; a persisted loading re-issues
-	// the reload so the operator still gets the check when it lands.
+	// Hard-reload survival (the explorer-tab pattern, ADR D4): a persisted
+	// done lives out only its REMAINING window; a persisted loading
+	// re-issues the reload so the operator still gets the check.
 	$effect(() => {
 		// untrack: seed ONCE from the mount-time prop — the floor recreates
 		// the initialReload object on every panels write, and re-seeding on
@@ -88,17 +118,15 @@
 		const seed = untrack(() => initialReload);
 		if (!seed) return;
 		untrack(() => {
-			if (seed.state === 'done') {
+			if (seed.phase === 'done') {
 				const remaining = Math.max(0, (seed.doneAt ?? 0) - Date.now());
 				if (remaining === 0) return; // expired — stay idle
-				reloadState = 'done';
-				emitReload('done', seed.doneAt);
-				clearTimeout(reloadDoneTimer);
-				reloadDoneTimer = setTimeout(() => {
-					reloadState = 'idle';
-					emitReload('idle');
-				}, remaining);
-			} else if (seed.state === 'loading') {
+				reload = seed;
+				emitReload(reload);
+				scheduleExpiry();
+			} else {
+				// interrupted mid-flight: only a re-issue makes the
+				// eventual check truthful
 				void runReload();
 			}
 		});
@@ -118,11 +146,11 @@
 		/** Persisted reload feedback (hard-reload survival): a restored
 		 *  'done' lives out its remaining 5s window; a restored 'loading'
 		 *  re-issues the reload so the check still lands. */
-		initialReload?: { state: 'loading' | 'done'; doneAt?: number } | null;
+		initialReload?: ReloadFeedback | null;
 		ontabchange?: (tab: 'install' | 'uninstall') => void;
 		oncollapsedchange?: (collapsed: string[]) => void;
 		onsearchchange?: (q: string) => void;
-		onreloadchange?: (r: { state: 'loading' | 'done'; doneAt?: number } | null) => void;
+		onreloadchange?: (r: ReloadFeedback | null) => void;
 	}
 	let {
 		initialTab = 'install',
@@ -287,8 +315,7 @@
 	async function runReload(): Promise<void> {
 		if (busy || reloadState === 'loading') return;
 		busy = true;
-		reloadState = 'loading';
-		emitReload('loading');
+		dispatch('reloadStarted');
 		note = null;
 		try {
 			const res = await fetch('/api/skills/reload', { method: 'POST' });
@@ -296,11 +323,10 @@
 			if (!body.ok) throw new Error(body.error ?? 'reload failed');
 			snapshot = body.snapshot;
 			uninstallable = new Set(body.uninstallable as string[]);
-			enterDone();
+			dispatch('reloadSucceeded');
 		} catch (e) {
 			note = String((e as Error).message);
-			reloadState = 'idle';
-			emitReload('idle');
+			dispatch('reloadFailed');
 		} finally {
 			busy = false;
 		}
@@ -311,6 +337,7 @@
 	});
 </script>
 
+<svelte:window onpagehide={() => (pageUnloading = true)} />
 <div class="skill-shelf" bind:this={rootEl} data-testid="skill-shelf">
 	<SettingsSkillsToolbar
 		generatedAt={snapshot?.generatedAt ?? ''}

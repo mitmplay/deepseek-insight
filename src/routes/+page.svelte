@@ -99,6 +99,7 @@
 		DsiSessionSummary,
 		DsiA2aExchangeView
 	} from '$lib/types';
+	import type { ReloadFeedback } from '$lib/utils/skill-shelf-reload-machine';
 	import {
 	findInjectedDocPanel,
 	focusedInsertionSlot,
@@ -231,7 +232,7 @@ import {
 		panels = panels.with(idx, { ...(panels[idx] as DsiSkillShelfPanel), searchQ: q });
 	}
 
-	function setShelfReload(panelId: string, reload: { state: 'loading' | 'done'; doneAt?: number } | null): void {
+	function setShelfReload(panelId: string, reload: ReloadFeedback | null): void {
 		const idx = panels.findIndex((p) => p.id === panelId);
 		if (idx < 0 || panels[idx].kind !== 'skill-shelf') return;
 		panels = panels.with(idx, { ...(panels[idx] as DsiSkillShelfPanel), reload });

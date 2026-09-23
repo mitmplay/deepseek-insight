@@ -9,6 +9,21 @@ const browser = await chromium.launch({ headless: false, slowMo: 100 });
 const page = await browser.newPage({ viewport: { width: 1600, height: 950 } });
 page.setDefaultTimeout(600000);
 
+await page.addInitScript(() => {
+  const orig = Storage.prototype.setItem;
+  window.__WRITERS = [];
+  Storage.prototype.setItem = function (k, v) {
+    if (String(k).includes('dsi-panels')) {
+      const hadLoading = String(this.getItem(k) || '').includes('"state":"loading"');
+      const nowLoading = String(v).includes('"state":"loading"');
+      if (hadLoading && !nowLoading) {
+        window.__WRITERS.push({ v: String(v).slice(0, 260), stack: String(new Error().stack).slice(0, 1500) });
+      }
+    }
+    return orig.call(this, k, v);
+  };
+});
+
 async function openShelf() {
   await page.goto(BASE, { waitUntil: 'domcontentloaded' });
   const rows = page.locator('[data-testid="sidebar-session-card"]');
@@ -37,7 +52,13 @@ try {
   // HARD reload mid-flight
   await page.reload({ waitUntil: 'domcontentloaded' });
   console.log('HARD_RELOAD_DONE');
-  await openShelf();
+  // the shelf panel is PERSISTED — it restores open; only run the macro
+  // if it is not already on screen (a fresh macro adds a NEW idle panel).
+  let restored = await page.getByTestId('skill-shelf').isVisible().catch(() => false);
+  if (!restored) {
+    await openShelf();
+    restored = true;
+  }
   const b2 = page.getByTestId('shelf-reload');
   await b2.waitFor({ state: 'visible' });
   const s1 = await b2.getAttribute('data-reload-state');
@@ -46,6 +67,8 @@ try {
   console.log('NOTE_AT_RESTORE', note1);
   const shelfPart = await dumpKeys();
   console.log('KEYS_AFTER_BOOT', JSON.stringify(shelfPart));
+  const writers = await page.evaluate(() => window.__WRITERS);
+  console.log('CLEARING_WRITERS', JSON.stringify(writers, null, 1).slice(0, 1600));
   if (s1 !== 'loading' && s1 !== 'done') throw new Error('state did not survive: ' + s1);
 
   // the restored state must walk to done then idle

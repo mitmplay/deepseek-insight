@@ -250,7 +250,7 @@ describe('panel-prefs — DsiPanelEntry type contract (1.3-T)', () => {
 		const loaded = loadPanelPrefs();
 		// Persisted chrome sanitizes to the panel's own defaults.
 		expect(loaded.panels).toEqual([
-			{ id: 'shelf-1', kind: 'skill-shelf', tab: 'install', collapsed: [], searchQ: '', width: 480 }
+			{ id: 'shelf-1', kind: 'skill-shelf', tab: 'install', collapsed: [], searchQ: '', reload: null, width: 480 }
 		]);
 		expect(loaded.selectedPanelId).toBe('shelf-1');
 	});
@@ -278,6 +278,7 @@ describe('panel-prefs — DsiPanelEntry type contract (1.3-T)', () => {
 			tab: 'uninstall',
 			collapsed: ['src-a'],
 			searchQ: 'adr',
+			reload: null,
 			width: 500
 		});
 	});

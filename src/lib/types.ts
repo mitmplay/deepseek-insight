@@ -15,6 +15,8 @@
  * the structured line window the harness projects for file reads.
  * Normalized from the ledger view member in dsh-events (BC-11: traces
  * to the wire's presentation meta, never args guessing). 2026-08-22. */
+import type { ReloadFeedback } from '$lib/utils/skill-shelf-reload-machine';
+
 export interface DsiReadLine {
 	/** 1-based file line number. */
 	number: number;
@@ -569,10 +571,11 @@ export interface DsiSkillShelfPanel {
 	collapsed?: string[];
 	/** The toolbar search box text. */
 	searchQ?: string;
-	/** Live reload feedback (hard-reload survival): a 'loading' blob makes
-	 *  the restored panel re-issue the reload; a 'done' blob lives out its
-	 *  remaining 5s window (doneAt = expiry epoch ms). Absent = idle. */
-	reload?: { state: 'loading' | 'done'; doneAt?: number } | null;
+	/** Live reload feedback (hard-reload survival — the Reload Rememberer
+	 *  ADR D1): a 'loading' blob makes the restored panel re-issue the
+	 *  reload; a 'done' blob lives out its remaining 5s window (doneAt =
+	 *  ABSOLUTE expiry epoch ms, startedAt = run provenance). Absent = idle. */
+	reload?: ReloadFeedback | null;
 }
 
 /** The conversation branch — renders one DSH session's transcript. */

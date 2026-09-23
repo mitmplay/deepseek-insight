@@ -47,7 +47,7 @@ function mountPanel(props: Record<string, unknown>): { target: HTMLElement; fetc
 describe('reload feedback hard-reload survival', () => {
 	it('restored done lives out its REMAINING window only', async () => {
 		const { target } = mountPanel({
-			initialReload: { state: 'done', doneAt: Date.now() + 1500 }
+			initialReload: { phase: 'done', startedAt: Date.now() - 3_500, doneAt: Date.now() + 1500 }
 		});
 		expect(state(target)).toBe('done');
 		// expired well inside the 5s default: ~1.5s remaining + slack
@@ -61,7 +61,7 @@ describe('reload feedback hard-reload survival', () => {
 
 	it('expired done blob stays idle', () => {
 		const { target } = mountPanel({
-			initialReload: { state: 'done', doneAt: Date.now() - 10_000 }
+			initialReload: { phase: 'done', startedAt: Date.now() - 15_000, doneAt: Date.now() - 10_000 }
 		});
 		expect(state(target)).toBe('idle');
 	});
@@ -78,7 +78,7 @@ describe('reload feedback hard-reload survival', () => {
 			mount(SettingsSkillsPanel, {
 				target,
 				props: {
-					initialReload: { state: 'loading' },
+					initialReload: { phase: 'loading', startedAt: Date.now() - 500 },
 					onreloadchange: (r: unknown) => emissions.push(r)
 				}
 			})
@@ -94,14 +94,18 @@ describe('reload feedback hard-reload survival', () => {
 			expect(state(target)).toBe('done');
 		});
 		// the floor heard about loading and done
-		expect(emissions).toContainEqual({ state: 'loading' });
-		expect(emissions.at(-1)).toEqual({ state: 'done', doneAt: expect.any(Number) });
+		expect(emissions).toContainEqual({ phase: 'loading', startedAt: expect.any(Number) });
+		expect(emissions.at(-1)).toEqual({
+			phase: 'done',
+			startedAt: expect.any(Number),
+			doneAt: expect.any(Number)
+		});
 	});
 
 	it('emits null back to the floor when the done window expires', async () => {
 		const emissions: Array<unknown> = [];
 		const { target } = mountPanel({
-			initialReload: { state: 'done', doneAt: Date.now() + 800 },
+			initialReload: { phase: 'done', startedAt: Date.now() - 4_200, doneAt: Date.now() + 800 },
 			onreloadchange: (r: unknown) => emissions.push(r)
 		});
 		await vi.waitFor(
