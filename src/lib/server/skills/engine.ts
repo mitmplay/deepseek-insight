@@ -68,6 +68,14 @@ async function run(args: string[], timeoutMs: number = ENGINE_TIMEOUT_MS): Promi
 	return payload;
 }
 
+/** Single-flight (Reload Rememberer amendment, 2026-09-23): the browser
+ *  aborts its POST on a hard reload, but the engine child keeps harvesting
+ *  server-side — and D4's re-issue used to spawn a SECOND full harvest
+ *  (no per-source resume: refresh --reload refetches every source), so
+ *  the operator waited ~6m from zero twice over. A re-issued refresh now
+ *  JOINS the in-flight run instead of spawning a duplicate engine. */
+let inFlightRefresh: Promise<{ snapshot: ShelfSnapshot; reused: boolean }> | null = null;
+
 export function getEngine() {
 	return {
 		async snapshotStatus(): Promise<{ present: boolean }> {
@@ -75,9 +83,18 @@ export function getEngine() {
 			return { present: Boolean(p.present) };
 		},
 		async refresh(reload: boolean): Promise<{ snapshot: ShelfSnapshot; reused: boolean }> {
-			const p = await run(reload ? ['refresh', '--reload'] : ['refresh'], reload ? ENGINE_REFRESH_TIMEOUT_MS : ENGINE_TIMEOUT_MS);
-			if (!p.ok || !p.snapshot) throw new EngineFailedError('refresh failed', p);
-			return { snapshot: p.snapshot, reused: Boolean(p.reused) };
+			if (reload && inFlightRefresh) return inFlightRefresh;
+			const p = run(reload ? ['refresh', '--reload'] : ['refresh'], reload ? ENGINE_REFRESH_TIMEOUT_MS : ENGINE_TIMEOUT_MS).then((p) => {
+				if (!p.ok || !p.snapshot) throw new EngineFailedError('refresh failed', p);
+				return { snapshot: p.snapshot, reused: Boolean(p.reused) };
+			});
+			if (reload) {
+				inFlightRefresh = p;
+				void p.catch(() => {}).finally(() => {
+					if (inFlightRefresh === p) inFlightRefresh = null;
+				});
+			}
+			return p;
 		},
 		async apply(action: 'install' | 'uninstall', targets: string[]): Promise<ShelfApplyItem[]> {
 			const p = await run(['apply', action, ...targets]);

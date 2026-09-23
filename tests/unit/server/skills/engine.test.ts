@@ -103,6 +103,57 @@ describe('engine wrapper', () => {
     expect(defaultEnginePath()).toBe(join(homedir(), '.agents/skills/dsi-skill-shelf/shelf.mjs'));
   });
 
+  it('SINGLE-FLIGHT: a re-issued refresh(true) JOINS the in-flight harvest — one engine spawn (Reload Rememberer amendment 2026-09-23)', async () => {
+    let calls = 0;
+    let release!: () => void;
+    setEngineRunner(async () => {
+      calls++;
+      await new Promise<void>((res) => (release = res));
+      return JSON.stringify({ v: 1, ok: true, reused: false, snapshot: SNAP });
+    });
+    const first = getEngine().refresh(true);
+    await vi.waitFor(() => expect(calls).toBe(1));
+    const second = getEngine().refresh(true); // the D4 re-issue after a hard reload
+    release();
+    const [a, b] = await Promise.all([first, second]);
+    expect(calls).toBe(1); // ONE engine spawn, both callers ride it
+    expect(a.snapshot).toEqual(SNAP);
+    expect(b.snapshot).toEqual(SNAP);
+  });
+
+  it('SINGLE-FLIGHT clears on failure — the next refresh spawns a fresh engine', async () => {
+    let calls = 0;
+    setEngineRunner(async () => {
+      calls++;
+      if (calls === 1) return JSON.stringify({ v: 1, ok: false });
+      return JSON.stringify({ v: 1, ok: true, reused: false, snapshot: SNAP });
+    });
+    await expect(getEngine().refresh(true)).rejects.toBeInstanceOf(EngineFailedError);
+    await expect(getEngine().refresh(true)).resolves.toMatchObject({ reused: false });
+    expect(calls).toBe(2);
+  });
+
+  it('SINGLE-FLIGHT does not dedupe the fast cached refresh(false) path', async () => {
+    let calls = 0;
+    setEngineRunner(async () => {
+      calls++;
+      return JSON.stringify({ v: 1, ok: true, reused: true, snapshot: SNAP });
+    });
+    await Promise.all([getEngine().refresh(false), getEngine().refresh(false)]);
+    expect(calls).toBe(2);
+  });
+
+  it('a COMPLETED reload does not block the next one — in-flight clears on success', async () => {
+    let calls = 0;
+    setEngineRunner(async () => {
+      calls++;
+      return JSON.stringify({ v: 1, ok: true, reused: false, snapshot: SNAP });
+    });
+    await getEngine().refresh(true);
+    await getEngine().refresh(true);
+    expect(calls).toBe(2);
+  });
+
   it('the fallback runner is re-installed on every setEngineRunner(null) (toggle both ways)', async () => {
     process.env.SHELF_ENGINE_PATH = join(import.meta.dirname, '../../fixtures/shelf-fixture.mjs');
     setEngineRunner(async () => JSON.stringify({ v: 9 }));
