@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { t } from '$lib/services/locale/locale-state.svelte';
 	import * as m from '$lib/paraglide/messages';
-	import { ChevronDown, ChevronRight, CircleUserRound, ExternalLink } from '@lucide/svelte';
+	import { ChevronDown, ChevronRight, CircleUserRound, ExternalLink, Check, LoaderCircle } from '@lucide/svelte';
 	import SettingsSkillsSelfSkill from './SettingsSkillsSelfSkill.svelte';
 
 	/**
@@ -52,6 +52,10 @@
 		ontogglegroup?: () => void;
 		/** Uninstall intent for one skill id. */
 		onuninstall?: (id: string) => void;
+		/** Live harvest state for THIS source (Reload Rememberer,
+		 *  2026-09-23): 'working' shows a mini spinner on the group head,
+		 *  'done' a check; null/pending renders nothing. */
+		reloadChip?: 'pending' | 'working' | 'done' | null;
 	}
 	let {
 		sourceId,
@@ -68,7 +72,8 @@
 		busy,
 		ontoggle,
 		ontogglegroup,
-		onuninstall
+		onuninstall,
+		reloadChip = null
 	}: Props = $props();
 
 	/** The installed/foreign badge — null renders no badge. */
@@ -94,6 +99,7 @@
 			{#if version}<span class="shelf-version" data-testid={'shelf-version-' + sourceId}>(v{version})</span>{/if}
 			<span class="shelf-author">{author}</span>
 			<span class="shelf-count">{skills.length}</span>
+			{#if reloadChip === 'working'}<span class="shelf-reload-chip" data-testid={'shelf-source-working-' + sourceId}><LoaderCircle size={11} aria-hidden="true" /></span>{:else if reloadChip === 'done'}<span class="shelf-reload-chip" data-testid={'shelf-source-done-' + sourceId}><Check size={11} aria-hidden="true" /></span>{/if}
 		</button>
 		{#if repoUrl}
 			<a
@@ -211,6 +217,25 @@
 		font-weight: 400;
 		font-variant-numeric: tabular-nums;
 		opacity: 0.6;
+	}
+	/* Live harvest chip (Reload Rememberer, 2026-09-23): mini spinner while
+	   THIS source builds, a quiet check once it lands. */
+	.shelf-reload-chip {
+		display: inline-flex;
+		align-items: center;
+		opacity: 0.8;
+	}
+	.shelf-reload-chip :global(svg) {
+		animation: shelf-chip-spin 1s linear infinite;
+	}
+	.shelf-reload-chip[data-testid^='shelf-source-done'] :global(svg) {
+		animation: none;
+		color: #1a7f37;
+	}
+	@keyframes shelf-chip-spin {
+		to {
+			transform: rotate(360deg);
+		}
 	}
 	.shelf-rows {
 		list-style: none;

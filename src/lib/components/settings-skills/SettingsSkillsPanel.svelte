@@ -21,7 +21,7 @@
 	import SettingsSkillsContainer from './SettingsSkillsContainer.svelte';
 	import SettingsSkillsTabgroup from './SettingsSkillsTabgroup.svelte';
 	import SettingsSkillsSelfSection from './SettingsSkillsSelfSection.svelte';
-	import { RotateCw, ChevronsDownUp, ChevronsUpDown, LoaderCircle, Check } from '@lucide/svelte';
+	import { RotateCw, ChevronsDownUp, ChevronsUpDown, LoaderCircle, Check, X } from '@lucide/svelte';
 	import {
 		reduceReload,
 		visiblePhase,
@@ -81,7 +81,13 @@
 	// {done}/{total} next to the spinner. Kept from the LAST running read
 	// (the file vanishes when enumeration ends but the snapshot build
 	// continues), cleared the moment the machine leaves loading.
-	let progress = $state<{ done: number; total: number; skillDone: number; skillTotal: number } | null>(null);
+	let progress = $state<{
+		done: number;
+		total: number;
+		skillDone: number;
+		skillTotal: number;
+		sources: Array<{ name: string; state: 'pending' | 'working' | 'done' }>;
+	} | null>(null);
 	let nowTick = $state(Date.now());
 	let reloadDoneTimer: ReturnType<typeof setTimeout> | undefined;
 	$effect(() => {
@@ -104,14 +110,22 @@
 		const poll = setInterval(async () => {
 			try {
 				const res = await fetch('/api/skills/progress');
-				const body = (await res.json()) as { running?: boolean; done?: number; total?: number; skillDone?: number; skillTotal?: number };
+				const body = (await res.json()) as {
+					running?: boolean;
+					done?: number;
+					total?: number;
+					skillDone?: number;
+					skillTotal?: number;
+					sources?: Array<{ name: string; state: 'pending' | 'working' | 'done' }>;
+				};
 				const total = Number(body.total) || 0;
 				if (body.running && total > 0) {
 					progress = {
 						done: Number(body.done) || 0,
 						total,
 						skillDone: Number(body.skillDone) || 0,
-						skillTotal: Number(body.skillTotal) || 0
+						skillTotal: Number(body.skillTotal) || 0,
+						sources: Array.isArray(body.sources) ? body.sources : []
 					};
 				}
 			} catch { /* the counter is a courtesy, never an error path */ }
@@ -132,6 +146,17 @@
 		emitReload(reload);
 		scheduleExpiry();
 	}
+	/** The bored-operator verb (Reload Rememberer, 2026-09-23): tell the
+	 *  server to kill the engine child, then walk the machine to idle —
+	 *  the OLD snapshot stays, nothing is lost but the wait. */
+	async function cancelReload(): Promise<void> {
+		try {
+			await fetch('/api/skills/reload/cancel', { method: 'POST' });
+		} catch { /* the machine walk below is what matters */ }
+		note = null;
+		dispatch('reloadFailed');
+	}
+
 	/** One timer at the absolute deadline — an optimization, not truth. */
 	function scheduleExpiry(): void {
 		clearTimeout(reloadDoneTimer);
@@ -353,7 +378,16 @@
 		try {
 			const res = await fetch('/api/skills/reload', { method: 'POST' });
 			const body = await res.json();
-			if (!body.ok) throw new Error(body.error ?? 'reload failed');
+			if (!body.ok) {
+				// a CANCELLED run is not an error — the operator asked for it;
+				// walk to idle without the error note (Reload Rememberer).
+				if (body.cancelled) {
+					note = null;
+					dispatch('reloadFailed');
+					return;
+				}
+				throw new Error(body.error ?? 'reload failed');
+			}
 			snapshot = body.snapshot;
 			uninstallable = new Set(body.uninstallable as string[]);
 			dispatch('reloadSucceeded');
@@ -401,6 +435,18 @@
 						<span class="shelf-reload-progress" data-testid="shelf-reload-progress">{progress.done}/{progress.total}{#if progress.skillTotal > 0}&nbsp;·&nbsp;{progress.skillDone}/{progress.skillTotal}{/if}</span>
 					{/if}
 				</button>
+				{#if tab === 'install' && reloadState === 'loading'}
+					<button
+						type="button"
+						class="shelf-reload-cancel"
+						data-testid="shelf-reload-cancel"
+						title={t(m.skillsShelfReloadCancel)}
+						aria-label={t(m.skillsShelfReloadCancel)}
+						onclick={cancelReload}
+					>
+						<X size={13} aria-hidden="true" />
+					</button>
+				{/if}
 			{/if}
 			<!-- The lineage-fold pill grammar (SidebarOpenPanelTree): ONE
 			     joined pill, icon-only segments, i18n tooltip + aria-label.
@@ -445,6 +491,7 @@
 				<SettingsSkillsSelfSection
 					sourceId={g.source.id}
 					index={g.index}
+					reloadChip={reloadState === 'loading' ? (progress?.sources.find((s) => s.name === g.source.id)?.state ?? null) : null}
 					author={g.source.author}
 					authorUrl={g.source.authorUrl ?? null}
 					version={g.source.version ?? null}
@@ -525,6 +572,27 @@
 		to {
 			transform: rotate(360deg);
 		}
+	}
+	/* Progress counter + cancel verb (Reload Rememberer, 2026-09-23). */
+	.shelf-reload-progress {
+		font-variant-numeric: tabular-nums;
+		opacity: 0.75;
+		padding-inline: 0.15rem;
+	}
+	.shelf-reload-cancel {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0.15rem 0.35rem;
+		border: 1px solid var(--color-border, #d0d7de);
+		border-radius: 0.25rem;
+		background: transparent;
+		cursor: pointer;
+		color: inherit;
+	}
+	.shelf-reload-cancel:hover {
+		color: #cf222e;
+		border-color: #cf222e;
 	}
 	/* The fold pill — SidebarOpenPanelTree's seg-group contract: ONE
 	   joined pill, zero gap, outer 9999px curves, icon-only segments;

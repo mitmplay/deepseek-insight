@@ -63,8 +63,15 @@ export interface EnginePayload {
 
 /** The single API the routes consume; swap the runner for tests.
  *  timeoutMs rides along so the refresh command's extended ceiling
-	*  reaches whatever runner is installed (real execFile or test stub). */
-export type EngineRunner = (enginePath: string, args: string[], timeoutMs?: number) => Promise<string>; // resolves stdout JSON
+	*  reaches whatever runner is installed (real execFile or test stub).
+	*  registerCancel receives the child-kill handle — the DEFAULT runner
+	*  wires it to the spawned process; stubs may ignore it. */
+export type EngineRunner = (
+	enginePath: string,
+	args: string[],
+	timeoutMs?: number,
+	registerCancel?: (cancel: () => void) => void
+) => Promise<string>; // resolves stdout JSON
 
 export class EngineMissingError extends Error {
 	readonly enginePath: string;
@@ -81,6 +88,16 @@ export class EngineFailedError extends Error {
 		super(message);
 		this.name = 'EngineFailedError';
 		this.payload = payload;
+	}
+}
+
+/** The operator cancelled the in-flight refresh (Reload Rememberer,
+ *  2026-09-23): the child was killed on purpose — the route maps this to
+	 *  a quiet cancelled payload, not an error note. */
+export class EngineCancelledError extends Error {
+	constructor() {
+		super('shelf refresh cancelled');
+		this.name = 'EngineCancelledError';
 	}
 }
 

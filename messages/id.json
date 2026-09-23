@@ -353,6 +353,7 @@
 	"skillsShelfReload": "Muat ulang",
 	"skillsShelfReloading": "Memuat ulang keahlian…",
 	"skillsShelfReloaded": "Keahlian dimuat ulang",
+	"skillsShelfReloadCancel": "Batalkan muat ulang",
 	"skillsShelfOpenRepo": "Buka repositori sumber di tab baru",
 	"skillsShelfOpenAuthor": "Buka profil penulis di tab baru",
 	"skillsShelfInstall": "Instal",

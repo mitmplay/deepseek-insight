@@ -353,6 +353,7 @@
 	"skillsShelfReload": "重新加载",
 	"skillsShelfReloading": "正在重新加载技能…",
 	"skillsShelfReloaded": "技能已重新加载",
+	"skillsShelfReloadCancel": "取消重新加载",
 	"skillsShelfOpenRepo": "在新标签页打开源代码仓库",
 	"skillsShelfOpenAuthor": "在新标签页打开作者主页",
 	"skillsShelfInstall": "安装",

@@ -353,6 +353,7 @@
 	"skillsShelfReload": "Reload",
 	"skillsShelfReloading": "Reloading skills…",
 	"skillsShelfReloaded": "Skills reloaded",
+	"skillsShelfReloadCancel": "Cancel reload",
 	"skillsShelfOpenRepo": "Open the source repository in a new tab",
 	"skillsShelfOpenAuthor": "Open the author profile in a new tab",
 	"skillsShelfInstall": "Install",

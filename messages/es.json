@@ -353,6 +353,7 @@
 	"skillsShelfReload": "Recargar",
 	"skillsShelfReloading": "Recargando habilidades…",
 	"skillsShelfReloaded": "Habilidades recargadas",
+	"skillsShelfReloadCancel": "Cancelar recarga",
 	"skillsShelfOpenRepo": "Abrir el repositorio fuente en una pestaña nueva",
 	"skillsShelfOpenAuthor": "Abrir el perfil del autor en una pestaña nueva",
 	"skillsShelfInstall": "Instalar",
