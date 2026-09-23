@@ -25,19 +25,19 @@ describe('progress route', () => {
 		process.env.SHELF_PROGRESS_PATH = file;
 		const res = await call();
 		expect(res.status).toBe(200);
-		await expect(res.json()).resolves.toEqual({ ok: true, running: false, done: 0, total: 0, skillDone: 0, skillTotal: 0 });
+		await expect(res.json()).resolves.toEqual({ ok: true, running: false, done: 0, total: 0, skillDone: 0, skillTotal: 0, sources: [] });
 	});
 
 	it('a running read returns done/total verbatim', async () => {
 		process.env.SHELF_PROGRESS_PATH = file;
 		writeFileSync(file, JSON.stringify({ v: 1, running: true, done: 4, total: 7, skillDone: 400, skillTotal: 903, updatedAt: 1 }));
-		await expect((await call()).json()).resolves.toEqual({ ok: true, running: true, done: 4, total: 7, skillDone: 400, skillTotal: 903 });
+		await expect((await call()).json()).resolves.toEqual({ ok: true, running: true, done: 4, total: 7, skillDone: 400, skillTotal: 903, sources: [] });
 	});
 
 	it('a torn read mid-write degrades quietly instead of 500ing the poll', async () => {
 		process.env.SHELF_PROGRESS_PATH = file;
 		writeFileSync(file, '{"v":1,"running":tru');
-		await expect((await call()).json()).resolves.toEqual({ ok: true, running: false, done: 0, total: 0, skillDone: 0, skillTotal: 0 });
+		await expect((await call()).json()).resolves.toEqual({ ok: true, running: false, done: 0, total: 0, skillDone: 0, skillTotal: 0, sources: [] });
 	});
 
 	it('running:false stays false even with numbers present', async () => {
@@ -58,4 +58,30 @@ it('skill counters default to 0 when the engine omits them (older engine)', asyn
 	process.env.SHELF_PROGRESS_PATH = file;
 	writeFileSync(file, JSON.stringify({ v: 1, running: true, done: 2, total: 7 }));
 	await expect((await call()).json()).resolves.toMatchObject({ done: 2, total: 7, skillDone: 0, skillTotal: 0 });
+});
+it('sources pass through sanitized — junk rows drop, states coerce to pending', async () => {
+	process.env.SHELF_PROGRESS_PATH = file;
+	writeFileSync(
+		file,
+		JSON.stringify({
+			v: 1,
+			running: true,
+			done: 4,
+			total: 7,
+			sources: [
+				{ name: 'ecc', state: 'working' },
+				{ name: 'pstack', state: 'done' },
+				{ state: 'done' }, // no name — dropped
+				{ name: 'weird', state: 'bogus' } // bad state — coerced to pending
+			]
+		})
+	);
+	await expect((await call()).json()).resolves.toMatchObject({
+		running: true,
+		sources: [
+			{ name: 'ecc', state: 'working' },
+			{ name: 'pstack', state: 'done' },
+			{ name: 'weird', state: 'pending' }
+		]
+	});
 });
