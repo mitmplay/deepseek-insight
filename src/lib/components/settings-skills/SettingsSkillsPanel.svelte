@@ -75,6 +75,13 @@
 	// re-issued). After pagehide nothing this document emits is truth —
 	// the next document owns the machine (it re-issues a loading blob).
 	let pageUnloading = $state(false);
+	// Live harvest progress (2026-09-23): the engine enumerates sources
+	// three at a time and rewrites skr-progress.json per completion; the
+	// button polls GET /api/skills/progress while loading and renders
+	// {done}/{total} next to the spinner. Kept from the LAST running read
+	// (the file vanishes when enumeration ends but the snapshot build
+	// continues), cleared the moment the machine leaves loading.
+	let progress = $state<{ done: number; total: number } | null>(null);
 	let nowTick = $state(Date.now());
 	let reloadDoneTimer: ReturnType<typeof setTimeout> | undefined;
 	$effect(() => {
@@ -85,6 +92,27 @@
 		};
 	});
 	const reloadState = $derived(visiblePhase(reload, nowTick));
+
+	// Poll the engine's progress ONLY while the spinner is up (2026-09-23):
+	// one GET per second; keep the last running read so the counter holds
+	// steady through the file's end-of-enumeration delete.
+	$effect(() => {
+		if (reloadState !== 'loading') {
+			progress = null;
+			return;
+		}
+		const poll = setInterval(async () => {
+			try {
+				const res = await fetch('/api/skills/progress');
+				const body = (await res.json()) as { running?: boolean; done?: number; total?: number };
+				const total = Number(body.total) || 0;
+				if (body.running && total > 0) {
+					progress = { done: Number(body.done) || 0, total };
+				}
+			} catch { /* the counter is a courtesy, never an error path */ }
+		}, 1_000);
+		return () => clearInterval(poll);
+	});
 
 	/** Idle is the ABSENCE on the persisted entry — emit null so the
 	 *  floor clears the blob; loading/done land with their expiry.
@@ -364,6 +392,9 @@
 					disabled={busy}
 				>
 					{#if reloadState === 'loading'}<LoaderCircle size={13} aria-hidden="true" />{:else if reloadState === 'done'}<Check size={13} aria-hidden="true" />{:else}<RotateCw size={13} aria-hidden="true" />{/if}
+					{#if reloadState === 'loading' && progress}
+						<span class="shelf-reload-progress" data-testid="shelf-reload-progress">{progress.done}/{progress.total}</span>
+					{/if}
 				</button>
 			{/if}
 			<!-- The lineage-fold pill grammar (SidebarOpenPanelTree): ONE

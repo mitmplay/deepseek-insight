@@ -85,3 +85,36 @@ it('a failed reload returns straight to idle with the error note', async () => {
 	});
 	expect(target.querySelector('[data-testid="shelf-note"]')?.textContent).toContain('503');
 });
+
+// Live harvest progress (2026-09-23): while the spinner is up the
+// button polls /api/skills/progress and renders {done}/{total}; the
+// counter is absent at idle and when the engine reports no run.
+it('the spinner renders the harvest counter {done}/{total} while loading', { timeout: 8000 }, async () => {
+	vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => {
+		const url = String(input);
+		if (url.includes('/api/skills/progress')) {
+			return Promise.resolve(jsonRes({ ok: true, running: true, done: 2, total: 7 }));
+		}
+		if (url.includes('/api/skills/reload')) return new Promise<Response>(() => {}); // hold the spinner up
+		return Promise.resolve(jsonRes(SNAP));
+	}));
+	const target = document.createElement('div');
+	document.body.appendChild(target);
+	mount(SettingsSkillsPanelHost, { target });
+	flushSync();
+	await vi.waitFor(() => {
+		expect(target.querySelector('[data-testid="shelf-reload"]')).not.toBeNull();
+	});
+	// idle: no counter
+	expect(target.querySelector('[data-testid="shelf-reload-progress"]')).toBeNull();
+	(target.querySelector<HTMLButtonElement>('[data-testid="shelf-reload"]')!).click();
+	flushSync();
+	expect(state(target)).toBe('loading');
+	// the first 1s poll lands the counter
+	await vi.waitFor(
+		() => {
+			expect(target.querySelector('[data-testid="shelf-reload-progress"]')?.textContent).toBe('2/7');
+		},
+		{ timeout: 4000 }
+	);
+});
