@@ -309,6 +309,7 @@
 	"thinkLabel": "think",
 	"thinkingLabel": "thinking",
 	"ctxChipContext": "context",
+		"ctxSnapshotSupersedes": "Supersedes earlier snapshots",
 	"ctxChipInstructions": "instructions",
 	"ctxChipSkills": "skills",
 	"ctxChipSkill": "skill",

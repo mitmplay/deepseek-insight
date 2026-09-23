@@ -22,6 +22,7 @@
 	import LoadOlderSentinel from '$lib/components/message/LoadOlderSentinel.svelte';
 	import PromptBubble from '$lib/components/message/PromptBubble.svelte';
 	import ContextInjection from '$lib/components/message/ContextInjection.svelte';
+	import ContextSnapshotBody from '$lib/components/message/ContextSnapshotBody.svelte';
 	import SystemPromptChip from '$lib/components/message/SystemPromptChip.svelte';
 	import ChipPopup from '$lib/components/message/ChipPopup.svelte';
 	import AssistantTurn from '$lib/components/message/AssistantTurn.svelte';
@@ -278,7 +279,7 @@
 									     injections are markdown sources (AGENTS.md, skill catalog),
 									     and the renderer is escape-first so wire noise stays text. -->
 									<div data-testid="context-injection-body" class="p-2">
-										<MarkdownContent content={ctx.text} small hideToggle />
+										<ContextSnapshotBody text={ctx.text} metaSource={ctx.metaSource} />
 									</div>
 								</ChipPopup>
 							{/if}
@@ -303,7 +304,7 @@
 								     injections are markdown sources (AGENTS.md, skill catalog),
 								     and the renderer is escape-first so wire noise stays text. -->
 								<div data-testid="context-injection-body" class="p-2">
-									<MarkdownContent content={ctx.text} small hideToggle />
+									<ContextSnapshotBody text={ctx.text} metaSource={ctx.metaSource} />
 								</div>
 							</ChipPopup>
 						{/if}

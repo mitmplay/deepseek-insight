@@ -309,6 +309,7 @@
 	"thinkLabel": "思考",
 	"thinkingLabel": "思考中",
 	"ctxChipContext": "上下文",
+		"ctxSnapshotSupersedes": "取代先前的快照",
 	"ctxChipInstructions": "工作区指引",
 	"ctxChipSkills": "技能列表",
 	"ctxChipSkill": "技能",

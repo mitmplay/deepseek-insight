@@ -386,12 +386,48 @@ test('11 · context injections render as attributed chips, expand shows verbatim
 	await expect(chip).toContainText('context');
 	await expect(transcript.getByTestId('context-injection-body')).toHaveCount(0);
 
-	// Expand: the wire text rides the POPUP after the row as markdown prose
-	// (ToolCallDetail parity); plain-text snapshots render unchanged.
+	// Expand: the stub's default sections (['env']) are deliberately
+	// malformed — the all-or-nothing reader (Section Split D1) falls back
+	// to the pre-split markdown body, byte-identical to before.
 	await chip.getByTestId('context-injection-toggle').click();
 	const body = transcript.getByTestId('context-injection-body');
 	await expect(body).toBeVisible();
 	await expect(body).toContainText('Current runtime context. cwd /tmp; agent research; 2 sessions open.');
+	await expect(body.getByTestId('context-snapshot-supersedes')).toHaveCount(0);
+});
+
+test('11b · runtime-context sections render caption + named blocks (Section Split D2/D4)', async ({ page }) => {
+	await page.goto(`/?sessionKey=${STUB_SESSION_ID}`);
+	await expect(page.getByTestId('transcript')).toBeVisible();
+
+	// Proper [{name,text}] sections: the body switches to the supersedes
+	// caption plus one block per section — the framing line is NOT reprinted
+	// (it IS the caption, ADR D4), and the section names are verbatim wire
+	// strings.
+	await stubRuntime!.pushRuntimeContextEvent([
+		{ name: 'sandbox:policy', text: 'Current DSH file policy: danger-full-access.' },
+		{ name: 'approval:policy', text: 'Approval prompts are disabled in this session.' }
+	]);
+	const transcript = page.getByTestId('transcript');
+	// Spec 11's malformed chip persists in the shared stub session — the
+	// NEWEST chip (highest seq, this spec's push) is the section-aware one.
+	// Wait for THIS spec's push to land (spec 11's chip is already in the
+	// shared stub session — visibility alone would race the SSE delivery).
+	const chips = transcript.getByTestId('context-injection-chip');
+	await expect(chips).toHaveCount(2, { timeout: 10_000 });
+	const chip = chips.last();
+	await expect(chip).toHaveAttribute('data-producer', 'runtime-context');
+	await chip.getByTestId('context-injection-toggle').click();
+	const body = transcript.getByTestId('context-injection-body').last();
+	await expect(body.getByTestId('context-snapshot-supersedes')).toBeVisible();
+	const blocks = body.getByTestId('context-section');
+	await expect(blocks).toHaveCount(2);
+	await expect(blocks.first()).toContainText('sandbox:policy');
+	await expect(blocks.first()).toContainText('danger-full-access');
+	await expect(blocks.nth(1)).toContainText('approval:policy');
+	// The joined prose is NOT reprinted beside the sections (ADR D2):
+	// only the caption + section texts render, the framing prose is dropped.
+	await expect(body).not.toContainText('cwd /tmp; agent research; 2 sessions open.');
 });
 
 test('12 · XSS attempt renders escaped — no raw HTML reaches the transcript', async ({ page }) => {

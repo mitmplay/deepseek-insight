@@ -37,6 +37,37 @@ export function chipNameOf(meta: Producer, metaSource: Source): string | undefin
 	}
 }
 
+/** One named contribution to a runtime-context snapshot, as the durable
+ * source records it. Shape-parity with DSH's own chat
+ * (ui-chat ContextBody snapshotSections). */
+export interface SnapshotSection {
+	name: string;
+	text: string;
+}
+
+/**
+ * The runtime-context snapshot's named contributions, read off the entry's
+ * verbatim wire source (ADR "The Section Split", D1). All-or-nothing, the
+ * same contract DSH's chat applies: every section must carry a non-empty
+ * string name and a string text, and the list must be non-empty — one
+ * malformed element discards the whole list. Undefined when the source is
+ * absent or unreadable, which callers render as the plain body.
+ * @param metaSource - the entry's verbatim source object, if any.
+ * @returns the sections in wire order, or undefined when unusable.
+ */
+export function snapshotSectionsOf(metaSource: Source): SnapshotSection[] | undefined {
+	const sections = metaSource?.sections;
+	if (!Array.isArray(sections) || sections.length === 0) return undefined;
+	const parsed: SnapshotSection[] = [];
+	for (const item of sections) {
+		if (typeof item !== 'object' || item === null) return undefined;
+		const { name, text } = item as { name?: unknown; text?: unknown };
+		if (typeof name !== 'string' || name === '' || typeof text !== 'string') return undefined;
+		parsed.push({ name, text });
+	}
+	return parsed;
+}
+
 /**
  * The sender session of a subagent report/settled chip, read from the
  * entry's verbatim source (`subagent-report`/`subagent-settled` carry

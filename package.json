@@ -1,6 +1,6 @@
 {
 	"name": "@deepseek-insight/dsi",
-	"version": "0.5.27",
+	"version": "0.5.28",
 	"description": "See your multiple agents run on the floor (agent, sub-agent, etc), each conversation on the floor are updated instantly.",
 	"keywords": ["Deepseek", "Harness", "Agent", "Sub-agent"],
 	"homepage": "https://github.com/mitmplay/deepseek-insight#readme",
@@ -33,7 +33,7 @@
 		"node": ">=22.19"
 	},
 	"dsh": {
-		"webVersion": "0.1.6-alpha.2"
+		"webVersion": "0.1.7-alpha.2"
 	},
 	"bin": {
 		"dsi": "bin/dsi.mjs"

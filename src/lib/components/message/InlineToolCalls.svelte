@@ -25,6 +25,7 @@
 	import TurnErrorChip from '$lib/components/message/TurnErrorChip.svelte';
 	import ChipPopup from '$lib/components/message/ChipPopup.svelte';
 	import ContextInjection from '$lib/components/message/ContextInjection.svelte';
+import ContextSnapshotBody from '$lib/components/message/ContextSnapshotBody.svelte';
 	import WorkflowRunCard from '$lib/components/message/WorkflowRunCard.svelte';
 	import QuestionCard from '$lib/components/answerer/QuestionCard.svelte';
 	import GoalCard from '$lib/components/message/GoalCard.svelte';
@@ -314,7 +315,7 @@
 		     context bubbles render (testid shared with e2e spec 21). -->
 		<ChipPopup>
 			<div class="p-2" data-testid="context-injection-body">
-				<MarkdownContent content={openEntry.text} small hideToggle />
+				<ContextSnapshotBody text={openEntry.text} metaSource={openEntry.metaSource} />
 			</div>
 		</ChipPopup>
 	{:else}

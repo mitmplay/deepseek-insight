@@ -309,6 +309,7 @@
 	"thinkLabel": "berpikir",
 	"thinkingLabel": "sedang berpikir",
 	"ctxChipContext": "konteks",
+		"ctxSnapshotSupersedes": "Menggantikan cuplikan sebelumnya",
 	"ctxChipInstructions": "instruksi",
 	"ctxChipSkills": "skill",
 	"ctxChipSkill": "skill",

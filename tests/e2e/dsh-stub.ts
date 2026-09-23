@@ -594,8 +594,9 @@ export let stubRuntime: {
 		createdAt: number;
 		updatedAt: number;
 	} | null) => void;
-	/** W4: push the fixture-pinned runtime-context user message. */
-	pushRuntimeContextEvent: () => Promise<void>;
+	/** W4: push the fixture-pinned runtime-context user message (optional
+	 *  sections override — Section Split wave 2). */
+	pushRuntimeContextEvent: (sections?: unknown) => Promise<void>;
 	/** W4: point session.list at a different (e.g. created) session. */
 	focusSession: (sessionId: string) => void;
 } | undefined;
@@ -925,7 +926,7 @@ export class DshStubHost {
 			pushEvent: (e) => this.pushEvent(e),
 			pushEventFor: (sessionId, e) => this.pushEventFor(sessionId, e),
 			runInspectorScenario: () => this.runInspectorScenario(),
-			pushRuntimeContextEvent: () => this.pushRuntimeContextEvent(),
+			pushRuntimeContextEvent: (sections?: unknown) => this.pushRuntimeContextEvent(sections),
 			flipA2aTurn: (sessionId, replyText) => this.flipA2aTurn(sessionId, replyText),
 			setPromptAutoTurn: (auto) => {
 				this.state.promptAutoTurn = auto;
@@ -2366,15 +2367,22 @@ export class DshStubHost {
 	}
 
 	/** W4 spec 12: push the fixture-pinned runtime-context user message
-	 *  (structural marker + text prefix — exactly what dsh-events detects). */
-	async pushRuntimeContextEvent(): Promise<void> {
+	 *  (structural marker + text prefix — exactly what dsh-events detects).
+	 *  Optional sections override (Section Split wave 2): pass a proper
+	 *  [{name,text}] list for the section-aware body specs; the default
+	 *  ['env'] is deliberately malformed and pins the all-or-nothing
+	 *  fallback. */
+	async pushRuntimeContextEvent(sections: unknown = ['env']): Promise<void> {
 		await this.pushEventFor(STUB_SESSION_ID, {
 				type: 'user/message',
 				seq: Math.max(this.state.lastSeq + 1, 930),
 				time: Date.now(),
 				data: {
-					id: 'stub-rc-1',
-					source: { kind: 'plugin', plugin: '@deepseek-ai/dsh-system-prompt', form: 'snapshot', sections: ['env'] },
+					// Unique per push: DSI merges chip entries by wire message id, so a
+					// repeated id would keep the FIRST source (the malformed default)
+					// and the section-aware spec would never see its sections.
+					id: 'stub-rc-' + Math.max(this.state.lastSeq + 1, 930),
+					source: { kind: 'plugin', plugin: '@deepseek-ai/dsh-system-prompt', form: 'snapshot', sections },
 					content: [
 						{ type: 'text', text: 'Current runtime context. cwd /tmp; agent research; 2 sessions open.' }
 					]
