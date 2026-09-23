@@ -81,7 +81,7 @@
 	// {done}/{total} next to the spinner. Kept from the LAST running read
 	// (the file vanishes when enumeration ends but the snapshot build
 	// continues), cleared the moment the machine leaves loading.
-	let progress = $state<{ done: number; total: number } | null>(null);
+	let progress = $state<{ done: number; total: number; skillDone: number; skillTotal: number } | null>(null);
 	let nowTick = $state(Date.now());
 	let reloadDoneTimer: ReturnType<typeof setTimeout> | undefined;
 	$effect(() => {
@@ -104,10 +104,15 @@
 		const poll = setInterval(async () => {
 			try {
 				const res = await fetch('/api/skills/progress');
-				const body = (await res.json()) as { running?: boolean; done?: number; total?: number };
+				const body = (await res.json()) as { running?: boolean; done?: number; total?: number; skillDone?: number; skillTotal?: number };
 				const total = Number(body.total) || 0;
 				if (body.running && total > 0) {
-					progress = { done: Number(body.done) || 0, total };
+					progress = {
+						done: Number(body.done) || 0,
+						total,
+						skillDone: Number(body.skillDone) || 0,
+						skillTotal: Number(body.skillTotal) || 0
+					};
 				}
 			} catch { /* the counter is a courtesy, never an error path */ }
 		}, 1_000);
@@ -393,7 +398,7 @@
 				>
 					{#if reloadState === 'loading'}<LoaderCircle size={13} aria-hidden="true" />{:else if reloadState === 'done'}<Check size={13} aria-hidden="true" />{:else}<RotateCw size={13} aria-hidden="true" />{/if}
 					{#if reloadState === 'loading' && progress}
-						<span class="shelf-reload-progress" data-testid="shelf-reload-progress">{progress.done}/{progress.total}</span>
+						<span class="shelf-reload-progress" data-testid="shelf-reload-progress">{progress.done}/{progress.total}{#if progress.skillTotal > 0}&nbsp;·&nbsp;{progress.skillDone}/{progress.skillTotal}{/if}</span>
 					{/if}
 				</button>
 			{/if}

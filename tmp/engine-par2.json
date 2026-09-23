@@ -1,1 +1,0 @@
-{"v":1,"ok":false,"errors":["ReferenceError: snapshot is not defined\n    at cmdRefresh (file:///Users/wharsojo/.agents/skills/dsi-skill-shelf/shelf.mjs:421:43)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async main (file:///Users/wharsojo/.agents/skills/dsi-skill-shelf/shelf.mjs:584:34)"]}

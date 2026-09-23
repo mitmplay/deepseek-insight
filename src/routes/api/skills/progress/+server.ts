@@ -21,20 +21,24 @@ export const _PROGRESS_PATH = () =>
 export const GET: RequestHandler = async () => {
 	const path = _PROGRESS_PATH();
 	try {
-		if (!existsSync(path)) return json({ ok: true, running: false, done: 0, total: 0 });
+		if (!existsSync(path)) return json({ ok: true, running: false, done: 0, total: 0, skillDone: 0, skillTotal: 0 });
 		const p = JSON.parse(readFileSync(path, 'utf8')) as {
 			running?: boolean;
 			done?: number;
 			total?: number;
+			skillDone?: number;
+			skillTotal?: number;
 		};
 		return json({
 			ok: true,
 			running: p.running !== false,
 			done: Number.isFinite(p.done) ? Number(p.done) : 0,
-			total: Number.isFinite(p.total) ? Number(p.total) : 0
+			total: Number.isFinite(p.total) ? Number(p.total) : 0,
+			skillDone: Number.isFinite(p.skillDone) ? Number(p.skillDone) : 0,
+			skillTotal: Number.isFinite(p.skillTotal) ? Number(p.skillTotal) : 0
 		});
 	} catch {
 		// a torn read mid-write must never 500 the spinner's poll
-		return json({ ok: true, running: false, done: 0, total: 0 });
+		return json({ ok: true, running: false, done: 0, total: 0, skillDone: 0, skillTotal: 0 });
 	}
 };

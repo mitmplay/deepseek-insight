@@ -25,25 +25,25 @@ describe('progress route', () => {
 		process.env.SHELF_PROGRESS_PATH = file;
 		const res = await call();
 		expect(res.status).toBe(200);
-		await expect(res.json()).resolves.toEqual({ ok: true, running: false, done: 0, total: 0 });
+		await expect(res.json()).resolves.toEqual({ ok: true, running: false, done: 0, total: 0, skillDone: 0, skillTotal: 0 });
 	});
 
 	it('a running read returns done/total verbatim', async () => {
 		process.env.SHELF_PROGRESS_PATH = file;
-		writeFileSync(file, JSON.stringify({ v: 1, running: true, done: 4, total: 7, updatedAt: 1 }));
-		await expect((await call()).json()).resolves.toEqual({ ok: true, running: true, done: 4, total: 7 });
+		writeFileSync(file, JSON.stringify({ v: 1, running: true, done: 4, total: 7, skillDone: 400, skillTotal: 903, updatedAt: 1 }));
+		await expect((await call()).json()).resolves.toEqual({ ok: true, running: true, done: 4, total: 7, skillDone: 400, skillTotal: 903 });
 	});
 
 	it('a torn read mid-write degrades quietly instead of 500ing the poll', async () => {
 		process.env.SHELF_PROGRESS_PATH = file;
 		writeFileSync(file, '{"v":1,"running":tru');
-		await expect((await call()).json()).resolves.toEqual({ ok: true, running: false, done: 0, total: 0 });
+		await expect((await call()).json()).resolves.toEqual({ ok: true, running: false, done: 0, total: 0, skillDone: 0, skillTotal: 0 });
 	});
 
 	it('running:false stays false even with numbers present', async () => {
 		process.env.SHELF_PROGRESS_PATH = file;
-		writeFileSync(file, JSON.stringify({ v: 1, running: false, done: 7, total: 7 }));
-		await expect((await call()).json()).resolves.toMatchObject({ running: false, done: 7, total: 7 });
+		writeFileSync(file, JSON.stringify({ v: 1, running: false, done: 7, total: 7, skillDone: 903, skillTotal: 903 }));
+		await expect((await call()).json()).resolves.toMatchObject({ running: false, done: 7, total: 7, skillDone: 903, skillTotal: 903 });
 	});
 
 	it('_PROGRESS_PATH honors the env seam, then falls back to the home default', () => {
@@ -52,4 +52,10 @@ describe('progress route', () => {
 		delete process.env.SHELF_PROGRESS_PATH;
 		expect(_PROGRESS_PATH()).toBe(join(process.env.HOME ?? '', '.dsi/resources/skr-progress.json'));
 	});
+});
+
+it('skill counters default to 0 when the engine omits them (older engine)', async () => {
+	process.env.SHELF_PROGRESS_PATH = file;
+	writeFileSync(file, JSON.stringify({ v: 1, running: true, done: 2, total: 7 }));
+	await expect((await call()).json()).resolves.toMatchObject({ done: 2, total: 7, skillDone: 0, skillTotal: 0 });
 });

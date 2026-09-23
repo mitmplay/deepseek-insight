@@ -93,7 +93,7 @@ it('the spinner renders the harvest counter {done}/{total} while loading', { tim
 	vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => {
 		const url = String(input);
 		if (url.includes('/api/skills/progress')) {
-			return Promise.resolve(jsonRes({ ok: true, running: true, done: 2, total: 7 }));
+			return Promise.resolve(jsonRes({ ok: true, running: true, done: 2, total: 7, skillDone: 400, skillTotal: 903 }));
 		}
 		if (url.includes('/api/skills/reload')) return new Promise<Response>(() => {}); // hold the spinner up
 		return Promise.resolve(jsonRes(SNAP));
@@ -113,7 +113,8 @@ it('the spinner renders the harvest counter {done}/{total} while loading', { tim
 	// the first 1s poll lands the counter
 	await vi.waitFor(
 		() => {
-			expect(target.querySelector('[data-testid="shelf-reload-progress"]')?.textContent).toBe('2/7');
+			expect(target.querySelector('[data-testid="shelf-reload-progress"]')?.textContent)?.toContain('2/7');
+		expect(target.querySelector('[data-testid="shelf-reload-progress"]')?.textContent)?.toContain('400/903');
 		},
 		{ timeout: 4000 }
 	);
