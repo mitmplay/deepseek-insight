@@ -20,6 +20,10 @@ export interface ShelfSource {
 	id: string;
 	name: string;
 	author: string;
+	/** Author profile URL from the SKR line's second link (Shelf Credentials D2); null = absent. */
+	authorUrl?: string | null;
+	/** Collection version from the repo's root package.json (Shelf Credentials D1); null = unavailable. */
+	version?: string | null;
 	repo: string;
 	skills: ShelfSkill[];
 }
@@ -57,8 +61,10 @@ export interface EnginePayload {
 	present?: boolean;
 }
 
-/** The single API the routes consume; swap the runner for tests. */
-export type EngineRunner = (enginePath: string, args: string[]) => Promise<string>; // resolves stdout JSON
+/** The single API the routes consume; swap the runner for tests.
+ *  timeoutMs rides along so the refresh command's extended ceiling
+	*  reaches whatever runner is installed (real execFile or test stub). */
+export type EngineRunner = (enginePath: string, args: string[], timeoutMs?: number) => Promise<string>; // resolves stdout JSON
 
 export class EngineMissingError extends Error {
 	readonly enginePath: string;

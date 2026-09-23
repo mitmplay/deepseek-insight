@@ -85,7 +85,9 @@ export function parseSkr(text) {
     const m = line.match(/^\d+\.\s*\[(.+?)\]\((.+?)\)\s*-\s*\[(.+?)\]\((.+)\)\s*$/)
     if (!m) continue
     const name = m[1].trim().toLowerCase()
-    sources.push({ name, url: m[2].trim(), author: m[3].trim(), repo: SOURCE_SPECS[name] ? SOURCE_SPECS[name].repo : null })
+    // authorUrl (2026-09-22, Shelf Credentials D2): the SKR line's second
+    // link target — the author's own profile URL — rides into the snapshot.
+    sources.push({ name, url: m[2].trim(), author: m[3].trim(), authorUrl: m[4].trim(), repo: SOURCE_SPECS[name] ? SOURCE_SPECS[name].repo : null })
   }
   return sources
 }
@@ -277,6 +279,24 @@ async function fetchOverview(repo, relPath, entry) {
   return null
 }
 
+// --- source version (Shelf Credentials D1, 2026-09-22) ---
+// The collection's version lives in the repo's root package.json.
+// Fixture mode reads it from the fixture tree (offline tests); live mode
+// fetches the raw HEAD once per source per refresh (cache amortizes it).
+async function harvestVersion(spec, src, fixtureRoot) {
+  try {
+    if (fixtureRoot) {
+      const pkg = JSON.parse(readFileSync(join(fixtureRoot, src.name, 'package.json'), 'utf8'))
+      return typeof pkg.version === 'string' ? pkg.version : null
+    }
+    if (!spec) return null
+    const res = await fetch('https://raw.githubusercontent.com/' + spec.repo + '/HEAD/package.json', { headers: { 'user-agent': 'dsi-skill-shelf' } })
+    if (!res.ok) return null
+    const pkg = JSON.parse(await res.text())
+    return typeof pkg.version === 'string' ? pkg.version : null
+  } catch { return null }
+}
+
 async function buildSnapshot(sourcesRaw, enums, skillsDir, fixtureRoot) {
   const signed = readSignatures(skillsDir)
   const generatedAt = new Date().toISOString()
@@ -319,7 +339,8 @@ async function buildSnapshot(sourcesRaw, enums, skillsDir, fixtureRoot) {
         overview
       })
     }
-    sources.push({ id: src.name, name: src.name, author: src.author, repo: skrRepo(src), skills })
+    const version = await harvestVersion(spec, src, fixtureRoot)
+    sources.push({ id: src.name, name: src.name, author: src.author, authorUrl: src.authorUrl || null, version, repo: skrRepo(src), skills })
   }
   return { v: CACHE_VERSION, generatedAt, sources, warnings }
 }

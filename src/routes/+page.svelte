@@ -231,6 +231,12 @@ import {
 		panels = panels.with(idx, { ...(panels[idx] as DsiSkillShelfPanel), searchQ: q });
 	}
 
+	function setShelfReload(panelId: string, reload: { state: 'loading' | 'done'; doneAt?: number } | null): void {
+		const idx = panels.findIndex((p) => p.id === panelId);
+		if (idx < 0 || panels[idx].kind !== 'skill-shelf') return;
+		panels = panels.with(idx, { ...(panels[idx] as DsiSkillShelfPanel), reload });
+	}
+
 	/** An injected-doc floor slot (Loadinjected ADR D2): a lineage CHILD of
 	 *  its conversation over the LOGGED payload — the viewer content is
 	 *  W4's mount (the manager's D6 staging). */
@@ -1630,9 +1636,11 @@ import {
 				initialTab={panel.tab ?? 'install'}
 				initialCollapsed={panel.collapsed ?? null}
 				initialSearch={panel.searchQ ?? ''}
+				initialReload={panel.reload ?? null}
 				ontabchange={(v) => setShelfTab(panel.id, v)}
 				oncollapsedchange={(ids) => setShelfCollapsed(panel.id, ids)}
 				onsearchchange={(q) => setShelfSearch(panel.id, q)}
+				onreloadchange={(r) => setShelfReload(panel.id, r)}
 			/>
 		</div>
 	{:else if panel.kind === 'settings-editor'}

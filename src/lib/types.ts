@@ -569,6 +569,10 @@ export interface DsiSkillShelfPanel {
 	collapsed?: string[];
 	/** The toolbar search box text. */
 	searchQ?: string;
+	/** Live reload feedback (hard-reload survival): a 'loading' blob makes
+	 *  the restored panel re-issue the reload; a 'done' blob lives out its
+	 *  remaining 5s window (doneAt = expiry epoch ms). Absent = idle. */
+	reload?: { state: 'loading' | 'done'; doneAt?: number } | null;
 }
 
 /** The conversation branch — renders one DSH session's transcript. */

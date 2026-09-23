@@ -310,6 +310,14 @@ function sanitizePanels(raw: unknown): DsiPanelEntry[] {
 				} as DsiPanelEntry;
 			}
 			if (entry.kind === 'skill-shelf') {
+				// Reload blob sanitize (2026-09-22): only a well-formed loading
+				// or unexpired done survives; junk/expired clears to idle.
+				let reload: { state: 'loading' | 'done'; doneAt?: number } | null = null;
+				const r = entry.reload as { state?: unknown; doneAt?: unknown } | undefined;
+				if (r && r.state === 'loading') reload = { state: 'loading' };
+				else if (r && r.state === 'done' && typeof r.doneAt === 'number' && r.doneAt > Date.now()) {
+					reload = { state: 'done', doneAt: r.doneAt };
+				}
 				return {
 					id: entry.id as string,
 					kind: 'skill-shelf',
@@ -318,6 +326,7 @@ function sanitizePanels(raw: unknown): DsiPanelEntry[] {
 					tab: entry.tab === 'uninstall' ? 'uninstall' : 'install',
 					collapsed: clampExpanded(entry.collapsed),
 					searchQ: typeof entry.searchQ === 'string' ? entry.searchQ : '',
+					reload,
 					width
 				} as DsiPanelEntry;
 			}

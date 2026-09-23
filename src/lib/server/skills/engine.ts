@@ -22,34 +22,40 @@ import {
 } from './types';
 
 const execFileP = promisify(execFile);
+/** Fast commands (status, cached refresh, apply) stay on the snappy floor. */
 const ENGINE_TIMEOUT_MS = 120_000;
+/** A FULL live refresh enumerates ~140 skills and fetches every raw
+ *  SKILL.md + package.json sequentially (~6m measured 2026-09-22) — the
+ *  reload verb dies at 120s with 'shelf engine timed out' (observed in
+ *  headed verification). Give the slow command room to finish. */
+const ENGINE_REFRESH_TIMEOUT_MS = Number(process.env.SHELF_REFRESH_TIMEOUT_MS) || 600_000;
 
 export function defaultEnginePath(): string {
 	return process.env.SHELF_ENGINE_PATH || join(homedir(), '.agents/skills/dsi-skill-shelf/shelf.mjs');
 }
 
 /** Test seam: override to stub the engine process. */
-let runner: EngineRunner = async (enginePath, args) => {
-	const { stdout } = await execFileP('node', [enginePath, ...args], { timeout: ENGINE_TIMEOUT_MS, maxBuffer: 32 * 1024 * 1024 });
+let runner: EngineRunner = async (enginePath, args, timeoutMs = ENGINE_TIMEOUT_MS) => {
+	const { stdout } = await execFileP('node', [enginePath, ...args], { timeout: timeoutMs, maxBuffer: 32 * 1024 * 1024 });
 	return stdout;
 };
 
 export function setEngineRunner(next: EngineRunner | null): void {
-	runner = next ?? (async (enginePath, args) => {
-		const { stdout } = await execFileP('node', [enginePath, ...args], { timeout: ENGINE_TIMEOUT_MS, maxBuffer: 32 * 1024 * 1024 });
+	runner = next ?? (async (enginePath, args, timeoutMs = ENGINE_TIMEOUT_MS) => {
+		const { stdout } = await execFileP('node', [enginePath, ...args], { timeout: timeoutMs, maxBuffer: 32 * 1024 * 1024 });
 		return stdout;
 	});
 }
 
-async function run(args: string[]): Promise<EnginePayload> {
+async function run(args: string[], timeoutMs: number = ENGINE_TIMEOUT_MS): Promise<EnginePayload> {
 	const enginePath = defaultEnginePath();
 	if (!existsSync(enginePath)) throw new EngineMissingError(enginePath);
 	let stdout: string;
 	try {
-		stdout = await runner(enginePath, args);
+		stdout = await runner(enginePath, args, timeoutMs);
 	} catch (err: unknown) {
 		const e = err as { killed?: boolean; message?: string };
-		if (e.killed) throw new EngineFailedError('shelf engine timed out after ' + ENGINE_TIMEOUT_MS + 'ms', null);
+		if (e.killed) throw new EngineFailedError('shelf engine timed out after ' + timeoutMs + 'ms', null);
 		throw new EngineFailedError(String(e.message ?? e), null);
 	}
 	let payload: EnginePayload;
@@ -69,7 +75,7 @@ export function getEngine() {
 			return { present: Boolean(p.present) };
 		},
 		async refresh(reload: boolean): Promise<{ snapshot: ShelfSnapshot; reused: boolean }> {
-			const p = await run(reload ? ['refresh', '--reload'] : ['refresh']);
+			const p = await run(reload ? ['refresh', '--reload'] : ['refresh'], reload ? ENGINE_REFRESH_TIMEOUT_MS : ENGINE_TIMEOUT_MS);
 			if (!p.ok || !p.snapshot) throw new EngineFailedError('refresh failed', p);
 			return { snapshot: p.snapshot, reused: Boolean(p.reused) };
 		},

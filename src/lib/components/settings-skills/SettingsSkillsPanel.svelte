@@ -21,7 +21,7 @@
 	import SettingsSkillsContainer from './SettingsSkillsContainer.svelte';
 	import SettingsSkillsTabgroup from './SettingsSkillsTabgroup.svelte';
 	import SettingsSkillsSelfSection from './SettingsSkillsSelfSection.svelte';
-	import { RotateCw, ChevronsDownUp, ChevronsUpDown } from '@lucide/svelte';
+	import { RotateCw, ChevronsDownUp, ChevronsUpDown, LoaderCircle, Check } from '@lucide/svelte';
 
 	interface ShelfSkill {
 		n: string;
@@ -36,6 +36,10 @@
 	interface ShelfSource {
 		id: string;
 		author: string;
+		/** Author profile URL (SKR link) — null renders no author door. */
+		authorUrl?: string | null;
+		/** Collection version (repo package.json) — null renders no version tag. */
+		version?: string | null;
 		repo: string;
 		skills: ShelfSkill[];
 	}
@@ -52,6 +56,53 @@
 	let busy = $state(false);
 	let note = $state<string | null>(null);
 	let rescanNote = $state(false);
+	// Reload button feedback (2026-09-22): idle icon while quiet, spinner
+	// while the reload round-trips (it can take minutes on the live
+	// registry), a check for 5s on success, then back to idle.
+	let reloadState = $state<'idle' | 'loading' | 'done'>('idle');
+	let reloadDoneTimer: ReturnType<typeof setTimeout> | undefined;
+	$effect(() => () => clearTimeout(reloadDoneTimer));
+
+	/** Idle is the ABSENCE on the persisted entry — emit null so the
+	 *  floor clears the blob; loading/done land with their expiry. */
+	function emitReload(state: 'loading' | 'done' | 'idle', doneAt?: number): void {
+		emit(onreloadchange, state === 'idle' ? null : { state, doneAt });
+	}
+	function enterDone(): void {
+		reloadState = 'done';
+		emitReload('done', Date.now() + 5_000);
+		clearTimeout(reloadDoneTimer);
+		reloadDoneTimer = setTimeout(() => {
+			reloadState = 'idle';
+			emitReload('idle');
+		}, 5_000);
+	}
+
+	// Hard-reload survival (the explorer-tab pattern): a persisted done
+	// lives out only its REMAINING window; a persisted loading re-issues
+	// the reload so the operator still gets the check when it lands.
+	$effect(() => {
+		// untrack: seed ONCE from the mount-time prop — the floor recreates
+		// the initialReload object on every panels write, and re-seeding on
+		// each write would reschedule the done timer forever.
+		const seed = untrack(() => initialReload);
+		if (!seed) return;
+		untrack(() => {
+			if (seed.state === 'done') {
+				const remaining = Math.max(0, (seed.doneAt ?? 0) - Date.now());
+				if (remaining === 0) return; // expired — stay idle
+				reloadState = 'done';
+				emitReload('done', seed.doneAt);
+				clearTimeout(reloadDoneTimer);
+				reloadDoneTimer = setTimeout(() => {
+					reloadState = 'idle';
+					emitReload('idle');
+				}, remaining);
+			} else if (seed.state === 'loading') {
+				void runReload();
+			}
+		});
+	});
 
 	// The Shelf Chrome state (panel-owned, D1): active tab, collapsed
 	// per-repo groups, the search text (toolbar box owns keystrokes).
@@ -64,17 +115,24 @@
 		initialTab?: 'install' | 'uninstall';
 		initialCollapsed?: string[] | null;
 		initialSearch?: string;
+		/** Persisted reload feedback (hard-reload survival): a restored
+		 *  'done' lives out its remaining 5s window; a restored 'loading'
+		 *  re-issues the reload so the check still lands. */
+		initialReload?: { state: 'loading' | 'done'; doneAt?: number } | null;
 		ontabchange?: (tab: 'install' | 'uninstall') => void;
 		oncollapsedchange?: (collapsed: string[]) => void;
 		onsearchchange?: (q: string) => void;
+		onreloadchange?: (r: { state: 'loading' | 'done'; doneAt?: number } | null) => void;
 	}
 	let {
 		initialTab = 'install',
 		initialCollapsed = null,
 		initialSearch = '',
+		initialReload = null,
 		ontabchange,
 		oncollapsedchange,
-		onsearchchange
+		onsearchchange,
+		onreloadchange
 	}: Props = $props();
 
 	// svelte-ignore state_referenced_locally
@@ -171,7 +229,7 @@
 	const visibleSources = $derived(
 		snapshot
 			? snapshot.sources
-					.map((s) => ({ source: s, skills: visibleSkills(s) }))
+					.map((s, i) => ({ source: s, index: i + 1, skills: visibleSkills(s) }))
 					.filter((g) => g.skills.length > 0)
 			: []
 	);
@@ -227,8 +285,10 @@
 	}
 
 	async function runReload(): Promise<void> {
-		if (busy) return;
+		if (busy || reloadState === 'loading') return;
 		busy = true;
+		reloadState = 'loading';
+		emitReload('loading');
 		note = null;
 		try {
 			const res = await fetch('/api/skills/reload', { method: 'POST' });
@@ -236,8 +296,11 @@
 			if (!body.ok) throw new Error(body.error ?? 'reload failed');
 			snapshot = body.snapshot;
 			uninstallable = new Set(body.uninstallable as string[]);
+			enterDone();
 		} catch (e) {
 			note = String((e as Error).message);
+			reloadState = 'idle';
+			emitReload('idle');
 		} finally {
 			busy = false;
 		}
@@ -261,8 +324,19 @@
 		<SettingsSkillsTabgroup tab={tab} ontabchange={(v) => (tab = v)} />
 		<div class="shelf-header-actions">
 			{#if tab === 'install'}
-				<button type="button" class="shelf-reload" data-testid="shelf-reload" title={t(m.skillsShelfReload)} aria-label={t(m.skillsShelfReload)} onclick={runReload} disabled={busy}>
-					<RotateCw size={13} aria-hidden="true" />
+				<button
+					type="button"
+					class="shelf-reload"
+					class:reloading={reloadState === 'loading'}
+					class:reloaded={reloadState === 'done'}
+					data-testid="shelf-reload"
+					data-reload-state={reloadState}
+					title={reloadState === 'loading' ? t(m.skillsShelfReloading) : reloadState === 'done' ? t(m.skillsShelfReloaded) : t(m.skillsShelfReload)}
+					aria-label={reloadState === 'loading' ? t(m.skillsShelfReloading) : reloadState === 'done' ? t(m.skillsShelfReloaded) : t(m.skillsShelfReload)}
+					onclick={runReload}
+					disabled={busy}
+				>
+					{#if reloadState === 'loading'}<LoaderCircle size={13} aria-hidden="true" />{:else if reloadState === 'done'}<Check size={13} aria-hidden="true" />{:else}<RotateCw size={13} aria-hidden="true" />{/if}
 				</button>
 			{/if}
 			<!-- The lineage-fold pill grammar (SidebarOpenPanelTree): ONE
@@ -307,7 +381,11 @@
 			{#each visibleSources as g (g.source.id)}
 				<SettingsSkillsSelfSection
 					sourceId={g.source.id}
+					index={g.index}
 					author={g.source.author}
+					authorUrl={g.source.authorUrl ?? null}
+					version={g.source.version ?? null}
+					repoUrl={g.source.repo}
 					skills={g.skills}
 					hidden={groupHidden(g.source.id)}
 					selected={selected}
@@ -367,6 +445,23 @@
 	.shelf-reload:disabled {
 		opacity: 0.5;
 		cursor: not-allowed;
+	}
+	/* Reload feedback: spinner rotates while the reload round-trips; the
+	   check flashes green for the 5s done window. */
+	.shelf-reload.reloading {
+		color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 55%, #1e3a8a);
+	}
+	.shelf-reload.reloading :global(svg) {
+		animation: shelf-reload-spin 1s linear infinite;
+	}
+	.shelf-reload.reloaded {
+		color: #1a7f37;
+		border-color: #1a7f37;
+	}
+	@keyframes shelf-reload-spin {
+		to {
+			transform: rotate(360deg);
+		}
 	}
 	/* The fold pill — SidebarOpenPanelTree's seg-group contract: ONE
 	   joined pill, zero gap, outer 9999px curves, icon-only segments;
