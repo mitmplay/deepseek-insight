@@ -1,5 +1,5 @@
 /**
- * 3.3-T - /dsi-skill-shelf macro: parser grammar (bare, --reload, leftover
+ * 3.3-T - /dsi-skills macro: parser grammar (bare, --reload, leftover
  * args) and the executor contract (reload flag posts to /api/skills/reload
  * before addPanel; bare never does; off-floor composer usage-errors).
  */
@@ -25,25 +25,25 @@ afterEach(() => {
 
 const CTX = { panelId: 'p1', sessionId: 's1' } as never;
 
-describe('/dsi-skill-shelf parser', () => {
+describe('/dsi-skills parser', () => {
 	it('bare command parses with no reload flag', () => {
-		const cmd = parseCommand('/dsi-skill-shelf');
+		const cmd = parseCommand('/dsi-skills');
 		expect(cmd).toMatchObject({ type: 'skillshelf' });
 		expect(cmd?.reload).toBeUndefined();
 	});
 	it('--reload variant captures the flag', () => {
-		const cmd = parseCommand('/dsi-skill-shelf --reload');
+		const cmd = parseCommand('/dsi-skills --reload');
 		expect(cmd).toMatchObject({ type: 'skillshelf', reload: true, args: '' });
 	});
 	it('leftover args keep the raw shape (executor usage-errors them)', () => {
-		const cmd = parseCommand('/dsi-skill-shelf wat');
+		const cmd = parseCommand('/dsi-skills wat');
 		expect(cmd?.type).toBe('skillshelf');
 		expect(cmd?.args).toBe('wat');
 		expect(cmd?.reload).toBeUndefined();
 	});
 });
 
-describe('/dsi-skill-shelf executor', () => {
+describe('/dsi-skills executor', () => {
 	it('bare: adds the shelf panel, never calls reload', async () => {
 		const fetchMock = vi.fn(() => Promise.resolve(new Response(JSON.stringify({ ok: true }), { headers: { 'content-type': 'application/json' } })));
 		const out = await executeCommand({ type: 'skillshelf', args: '' }, CTX);
@@ -72,10 +72,10 @@ describe('/dsi-skill-shelf executor', () => {
 	});
 });
 
-describe('/dsi-skill-shelf discovery surfaces (The Shelf Voice W1)', () => {
+describe('/dsi-skills discovery surfaces (The Shelf Voice W1)', () => {
 	it('the ? help intent resolves the skillshelf topic', () => {
-		expect(commandHelpTopic('/dsi-skill-shelf ?')).toBe('skillshelf');
-		expect(commandHelpTopic('/dsi-skill-shelf')).toBeNull(); // bare command is not a help request
+		expect(commandHelpTopic('/dsi-skills ?')).toBe('skillshelf');
+		expect(commandHelpTopic('/dsi-skills')).toBeNull(); // bare command is not a help request
 	});
 
 	it('leftover args produce the honest usage note', async () => {
@@ -85,7 +85,7 @@ describe('/dsi-skill-shelf discovery surfaces (The Shelf Voice W1)', () => {
 			notes.push([ok, msg]);
 		});
 		expect(out.ok).toBe(false);
-		expect(notes[0][1]).toBe('usage: /dsi-skill-shelf [--reload]');
+		expect(notes[0][1]).toBe('usage: /dsi-skills [--reload]');
 		setAddPanelFromSidebarForTest(null);
 	});
 });

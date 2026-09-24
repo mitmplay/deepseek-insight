@@ -87,8 +87,8 @@ test('01 · open — "/" renders the three labeled sections; filter narrows; Esc
 	await expect(page.getByTestId('slash-commands-label')).toContainText('Commands');
 	await expect(page.getByTestId('slash-skills-label')).toContainText('Skills');
 	// Layer A (ADR §1.1): the DSI gesture section lists first — /new +
-	// /promptmanager + @mention (the manager row joined 2026-09-06, D7).
-	// Five client gestures: /new + /promptmanager (2026-09-06) + the two
+	// /dsi-prompts + @mention (the manager row joined 2026-09-06, D7).
+	// Five client gestures: /new + /dsi-prompts (2026-09-06) + the two
 	// settings editors + @mention (Settings Panel ADR D3, 2026-09-07).
 	await expect(page.getByTestId('slash-gesture-row')).toHaveCount(5);
 	// The stub vocabulary: 2 commands (one with a hint) + 2 skills (one twin).

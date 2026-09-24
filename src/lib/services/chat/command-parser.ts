@@ -13,9 +13,9 @@
  *                          (2026-08-26) — the host validates it
  *                          (agent-preset/not-found on a miss), the parser
  *                          never rewrites the id's case
- *   /promptmanager        — aim the prompts manager panel (DSI-local,
- *   /dsisettings            2026-09-17, ADR The Focus Command D1): FOCUS
- *   /dshsettings            the already-open target panel, else open a
+ *   /dsi-prompts        — aim the prompts manager panel (DSI-local,
+ *   /dsi-settings            2026-09-17, ADR The Focus Command D1): FOCUS
+ *   /dsh-settings            the already-open target panel, else open a
  *                           NEW one right of the composer's panel and
  *                           select it — the bare successor-swap and the
  *                           --add flag are retired (D2); any args are a
@@ -65,6 +65,7 @@ export interface ParsedCommand {
 		| 'workspace'
 		| 'mention'
 		| 'promptmanager'
+		| 'terminal'
 		| 'dsisettings'
 		| 'dshsettings'
 		| 'skillshelf'
@@ -80,8 +81,8 @@ export interface ParsedCommand {
 	/** /new and /loadinjected only — the `--add` flag. /new (2026-09-06):
 	 *  the new session opens in a NEW panel placed to the RIGHT of the
 	 *  current panel, and the selection/focus STAYS in the current panel
-	 *  (the successor-swap default never runs). Retired for /promptmanager
-	 *  · /dsisettings · /dshsettings (2026-09-17, The Focus Command ADR
+	 *  (the successor-swap default never runs). Retired for /dsi-prompts
+	 *  · /dsi-settings · /dsh-settings (2026-09-17, The Focus Command ADR
 	 *  D1/D2) — those commands aim a panel; the flag now usage-errors. */
 	addPanel?: boolean;
 	/** /loadinjected only (2026-09-07, The Loadinjected ADR D4) — the
@@ -108,7 +109,7 @@ export interface ParsedCommand {
 	 *  flag token and not an '@' token; case preserved verbatim. Absent
 	 *  for the four pre-existing shapes and any malformed remainder. */
 	ws?: string;
-	/** /dsi-skill-shelf only (The Skill Shelf ADR, 2026-09-20, D3) — the
+	/** /dsi-skills only (The Skill Shelf ADR, 2026-09-20, D3) — the
 	 *  exact '--reload' flag: force a snapshot rebuild before the shelf
 	 *  panel opens. Absent for the bare command. */
 	reload?: boolean;
@@ -223,17 +224,26 @@ export function parseCommand(text: string): ParsedCommand | null {
 			}
 			return { type: 'workspace', args };
 		}
-		case '/promptmanager':
-		case '/dsisettings':
-		case '/dshsettings': {
+		case '/dsi-prompts':
+		case '/dsi-terminal':
+		case '/dsi-settings':
+		case '/dsh-settings': {
 			// The Focus Command ADR (2026-09-17, D1/D2): ONE shape — the
 			// bare token. The old --add flag is retired grammar: any args
 			// (including a literal --add) keep the raw shape so the
 			// executor usage-errors them, the '/new leftover' rule. The
-			// token maps to the type verbatim.
-			return { type: token.slice(1) as 'promptmanager' | 'dsisettings' | 'dshsettings', args };
+			// display token renamed 2026-09-24 (dsi-/dsh- prefixes) — the
+			// internal ParsedCommand type is the STABLE name, so each
+			// token maps explicitly instead of via token.slice(1).
+			const types = {
+				'/dsi-prompts': 'promptmanager',
+				'/dsi-terminal': 'terminal',
+				'/dsi-settings': 'dsisettings',
+				'/dsh-settings': 'dshsettings'
+			} as const;
+			return { type: types[token as keyof typeof types], args } as ParsedCommand;
 		}
-		case '/dsi-skill-shelf': {
+		case '/dsi-skills': {
 			// The Skill Shelf ADR (2026-09-20, D1/D3): bare opens the shelf
 			// panel; the ONE flag '--reload' forces a snapshot rebuild before
 			// the panel opens. Any other args keep the raw shape so the

@@ -1,6 +1,6 @@
 /**
- * E2E — The Settings Tree ADR (2026-09-18, D2/D3): /dsisettings and
- * /dshsettings open SESSION-LESS workspace explorers over the settings
+ * E2E — The Settings Tree ADR (2026-09-18, D2/D3): /dsi-settings and
+ * /dsh-settings open SESSION-LESS workspace explorers over the settings
  * HOME folders, titled; the old single-file settings editor is retired.
  * Covers: the command mints a titled explorer, a repeat command FOCUSES
  * (root dedupe), and settings.yaml opens as an editable tab. Runs with
@@ -9,10 +9,10 @@
  */
 import { expect, test } from '@playwright/test';
 
-test('01 · /dsisettings opens a titled explorer over ~/.dsi', async ({ page }) => {
+test('01 · /dsi-settings opens a titled explorer over ~/.dsi', async ({ page }) => {
 	await page.goto('/');
 	const input = page.getByTestId('composer-input');
-	await input.fill('/dsisettings');
+	await input.fill('/dsi-settings');
 	await input.press('Enter');
 	const explorer = page.getByTestId('workspace-explorer');
 	await expect(explorer).toHaveCount(1);
@@ -22,23 +22,23 @@ test('01 · /dsisettings opens a titled explorer over ~/.dsi', async ({ page }) 
 	await expect(explorer.getByText('settings.yaml')).toBeVisible();
 });
 
-test('02 · a second /dsisettings FOCUSES the open home panel (root dedupe) — one tree', async ({ page }) => {
+test('02 · a second /dsi-settings FOCUSES the open home panel (root dedupe) — one tree', async ({ page }) => {
 	await page.goto('/');
 	const input = page.getByTestId('composer-input');
-	await input.fill('/dsisettings');
+	await input.fill('/dsi-settings');
 	await input.press('Enter');
 	await expect(page.getByTestId('workspace-explorer')).toHaveCount(1);
-	await input.fill('/dsisettings');
+	await input.fill('/dsi-settings');
 	await input.press('Enter');
 	await expect(page.getByTestId('workspace-explorer')).toHaveCount(1);
 });
 
-test('03 · /dshsettings opens the DSH home — a DIFFERENT root, a SECOND explorer', async ({ page }) => {
+test('03 · /dsh-settings opens the DSH home — a DIFFERENT root, a SECOND explorer', async ({ page }) => {
 	await page.goto('/');
 	const input = page.getByTestId('composer-input');
-	await input.fill('/dsisettings');
+	await input.fill('/dsi-settings');
 	await input.press('Enter');
-	await input.fill('/dshsettings');
+	await input.fill('/dsh-settings');
 	await input.press('Enter');
 	await expect(page.getByTestId('workspace-explorer')).toHaveCount(2);
 	await expect(page.locator('[data-testid="panel-column"]')).toContainText('DSH - Settings');
@@ -47,7 +47,7 @@ test('03 · /dshsettings opens the DSH home — a DIFFERENT root, a SECOND explo
 test('04 · settings.yaml opens as a tab inside the explorer and edits', async ({ page }) => {
 	await page.goto('/');
 	const input = page.getByTestId('composer-input');
-	await input.fill('/dsisettings');
+	await input.fill('/dsi-settings');
 	await input.press('Enter');
 	const explorer = page.getByTestId('workspace-explorer');
 	await explorer.getByText('settings.yaml').click();

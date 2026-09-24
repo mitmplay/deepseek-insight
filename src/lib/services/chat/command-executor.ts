@@ -119,6 +119,7 @@ export async function executeCommand(
 			| 'workspace'
 			| 'mention'
 			| 'promptmanager'
+			| 'terminal'
 			| 'dsisettings'
 			| 'dshsettings'
 			| 'skillshelf'
@@ -137,7 +138,7 @@ export async function executeCommand(
 		a2aId?: string;
 		/** /loadinjected only (2026-09-07, ADR D4) — the parser's filename token. */
 		filename?: string;
-		/** /dsi-skill-shelf only (The Skill Shelf ADR, 2026-09-20, D3) — the
+		/** /dsi-skills only (The Skill Shelf ADR, 2026-09-20, D3) — the
 		 *  '--reload' flag: rebuild the snapshot before the shelf opens. */
 		reload?: boolean;
 	},
@@ -156,13 +157,17 @@ export async function executeCommand(
 	if (command.type === 'promptmanager') {
 		return runPromptManager(command.args, ctx, onNote);
 	}
+	if (command.type === 'terminal') {
+		return runTerminal(command.args, ctx, onNote);
+	}
 	if (command.type === 'skillshelf') {
 		return runSkillShelf(command.args, command.reload === true, ctx, onNote);
 	}
 	if (command.type === 'dsisettings' || command.type === 'dshsettings') {
 		return runSettingsEditor(
 			command.type === 'dsisettings' ? 'dsi' : 'dsh',
-			'/' + command.type,
+			// display token renamed 2026-09-24 — the type stays the stable name
+			command.type === 'dsisettings' ? '/dsi-settings' : '/dsh-settings',
 			command.args,
 			ctx,
 			onNote
@@ -294,27 +299,71 @@ export async function executeCommand(
 }
 
 /**
- * /promptmanager (re-pointed 2026-09-17, ADR The Focus Command D1/D2): AIM
+ * /dsi-prompts (re-pointed 2026-09-17, ADR The Focus Command D1/D2): AIM
  * the prompts manager panel from the composer — the floor's add path
  * FOCUSES the already-open manager (one live manager, D3) or opens a NEW
  * one right of this session's panel, selected. The bare successor-swap and
  * the --add flag are retired; the floor never replaces a panel for this
  * command. No wire call — the manager content talks to /api/prompts itself.
  */
+/**
+ * /dsi-terminal (Web Terminal spec Wave 5, 2026-09-24): aim the operator
+ * terminal panel — the manager-request grammar. The enabled gate lives
+ * HERE (the composer gives honest feedback even before a panel exists):
+ * a disabled flag notes the fact and opens nothing.
+ */
+async function runTerminal(
+	args: string,
+	ctx: ExecutorContext,
+	onNote?: NoteSink
+): Promise<ExecutorResult> {
+	if (args !== '') {
+		const usage = 'usage: /dsi-terminal';
+		onNote?.(false, usage);
+		return { ok: false, note: usage };
+	}
+	if (ctx.panelId == null) {
+		const note = '/dsi-terminal needs a panel floor (open this session on the floor first)';
+		onNote?.(false, note);
+		return { ok: false, note };
+	}
+	try {
+		const probe = await fetch('/api/terminal');
+		const body = (await probe.json()) as { enabled?: boolean };
+		if (!body.enabled) {
+			const note = '/dsi-terminal is disabled — set terminal.enabled in settings';
+			onNote?.(false, note);
+			return { ok: false, note };
+		}
+	} catch {
+		// the probe failing must not block the open — the panel re-probes itself
+	}
+	const added = addPanelFromSidebar({
+		kind: 'terminal',
+		afterSessionId: ctx.sessionId
+	});
+	if (!added) {
+		const note = '/dsi-terminal: the floor is not mounted';
+		onNote?.(false, note);
+		return { ok: false, note };
+	}
+	return { ok: true };
+}
+
 async function runPromptManager(
 	args: string,
 	ctx: ExecutorContext,
 	onNote?: NoteSink
 ): Promise<ExecutorResult> {
 	if (args !== '') {
-		const usage = 'usage: /promptmanager';
+		const usage = 'usage: /dsi-prompts';
 		onNote?.(false, usage);
 		return { ok: false, note: usage };
 	}
 	if (ctx.panelId == null) {
 		// Off-floor composer (the loupe, a macro without a floor): the
 		// same honest no as /new — verbatim shape, own command name.
-		const note = '/promptmanager needs a panel floor (open this session on the floor first)';
+		const note = '/dsi-prompts needs a panel floor (open this session on the floor first)';
 		onNote?.(false, note);
 		return { ok: false, note };
 	}
@@ -323,7 +372,7 @@ async function runPromptManager(
 		afterSessionId: ctx.sessionId
 	});
 	if (!added) {
-		const note = '/promptmanager: the floor is not mounted';
+		const note = '/dsi-prompts: the floor is not mounted';
 		onNote?.(false, note);
 		return { ok: false, note };
 	}
@@ -332,7 +381,7 @@ async function runPromptManager(
 }
 
 /**
- * /dsi-skill-shelf (The Skill Shelf ADR, 2026-09-20, D1/D3): aim the
+ * /dsi-skills (The Skill Shelf ADR, 2026-09-20, D1/D3): aim the
  * SettingsSkillsPanel — the floor dedupes and FOCUSES the open shelf
  * (the manager-request grammar). Snapshot-first is the ROUTE's contract
  * (GET /api/skills/snapshot builds when absent, D3); the '--reload' flag
@@ -349,12 +398,12 @@ async function runSkillShelf(
 	// parser keeps unknown args raw so this note can be honest about the
 	// grammar instead of silently ignoring them.
 	if (args !== '') {
-		const usage = 'usage: /dsi-skill-shelf [--reload]';
+		const usage = 'usage: /dsi-skills [--reload]';
 		onNote?.(false, usage);
 		return { ok: false, note: usage };
 	}
 	if (ctx.panelId == null) {
-		const note = '/dsi-skill-shelf needs a panel floor (open this session on the floor first)';
+		const note = '/dsi-skills needs a panel floor (open this session on the floor first)';
 		onNote?.(false, note);
 		return { ok: false, note };
 	}
@@ -362,12 +411,12 @@ async function runSkillShelf(
 		try {
 			const res = await fetch('/api/skills/reload', { method: 'POST' });
 			if (!res.ok) {
-				const note = '/dsi-skill-shelf: snapshot rebuild failed (' + res.status + ')';
+				const note = '/dsi-skills: snapshot rebuild failed (' + res.status + ')';
 				onNote?.(false, note);
 				return { ok: false, note };
 			}
 		} catch {
-			const note = '/dsi-skill-shelf: snapshot rebuild failed (network)';
+			const note = '/dsi-skills: snapshot rebuild failed (network)';
 			onNote?.(false, note);
 			return { ok: false, note };
 		}
@@ -377,7 +426,7 @@ async function runSkillShelf(
 		afterSessionId: ctx.sessionId
 	});
 	if (!added) {
-		const note = '/dsi-skill-shelf: the floor is not mounted';
+		const note = '/dsi-skills: the floor is not mounted';
 		onNote?.(false, note);
 		return { ok: false, note };
 	}
@@ -385,7 +434,7 @@ async function runSkillShelf(
 }
 
 /**
- * /dsisettings and /dshsettings (re-pointed by The Settings Tree ADR,
+ * /dsi-settings and /dsh-settings (re-pointed by The Settings Tree ADR,
  * 2026-09-18, D2; aimed 2026-09-17, The Focus Command ADR D1): open a
  * SESSION-LESS workspace-explorer over the settings HOME folder (~/.dsi |
  * ~/.dsh), titled — one runner for both commands; the command name carries

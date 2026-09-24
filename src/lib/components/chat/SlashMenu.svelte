@@ -24,7 +24,7 @@
 		if (terms.length === 0) return true;
 		// The Shelf Voice W1 fix (RCA 2026-09-20): the DISPLAY token is what
 		// the operator types — a gesture whose name differs from its display
-		// ('skillshelf' vs '/dsi-skill-shelf') must still be findable by the
+		// ('skillshelf' vs '/dsi-skills') must still be findable by the
 		// visible prefix, so the display rides the haystack.
 		const hay = `${row.name} ${row.display ?? ''} ${row.description}`.toLowerCase();
 		return terms.every((t) => hay.includes(t));

@@ -136,7 +136,7 @@ describe('settings-editor branch (Settings Panel ADR D3)', () => {
 	});
 
 	it('TYPE-LEVEL — the branch carries home and never sessionId; the retired settings-editor request kind is gone', () => {
-		// Settings Tree ADR D2: /dsisettings & /dshsettings mint a settings-home
+		// Settings Tree ADR D2: /dsi-settings & /dsh-settings mint a settings-home
 		// request — the retired single-file settings-editor kind is no longer
 		// in the request union.
 		expectTypeOf<PanelAddRequest['kind']>().not.toHaveProperty('settings-editor');

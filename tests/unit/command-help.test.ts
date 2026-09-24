@@ -99,14 +99,17 @@ describe('COMMAND_HELP copy table', () => {
 	});
 
 	it('the settings topics cover copy, examples, and `?` routing (W3 3.3-T)', () => {
+		// display tokens renamed 2026-09-24 (dsi-/dsh- prefixes) — the topic
+		// (internal name) is stable, so the trigger token is mapped per topic
+		const tokens = { dsisettings: '/dsi-settings', dshsettings: '/dsh-settings' } as const;
 		for (const topic of ['dsisettings', 'dshsettings'] as const) {
 			const entry = COMMAND_HELP[topic];
 			expect(entry.usage.length).toBeGreaterThan(0);
 			expect(entry.summary.length).toBeGreaterThan(0);
 			expect(entry.params).toEqual([]); // the --add flag retired (Focus Command D2)
 			expect(entry.examples.length).toBeGreaterThan(0);
-			expect(entry.usage.startsWith('/' + topic)).toBe(true);
-			expect(commandHelpTopic('/' + topic + ' ?')).toBe(topic);
+			expect(entry.usage.startsWith(tokens[topic])).toBe(true);
+			expect(commandHelpTopic(tokens[topic] + ' ?')).toBe(topic);
 		}
 		expect(MENU_GESTURES.some((g) => g.name === 'dsisettings')).toBe(true);
 		expect(MENU_GESTURES.some((g) => g.name === 'dshsettings')).toBe(true);
@@ -225,23 +228,23 @@ describe('gestureHelpCardView — the COMMAND_HELP copy, verbatim', () => {
 });
 
 
-// ── /promptmanager help (re-aimed 2026-09-17, The Focus Command ADR D2) ──
-describe('COMMAND_HELP — /promptmanager (Focus Command)', () => {
+// ── /dsi-prompts help (re-aimed 2026-09-17, The Focus Command ADR D2) ──
+describe('COMMAND_HELP — /dsi-prompts (Focus Command)', () => {
 	it('usage string pinned (flag retired)', () => {
-		expect(COMMAND_HELP.promptmanager.usage).toBe('/promptmanager');
+		expect(COMMAND_HELP.promptmanager.usage).toBe('/dsi-prompts');
 	});
 
 	it('one shape: no params, a single aim example', () => {
 		expect(COMMAND_HELP.promptmanager.params).toEqual([]);
 		expect(COMMAND_HELP.promptmanager.examples.map((e) => e.line)).toEqual([
-			'/promptmanager'
+			'/dsi-prompts'
 		]);
 		expect(COMMAND_HELP.promptmanager.summary).toContain('focus');
 		expect(COMMAND_HELP.promptmanager.summary).toContain('Nothing you have open is ever replaced');
 	});
 
-	it('/promptmanager ? routes to the topic through the parser', () => {
-		expect(commandHelpTopic('/promptmanager ?')).toBe('promptmanager');
+	it('/dsi-prompts ? routes to the topic through the parser', () => {
+		expect(commandHelpTopic('/dsi-prompts ?')).toBe('promptmanager');
 	});
 });
 
@@ -251,7 +254,7 @@ describe('COMMAND_HELP.skillshelf — locale-resolving getters (W1.5)', () => {
 		// t(...) per read — assert they produce real copy, not a frozen string.
 		expect(typeof COMMAND_HELP.skillshelf.summary).toBe('string');
 		expect(COMMAND_HELP.skillshelf.summary.length).toBeGreaterThan(0);
-		expect(COMMAND_HELP.skillshelf.usage).toBe('/dsi-skill-shelf [--reload]');
+		expect(COMMAND_HELP.skillshelf.usage).toBe('/dsi-skills [--reload]');
 	});
 
 	it('param and example getters resolve real copy on each read', () => {
@@ -263,9 +266,9 @@ describe('COMMAND_HELP.skillshelf — locale-resolving getters (W1.5)', () => {
 
 		const examples = COMMAND_HELP.skillshelf.examples;
 		expect(examples.map((e) => e.line)).toEqual([
-			'/dsi-skill-shelf',
-			'/dsi-skill-shelf --reload',
-			'/dsi-skill-shelf ?'
+			'/dsi-skills',
+			'/dsi-skills --reload',
+			'/dsi-skills ?'
 		]);
 		for (const ex of examples) {
 			expect(ex.description.length).toBeGreaterThan(0);
@@ -277,11 +280,11 @@ describe('COMMAND_HELP.skillshelf — locale-resolving getters (W1.5)', () => {
 		const row = MENU_GESTURES.find((g) => g.name === 'skillshelf');
 		expect(row).toBeDefined();
 		expect(row?.description).toBe(COMMAND_HELP.skillshelf.summary);
-		expect(row?.seed).toBe('/dsi-skill-shelf ');
+		expect(row?.seed).toBe('/dsi-skills ');
 	});
 
-	it('/dsi-skill-shelf ? routes to the skillshelf topic', () => {
-		expect(commandHelpTopic('/dsi-skill-shelf ?')).toBe('skillshelf');
+	it('/dsi-skills ? routes to the skillshelf topic', () => {
+		expect(commandHelpTopic('/dsi-skills ?')).toBe('skillshelf');
 	});
 });
 

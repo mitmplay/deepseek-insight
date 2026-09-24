@@ -394,6 +394,7 @@ describe('ControlBar tray (task 5.1-T)', () => {
 		const seen: string[] = [];
 		registerAddPanel((request) => {
 			if (
+				request.kind !== 'terminal' &&
 				request.kind !== 'prompt-manager' &&
 				request.kind !== 'settings-home' &&
 				request.kind !== 'injected-doc' &&
@@ -444,6 +445,7 @@ describe('ControlBar tray (task 5.1-T)', () => {
 		const added: string[] = [];
 		registerReplaceSelected((request) => {
 			if (
+				request.kind !== 'terminal' &&
 				request.kind !== 'prompt-manager' &&
 				request.kind !== 'settings-home' &&
 				request.kind !== 'injected-doc' &&
@@ -453,6 +455,7 @@ describe('ControlBar tray (task 5.1-T)', () => {
 		});
 		registerAddPanel((request) => {
 			if (
+				request.kind !== 'terminal' &&
 				request.kind !== 'prompt-manager' &&
 				request.kind !== 'settings-home' &&
 				request.kind !== 'injected-doc' &&

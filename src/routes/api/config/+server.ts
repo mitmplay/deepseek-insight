@@ -56,7 +56,7 @@ export const GET: RequestHandler = async () => {
 			dbPath: collapseHome(resolvePromptsDbPath())
 		},
 		// The Settings Tree (ADR 2026-09-18 D2): the verbatim settings home
-		// roots, so /dsisettings · /dshsettings mint explorers with the
+		// roots, so /dsi-settings · /dsh-settings mint explorers with the
 		// server's own homedir truth. Read-only facts, never tuned.
 		settingsHomes: readSettingsHomes()
 	});

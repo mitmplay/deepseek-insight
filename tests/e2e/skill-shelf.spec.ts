@@ -1,5 +1,5 @@
 /**
- * E2E: The Skill Shelf (ADR 2026-09-20) — /dsi-skill-shelf opens the
+ * E2E: The Skill Shelf (ADR 2026-09-20) — /dsi-skills opens the
  * SettingsSkillsPanel; the snapshot renders numbered rows with per-species
  * badges; the uninstall affordance exists ONLY on signed rows (D5);
  * the reload button drives /api/skills/reload; install posts the selection.
@@ -68,7 +68,7 @@ test('the skill shelf: macro opens the panel, badges render, uninstall is signed
 	await expect(composer).toBeVisible();
 
 	// The macro: typed into the composer, Enter executes it.
-	await composer.fill('/dsi-skill-shelf');
+	await composer.fill('/dsi-skills');
 	await composer.press('Enter');
 
 	// The panel mounts and renders the snapshot. The shelf ships ALL
@@ -121,7 +121,7 @@ test('the shelf speaks the operator language: voice overlay + rescan note', asyn
 	await page.context().addCookies([{ name: 'dsi.locale', value: 'id', url: 'http://127.0.0.1:5176' }]);
 	await page.goto('/?sessionKey=' + STUB_SESSION_ID);
 	const composer = page.locator('textarea').first();
-	await composer.fill('/dsi-skill-shelf');
+	await composer.fill('/dsi-skills');
 	await composer.press('Enter');
 
 	const shelf = page.getByTestId('skill-shelf');

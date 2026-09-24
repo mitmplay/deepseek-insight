@@ -309,7 +309,7 @@
 	"thinkLabel": "思考",
 	"thinkingLabel": "思考中",
 	"ctxChipContext": "上下文",
-		"ctxSnapshotSupersedes": "取代先前的快照",
+	"ctxSnapshotSupersedes": "取代先前的快照",
 	"ctxChipInstructions": "工作区指引",
 	"ctxChipSkills": "技能列表",
 	"ctxChipSkill": "技能",
@@ -359,7 +359,7 @@
 	"skillsShelfOpenAuthor": "在新标签页打开作者主页",
 	"skillsShelfInstall": "安装",
 	"skillsShelfUninstall": "卸载",
-		"skillsShelfBadgeInstalled": "已安装",
+	"skillsShelfBadgeInstalled": "已安装",
 	"skillsShelfNoOverview": "SKILL.md 中暂无概述",
 	"skillsShelfBadgeForeign": "外部",
 	"skillsShelfUnsignedRefusal": "已拒绝：该技能没有货架签名 (D5)。",
@@ -377,5 +377,14 @@
 	"skillsVoiceDsiSpcheck": "校验功能规格的一致性：跨 Karpathy 上下文、PRD 与 Tasks 追踪事实，在执行前发现缺失分支。",
 	"skillsVoiceDsiSpec": "用 Karpathy 方法分析功能请求，并生成带执行清单的 PRD + Tasks 规格。",
 	"skillsVoiceDsiSync": "将 DeepSeek Insight 镜像到其 GitHub 目标：重新同步、提交、推送，无变更时干净跳过。",
-	"skillsVoiceDsiTask": "从 Karpathy 上下文与任务文档执行实现任务：可见清单、门禁与波次纪律。"
+	"skillsVoiceDsiTask": "从 Karpathy 上下文与任务文档执行实现任务：可见清单、门禁与波次纪律。",
+	"terminalPanelTitle": "终端",
+	"terminalDisabled": "终端已禁用 — 请在设置中启用（terminal.enabled）。",
+	"terminalOpening": "正在打开终端…",
+	"terminalClose": "关闭",
+	"terminalClosed": "终端已关闭",
+	"terminalSettleStdinRead": "等待输入",
+	"terminalSettleInferredIdle": "输出空闲",
+	"terminalSettleTimeout": "已超时",
+	"terminalSettleSessionExit": "shell 已退出"
 }

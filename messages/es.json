@@ -309,7 +309,7 @@
 	"thinkLabel": "pensar",
 	"thinkingLabel": "pensando",
 	"ctxChipContext": "contexto",
-		"ctxSnapshotSupersedes": "Sustituye a las instantáneas anteriores",
+	"ctxSnapshotSupersedes": "Sustituye a las instantáneas anteriores",
 	"ctxChipInstructions": "instrucciones",
 	"ctxChipSkills": "skills",
 	"ctxChipSkill": "skill",
@@ -359,7 +359,7 @@
 	"skillsShelfOpenAuthor": "Abrir el perfil del autor en una pestaña nueva",
 	"skillsShelfInstall": "Instalar",
 	"skillsShelfUninstall": "Desinstalar",
-		"skillsShelfBadgeInstalled": "instalado",
+	"skillsShelfBadgeInstalled": "instalado",
 	"skillsShelfNoOverview": "Sin descripción en SKILL.md",
 	"skillsShelfBadgeForeign": "externo",
 	"skillsShelfUnsignedRefusal": "Rechazado: esa skill no tiene firma de estantería (D5).",
@@ -377,5 +377,14 @@
 	"skillsVoiceDsiSpcheck": "Verifica la coherencia de la especificación: rastrea hechos entre el contexto Karpathy, el PRD y las Tasks para hallar ramas faltantes.",
 	"skillsVoiceDsiSpec": "Analiza una petición de función con el método Karpathy y genera PRD + Tasks con listas de ejecución.",
 	"skillsVoiceDsiSync": "Espeja DeepSeek Insight a su destino GitHub: resincroniza, hace commit, push y omite limpiamente si no hay cambios.",
-	"skillsVoiceDsiTask": "Ejecuta tareas de implementación desde un contexto Karpathy + documento de tareas: listas visibles, compuertas y disciplina por olas."
+	"skillsVoiceDsiTask": "Ejecuta tareas de implementación desde un contexto Karpathy + documento de tareas: listas visibles, compuertas y disciplina por olas.",
+	"terminalPanelTitle": "Terminal",
+	"terminalDisabled": "Terminal deshabilitado — actívalo en ajustes (terminal.enabled).",
+	"terminalOpening": "Abriendo terminal…",
+	"terminalClose": "Cerrar",
+	"terminalClosed": "Terminal cerrada",
+	"terminalSettleStdinRead": "esperando entrada",
+	"terminalSettleInferredIdle": "salida inactiva",
+	"terminalSettleTimeout": "tiempo agotado",
+	"terminalSettleSessionExit": "shell terminada"
 }

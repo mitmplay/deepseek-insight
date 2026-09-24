@@ -2,7 +2,7 @@
  * Reload button feedback (2026-09-22 bug fix): while the reload
  * round-trips the button shows the loading state, on success a done
  * state for 5s, then it returns to idle — the same feedback the
- * "/dsi-skill-shelf --reload" macro gives through its note.
+ * "/dsi-skills --reload" macro gives through its note.
  */
 import { flushSync, mount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';

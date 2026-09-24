@@ -547,6 +547,7 @@ export interface DsiModelDirectory {
  */
 export type DsiPanelEntry =
 	| DsiConversationPanel
+	| DsiTerminalPanel
 	| DsiPromptManagerPanel
 	| DsiSettingsPanel
 	| DsiInjectedDocPanel
@@ -587,6 +588,17 @@ export interface DsiConversationPanel {
 	sessionId: string;
 	/** Preset chip in the panel header; null when the row carries none. */
 	agentPreset: string | null;
+	/** Panel width in px, always within panel-prefs clamp bounds. */
+	width: number;
+}
+
+/** The terminal branch (Web Terminal spec, 2026-09-24; ADR 2026-09-23) —
+ *  hosts TerminalPanel; no session, no preset chip, no cold/spine facts.
+ *  The content self-gates on terminal.enabled (its own /api/terminal probe). */
+export interface DsiTerminalPanel {
+	/** Stable panel identity — selection and close target this. */
+	id: string;
+	kind: 'terminal';
 	/** Panel width in px, always within panel-prefs clamp bounds. */
 	width: number;
 }
@@ -651,8 +663,8 @@ export interface DsiWorkspaceExplorerPanel {
 	 *  unchanged; NOT the dedupe key (the `root` is, D1). */
 	/** The session that OPENED the tree — provenance only (Shared Tree
 	 *  ADR D4; The Settings Tree ADR 2026-09-18 D3): null for a SESSION-LESS
-	 *  explorer (the settings-home panels minted by /dsisettings and
-	 *  /dshsettings). Never the dedupe key (the `root` is, D1). */
+	 *  explorer (the settings-home panels minted by /dsi-settings and
+	 *  /dsh-settings). Never the dedupe key (the `root` is, D1). */
 	sessionId: string | null;
 	/** Verbatim workspace root path — the dedupe key and the panel's
 	 *  IDENTITY (Shared Tree ADR D1); also the copy control's clipboard

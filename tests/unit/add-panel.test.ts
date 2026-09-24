@@ -91,6 +91,7 @@ describe('AddPanel — whitespace-only input never reaches the floor', () => {
 		const added: string[] = [];
 		registerAddPanel((request) => {
 			if (
+				request.kind !== 'terminal' &&
 				request.kind !== 'prompt-manager' &&
 				request.kind !== 'settings-home' &&
 				request.kind !== 'injected-doc' &&
@@ -110,6 +111,7 @@ describe('AddPanel — whitespace-only input never reaches the floor', () => {
 		const replaced: string[] = [];
 		registerReplaceSelected((request) => {
 			if (
+				request.kind !== 'terminal' &&
 				request.kind !== 'prompt-manager' &&
 				request.kind !== 'settings-home' &&
 				request.kind !== 'injected-doc' &&

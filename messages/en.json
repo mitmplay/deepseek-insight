@@ -309,7 +309,7 @@
 	"thinkLabel": "think",
 	"thinkingLabel": "thinking",
 	"ctxChipContext": "context",
-		"ctxSnapshotSupersedes": "Supersedes earlier snapshots",
+	"ctxSnapshotSupersedes": "Supersedes earlier snapshots",
 	"ctxChipInstructions": "instructions",
 	"ctxChipSkills": "skills",
 	"ctxChipSkill": "skill",
@@ -359,7 +359,7 @@
 	"skillsShelfOpenAuthor": "Open the author profile in a new tab",
 	"skillsShelfInstall": "Install",
 	"skillsShelfUninstall": "Uninstall",
-		"skillsShelfBadgeInstalled": "installed",
+	"skillsShelfBadgeInstalled": "installed",
 	"skillsShelfNoOverview": "No overview in SKILL.md",
 	"skillsShelfBadgeForeign": "foreign",
 	"skillsShelfUnsignedRefusal": "Refused: that skill has no shelf signature (D5).",
@@ -377,5 +377,14 @@
 	"skillsVoiceDsiSpcheck": "Verify feature-spec coherence: trace facts across Karpathy context, PRD, and Tasks to catch missing branches before execution.",
 	"skillsVoiceDsiSpec": "Analyze a feature request via the Karpathy method and generate a PRD + Tasks spec with execution checklists.",
 	"skillsVoiceDsiSync": "Mirror DeepSeek Insight into its GitHub-ready target: resync, commit, push, and skip cleanly when nothing changed.",
-	"skillsVoiceDsiTask": "Execute implementation tasks from a Karpathy context + tasks document: visible checklists, gates, and wave discipline."
+	"skillsVoiceDsiTask": "Execute implementation tasks from a Karpathy context + tasks document: visible checklists, gates, and wave discipline.",
+	"terminalPanelTitle": "Terminal",
+	"terminalDisabled": "Terminal is disabled — enable it in settings (terminal.enabled).",
+	"terminalOpening": "Opening terminal…",
+	"terminalClose": "Close",
+	"terminalClosed": "Terminal closed",
+	"terminalSettleStdinRead": "waiting for input",
+	"terminalSettleInferredIdle": "output idle",
+	"terminalSettleTimeout": "timed out",
+	"terminalSettleSessionExit": "shell exited"
 }

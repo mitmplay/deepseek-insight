@@ -6,11 +6,16 @@
 
 > A `Prompt Input` with **Slash-command(/)**, **Macros(!)** and **Auto-complete(?)**. Prompt-manager you can search it and to manage macros & autocomplete; user-prompts worth keeping is one-click-away tobe reuse.
 
-> Included skills for:
-> - Spec and Tasks execution, 
-> - Integration helper for [OpenViking](https://openviking.ai/)  
+Slash commands are available to execute various operations:
+- `/dsi-terminal` — Open a terminal session
+- `/dsi-prompts` — Open prompt manager
+- `/dsi-skills` — Open skill manager
+  
+Included skills for:
+- Coding agents: `/dsi-adr`, `/dsi-spec`, `/dsi-task`
+- Integration helper for [OpenViking](https://openviking.ai/): `/dsi-ov-setup` 
 
-> **Your language.** The interface speaks English, Chinese, Indonesian & Spanish.
+**Your language.** The interface speaks English, Chinese, Indonesian & Spanish.
 
 <details>
   <summary>Deepseek-insight-panels</summary>

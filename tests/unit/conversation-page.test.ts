@@ -1462,7 +1462,7 @@ describe('+page.svelte — lineage pin under floor operations (task 3.2-T)', () 
 		}
 	});
 	// ── W4 4.3-T — embedded manager slot (2026-09-06, ADR D8) ────────────
-	it('bare /promptmanager adds (aims) a manager slot beside the conversation; Escape removes it; no cold fetch fires', async () => {
+	it('bare /dsi-prompts adds (aims) a manager slot beside the conversation; Escape removes it; no cold fetch fires', async () => {
 		stubLineageSpine();
 		const target = await mountFloor();
 		try {
@@ -1496,7 +1496,7 @@ describe('+page.svelte — lineage pin under floor operations (task 3.2-T)', () 
 	});
 	// The Focus Command ADR (2026-09-17, D1): the bare command must ADD — a
 	// repeat FOCUSES the open manager (dedupe), never a swap.
-		it('bare /promptmanager opens a manager panel BESIDE the conversation (end-to-end)', async () => {
+		it('bare /dsi-prompts opens a manager panel BESIDE the conversation (end-to-end)', async () => {
 		stubLineageSpine();
 		// The embedded manager fetches /api/prompts on mount — the default
 		// harness stub breaks its row parse, so answer the prompts wire.
@@ -1512,7 +1512,7 @@ describe('+page.svelte — lineage pin under floor operations (task 3.2-T)', () 
 		});
 		const target = await mountFloor();
 		try {
-		const result = await executeCommand(parseCommand('/promptmanager')!, {
+		const result = await executeCommand(parseCommand('/dsi-prompts')!, {
 			sessionId: 's1',
 			workspace: null,
 			agent: null,
@@ -1528,7 +1528,7 @@ describe('+page.svelte — lineage pin under floor operations (task 3.2-T)', () 
 		expect(titles).toHaveLength(2);
 		expect(titles[1]).toBe('Prompt Manager');
 		// A repeat FOCUSES the open manager — one live manager, nothing added (D3).
-		const repeat = await executeCommand(parseCommand('/promptmanager')!, {
+		const repeat = await executeCommand(parseCommand('/dsi-prompts')!, {
 			sessionId: 's1',
 			workspace: null,
 			agent: null,

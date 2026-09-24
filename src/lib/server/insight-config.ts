@@ -42,6 +42,10 @@ import {
 	DEFAULT_POLL_RUNNING_MS,
 	DEFAULT_STATS_BAR_MODE,
 	DEFAULT_RING_CAPACITY,
+	DEFAULT_TERMINAL_GRACE_MS,
+	DEFAULT_TERMINAL_IDLE_MS,
+	DEFAULT_TERMINAL_SPILL_BYTES,
+	DEFAULT_TERMINAL_TAIL_BYTES,
 	DEFAULT_SIDEBAR_MAX_WIDTH,
 	DEFAULT_SIDEBAR_MIN_WIDTH,
 	DEFAULT_SIDEBAR_PLACEMENT,
@@ -441,7 +445,7 @@ export function readPromptsConfig(configPath?: string): PromptsConfig {
 //    section exists; a stale block in settings.yaml is inert text.
 //
 //    The SAME ADR (D2) adds `readSettingsHomes`: the verbatim settings
-//    home roots, so the browser can mint the /dsisettings · /dshsettings
+//    home roots, so the browser can mint the /dsi-settings · /dsh-settings
 //    explorer panels with the server's own homedir truth (never a
 //    browser guess). Not operator-tunable — read-only facts.
 
@@ -449,4 +453,45 @@ export function readPromptsConfig(configPath?: string): PromptsConfig {
  *  Tree ADR 2026-09-18 D2. Never cached; trivially constant. */
 export function readSettingsHomes(): { dsi: string; dsh: string } {
 	return { dsi: settingsHomeDir('dsi'), dsh: settingsHomeDir('dsh') };
+}
+
+// ── terminal (Web Terminal, spec 2026-09-24; ADR 2026-09-23 D3) ─────────────
+
+
+/** DSI's operator terminal — the `terminal` section of settings.yaml.
+ *  `enabled` gates the whole surface (routes and panel no-op when false);
+ *  the sizes and grace feed the no-defaults TerminalSpec via the transport's
+ *  resolve(request): Spec step — the seam itself applies no defaults. */
+export interface TerminalConfig {
+	enabled: boolean;
+	tailBytes: number;
+	spillMaxBytes: number;
+	graceMs: number;
+	idleMs: number;
+}
+
+export const DEFAULT_TERMINAL_CONFIG: TerminalConfig = {
+	enabled: false,
+	tailBytes: DEFAULT_TERMINAL_TAIL_BYTES,
+	spillMaxBytes: DEFAULT_TERMINAL_SPILL_BYTES,
+	graceMs: DEFAULT_TERMINAL_GRACE_MS,
+	idleMs: DEFAULT_TERMINAL_IDLE_MS
+};
+
+function boolOr(v: unknown, fallback: boolean): boolean {
+	return typeof v === 'boolean' ? v : fallback;
+}
+
+/** Read the `terminal` section. Not cached — runtime edits apply, same
+ *  contract as every other section reader. */
+export function readTerminalConfig(configPath?: string): TerminalConfig {
+	const rec = parseConfig(configPath)?.terminal;
+	const section = isConfigRecord(rec) ? rec : {};
+	return {
+		enabled: boolOr(section.enabled, DEFAULT_TERMINAL_CONFIG.enabled),
+		tailBytes: intWithin(section.tailBytes, 4_096, 8_000_000, DEFAULT_TERMINAL_TAIL_BYTES),
+		spillMaxBytes: intWithin(section.spillMaxBytes, 1_000_000, 1_000_000_000, DEFAULT_TERMINAL_SPILL_BYTES),
+		graceMs: intWithin(section.graceMs, 250, 30_000, DEFAULT_TERMINAL_GRACE_MS),
+		idleMs: intWithin(section.idleMs, 100, 60_000, DEFAULT_TERMINAL_IDLE_MS)
+	};
 }

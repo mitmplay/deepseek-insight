@@ -286,3 +286,14 @@ export function resolveZoomBounds(
 export function isConfigRecord(v: unknown): v is Record<string, unknown> {
 	return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
+
+// ── terminal (Web Terminal, spec 2026-09-24; ADR 2026-09-23 D3) ─────────────
+
+/** Terminal retained output tail, in bytes (the spill file holds the head). */
+export const DEFAULT_TERMINAL_TAIL_BYTES = 262_144;
+/** Terminal full-stream spill cap, in bytes; a larger stream discards its spill. */
+export const DEFAULT_TERMINAL_SPILL_BYTES = 33_554_432;
+/** TERM-to-KILL cleanup grace for one terminal close ladder. */
+export const DEFAULT_TERMINAL_GRACE_MS = 3_000;
+/** Output-silence bound a send-wait may settle on as inferred_idle. */
+export const DEFAULT_TERMINAL_IDLE_MS = 1_200;

@@ -80,6 +80,7 @@ export function workspaceFileTitle(path: string): string {
  * @returns the variant title, or undefined for a conversation header.
  */
 export function panelHeaderLabel(panel: DsiPanelEntry): string | undefined {
+	if (panel.kind === 'terminal') return 'Terminal';
 	if (panel.kind === 'prompt-manager') return MANAGER_ROW_TITLE;
 	if (panel.kind === 'skill-shelf') return 'Skill Shelf';
 	if (panel.kind === 'settings-editor') return SETTINGS_ROW_TITLE[panel.target];
@@ -139,13 +140,15 @@ export function panelRowsFor(input: PanelRowsInput): PanelRow[] {
 	const { panels, spineRows, coldCache, deadSessions, edgeCache, lineageFacts, moveFacts } = input;
 	const openSessionIds = openSessionIdsOf(panels);
 	return panels.map<PanelRow>((p, index) => {
-		if (p.kind === 'prompt-manager' || p.kind === 'settings-editor' || p.kind === 'skill-shelf') {
+		if (p.kind === 'terminal' || p.kind === 'prompt-manager' || p.kind === 'settings-editor' || p.kind === 'skill-shelf') {
 			// Kind-honest non-session facts (ADR §8 required case; the
 			// settings-editor branch rides the same rule — Settings Panel
 			// ADR D3): never running/dead, depth 0, no lineage keys; move
 			// verbs are positional (neither belongs to a family).
 			const title =
-				p.kind === 'prompt-manager'
+				p.kind === 'terminal'
+					? 'Terminal'
+					: p.kind === 'prompt-manager'
 					? MANAGER_ROW_TITLE
 					: p.kind === 'skill-shelf'
 						? 'Skill Shelf'

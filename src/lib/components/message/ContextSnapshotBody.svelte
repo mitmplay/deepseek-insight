@@ -31,7 +31,7 @@
 
 {#if sections}
 	<p
-		data-csb={"s:" + (sections?.length ?? "none") + ";src:" + JSON.stringify(metaSource ?? null)}
+		data-csb={"s:" + sections.length + ";src:" + JSON.stringify(metaSource)}
 		data-testid="context-snapshot-supersedes"
 		class="mb-1.5 flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-accent-purple/80"
 	>

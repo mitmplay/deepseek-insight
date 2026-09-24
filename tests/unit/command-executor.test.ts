@@ -104,6 +104,7 @@ describe('executeCommand — /new (create + swap)', () => {
 		const swaps: Array<{ agentPreset: string | null }> = [];
 		registerReplacePanel((_panelId, request) => {
 			if (
+				request.kind !== 'terminal' &&
 				request.kind !== 'prompt-manager' &&
 				request.kind !== 'settings-home' &&
 				request.kind !== 'injected-doc' &&
@@ -597,15 +598,15 @@ describe('Slash Menu W1 (task 1.4) — the host-command ladder rung', () => {
 });
 
 
-// ── /promptmanager executor (re-aimed 2026-09-17, The Focus Command ADR D1) ──
-describe('executeCommand — /promptmanager (Focus Command)', () => {
+// ── /dsi-prompts executor (re-aimed 2026-09-17, The Focus Command ADR D1) ──
+describe('executeCommand — /dsi-prompts (Focus Command)', () => {
 	it('bare adds (aims) a manager panel after the session — never a swap', async () => {
 		const adds: PanelAddRequest[] = [];
 		registerAddPanel((request) => adds.push(request));
 		registerReplacePanel(() => {
 			throw new Error('must not replace');
 		});
-		const result = await executeCommand(parseCommand('/promptmanager')!, ctx());
+		const result = await executeCommand(parseCommand('/dsi-prompts')!, ctx());
 		expect(result).toEqual({ ok: true });
 		expect(adds).toEqual([{ kind: 'prompt-manager', afterSessionId: SELF }]);
 	});
@@ -614,16 +615,16 @@ describe('executeCommand — /promptmanager (Focus Command)', () => {
 		registerAddPanel(() => {
 			throw new Error('must not fire');
 		});
-		const result = await executeCommand(parseCommand('/promptmanager --add')!, ctx());
-		expect(result).toEqual({ ok: false, note: 'usage: /promptmanager' });
+		const result = await executeCommand(parseCommand('/dsi-prompts --add')!, ctx());
+		expect(result).toEqual({ ok: false, note: 'usage: /dsi-prompts' });
 	});
 
 	it('off-floor composer (no panelId) gets the honest floor note', async () => {
 		registerAddPanel(() => true);
-		const result = await executeCommand(parseCommand('/promptmanager')!, ctx({ panelId: null }));
+		const result = await executeCommand(parseCommand('/dsi-prompts')!, ctx({ panelId: null }));
 		expect(result).toEqual({
 			ok: false,
-			note: '/promptmanager needs a panel floor (open this session on the floor first)'
+			note: '/dsi-prompts needs a panel floor (open this session on the floor first)'
 		});
 	});
 
@@ -631,26 +632,26 @@ describe('executeCommand — /promptmanager (Focus Command)', () => {
 		registerAddPanel(() => {
 			throw new Error('must not fire');
 		});
-		const result = await executeCommand(parseCommand('/promptmanager leftover')!, ctx());
-		expect(result).toEqual({ ok: false, note: 'usage: /promptmanager' });
+		const result = await executeCommand(parseCommand('/dsi-prompts leftover')!, ctx());
+		expect(result).toEqual({ ok: false, note: 'usage: /dsi-prompts' });
 	});
 
 	it('floor not mounted: honest note from the add miss', async () => {
 		registerAddPanel(null); // no floor mounted — the registry returns false
-		const result = await executeCommand(parseCommand('/promptmanager')!, ctx());
-		expect(result).toEqual({ ok: false, note: '/promptmanager: the floor is not mounted' });
+		const result = await executeCommand(parseCommand('/dsi-prompts')!, ctx());
+		expect(result).toEqual({ ok: false, note: '/dsi-prompts: the floor is not mounted' });
 	});
 });
 
-// ── /dsisettings + /dshsettings executor (re-aimed 2026-09-17, Focus Command D1) ──
-describe('executeCommand — /dsisettings + /dshsettings (Focus Command)', () => {
+// ── /dsi-settings + /dsh-settings executor (re-aimed 2026-09-17, Focus Command D1) ──
+describe('executeCommand — /dsi-settings + /dsh-settings (Focus Command)', () => {
 	it('bare adds (aims) a dsi settings panel after the session — never a swap', async () => {
 		const adds: PanelAddRequest[] = [];
 		registerAddPanel((request) => adds.push(request));
 		registerReplacePanel(() => {
 			throw new Error('must not replace');
 		});
-		const result = await executeCommand(parseCommand('/dsisettings')!, ctx());
+		const result = await executeCommand(parseCommand('/dsi-settings')!, ctx());
 		expect(result).toEqual({ ok: true });
 		expect(adds).toEqual([{ kind: 'settings-home', home: 'dsi', afterSessionId: SELF }]);
 	});
@@ -658,7 +659,7 @@ describe('executeCommand — /dsisettings + /dshsettings (Focus Command)', () =>
 	it('bare dshsettings adds a dsh settings panel after the session', async () => {
 		const adds: PanelAddRequest[] = [];
 		registerAddPanel((request) => adds.push(request));
-		const result = await executeCommand(parseCommand('/dshsettings')!, ctx());
+		const result = await executeCommand(parseCommand('/dsh-settings')!, ctx());
 		expect(result).toEqual({ ok: true });
 		expect(adds).toEqual([{ kind: 'settings-home', home: 'dsh', afterSessionId: SELF }]);
 	});
@@ -667,16 +668,16 @@ describe('executeCommand — /dsisettings + /dshsettings (Focus Command)', () =>
 		registerAddPanel(() => {
 			throw new Error('must not fire');
 		});
-		const result = await executeCommand(parseCommand('/dshsettings --add')!, ctx());
-		expect(result).toEqual({ ok: false, note: 'usage: /dshsettings' });
+		const result = await executeCommand(parseCommand('/dsh-settings --add')!, ctx());
+		expect(result).toEqual({ ok: false, note: 'usage: /dsh-settings' });
 	});
 
 	it('off-floor composer gets the honest floor note under its own command name', async () => {
 		registerAddPanel(() => true);
-		const result = await executeCommand(parseCommand('/dshsettings')!, ctx({ panelId: null }));
+		const result = await executeCommand(parseCommand('/dsh-settings')!, ctx({ panelId: null }));
 		expect(result).toEqual({
 			ok: false,
-			note: '/dshsettings needs a panel floor (open this session on the floor first)'
+			note: '/dsh-settings needs a panel floor (open this session on the floor first)'
 		});
 	});
 
@@ -684,14 +685,14 @@ describe('executeCommand — /dsisettings + /dshsettings (Focus Command)', () =>
 		registerAddPanel(() => {
 			throw new Error('must not fire');
 		});
-		const result = await executeCommand(parseCommand('/dsisettings leftover')!, ctx());
-		expect(result).toEqual({ ok: false, note: 'usage: /dsisettings' });
+		const result = await executeCommand(parseCommand('/dsi-settings leftover')!, ctx());
+		expect(result).toEqual({ ok: false, note: 'usage: /dsi-settings' });
 	});
 
 	it('floor not mounted: honest note from the add miss', async () => {
 		registerAddPanel(null); // no floor mounted — the registry returns false
-		const result = await executeCommand(parseCommand('/dshsettings')!, ctx());
-		expect(result).toEqual({ ok: false, note: '/dshsettings: the floor is not mounted' });
+		const result = await executeCommand(parseCommand('/dsh-settings')!, ctx());
+		expect(result).toEqual({ ok: false, note: '/dsh-settings: the floor is not mounted' });
 	});
 });
 

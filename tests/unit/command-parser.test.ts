@@ -252,64 +252,64 @@ describe('parseCommand — mention + a2a signature (2026-08-25, Task 1.2)', () =
 });
 
 
-// ── W3 3.1-T — /promptmanager (2026-09-06, ADR D7) ──────────────────────
+// ── W3 3.1-T — /dsi-prompts (2026-09-06, ADR D7) ──────────────────────
 // Regression promotion: the Step-1 probe asserted this token parses to
 // null (pre-feature); every case below asserts the INVERSION — the token
 // is a known DSI-local command now.
-describe('parseCommand — /promptmanager (W3 3.1-T)', () => {
+describe('parseCommand — /dsi-prompts (W3 3.1-T)', () => {
 	it('bare: type promptmanager, empty args, no addPanel key', () => {
-		expect(parseCommand('/promptmanager')).toEqual({ type: 'promptmanager', args: '' });
+		expect(parseCommand('/dsi-prompts')).toEqual({ type: 'promptmanager', args: '' });
 	});
 	it('--add is retired grammar: raw args passthrough (Focus Command ADR D2)', () => {
-		expect(parseCommand('/promptmanager --add')).toEqual({
+		expect(parseCommand('/dsi-prompts --add')).toEqual({
 			type: 'promptmanager',
 			args: '--add'
 		});
 	});
 	it('case-insensitive token', () => {
-		expect(parseCommand('/PromptManager')).toEqual({ type: 'promptmanager', args: '' });
+		expect(parseCommand('/Dsi-Prompts')).toEqual({ type: 'promptmanager', args: '' });
 	});
 	it('leftover keeps the raw args (the handler usage-errors them)', () => {
-		expect(parseCommand('/promptmanager leftover')).toEqual({
+		expect(parseCommand('/dsi-prompts leftover')).toEqual({
 			type: 'promptmanager',
 			args: 'leftover'
 		});
 	});
 	it('unknown flags pass through as args (never silently --add)', () => {
-		expect(parseCommand('/promptmanager --wide')).toEqual({
+		expect(parseCommand('/dsi-prompts --wide')).toEqual({
 			type: 'promptmanager',
 			args: '--wide'
 		});
-		expect(parseCommand('/promptmanager --add extra')).toEqual({
+		expect(parseCommand('/dsi-prompts --add extra')).toEqual({
 			type: 'promptmanager',
 			args: '--add extra'
 		});
 	});
 });
 
-// ── Settings Panel W3 3.2-T — /dsisettings + /dshsettings (2026-09-07 ADR D3/D6) ──
+// ── Settings Panel W3 3.2-T — /dsi-settings + /dsh-settings (2026-09-07 ADR D3/D6) ──
 
-describe('parseCommand — /dsisettings + /dshsettings (W3 3.2-T)', () => {
+describe('parseCommand — /dsi-settings + /dsh-settings (W3 3.2-T)', () => {
 	it('dsisettings bare — type, empty args, no addPanel key', () => {
-		expect(parseCommand('/dsisettings')).toEqual({ type: 'dsisettings', args: '' });
+		expect(parseCommand('/dsi-settings')).toEqual({ type: 'dsisettings', args: '' });
 	});
 	it('dsisettings --add is retired grammar: raw args passthrough (D2)', () => {
-		expect(parseCommand('/dsisettings --add')).toEqual({ type: 'dsisettings', args: '--add' });
+		expect(parseCommand('/dsi-settings --add')).toEqual({ type: 'dsisettings', args: '--add' });
 	});
 	it('dshsettings bare', () => {
-		expect(parseCommand('/dshsettings')).toEqual({ type: 'dshsettings', args: '' });
+		expect(parseCommand('/dsh-settings')).toEqual({ type: 'dshsettings', args: '' });
 	});
 	it('dshsettings --add is retired grammar: raw args passthrough (D2)', () => {
-		expect(parseCommand('/dshsettings --add')).toEqual({ type: 'dshsettings', args: '--add' });
+		expect(parseCommand('/dsh-settings --add')).toEqual({ type: 'dshsettings', args: '--add' });
 	});
 	it('case-insensitive tokens', () => {
-		expect(parseCommand('/DsiSettings')).toEqual({ type: 'dsisettings', args: '' });
-		expect(parseCommand('/DSHSETTINGS')).toEqual({ type: 'dshsettings', args: '' });
+		expect(parseCommand('/DSI-Settings')).toEqual({ type: 'dsisettings', args: '' });
+		expect(parseCommand('/DSH-SETTINGS')).toEqual({ type: 'dshsettings', args: '' });
 	});
 	it('stray args keep the raw remainder (the handler usage-errors it)', () => {
-		expect(parseCommand('/dsisettings leftover')).toEqual({ type: 'dsisettings', args: 'leftover' });
-		expect(parseCommand('/dshsettings --wide')).toEqual({ type: 'dshsettings', args: '--wide' });
-		expect(parseCommand('/dshsettings --add extra')).toEqual({ type: 'dshsettings', args: '--add extra' });
+		expect(parseCommand('/dsi-settings leftover')).toEqual({ type: 'dsisettings', args: 'leftover' });
+		expect(parseCommand('/dsh-settings --wide')).toEqual({ type: 'dshsettings', args: '--wide' });
+		expect(parseCommand('/dsh-settings --add extra')).toEqual({ type: 'dshsettings', args: '--add extra' });
 	});
 	it('near-miss tokens are ordinary text, never commands', () => {
 		expect(parseCommand('/dsisetting')).toBeNull();

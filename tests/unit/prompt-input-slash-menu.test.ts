@@ -279,19 +279,21 @@ describe('PromptInput × SlashMenu — DSI gesture rows (ADR §1.1 layer A)', ()
 	it('bare "/" lists the two client gestures FIRST, before host rows (ladder priority order)', () => {
 		const h = mountMenu({});
 		type(h, '/');
-		expect(h.gestureRows()).toHaveLength(7); // /new + /workspace + /promptmanager + the two settings rows + /dsi-skill-shelf (2026-09-21) + @mention, always (/loadinjected retired 2026-09-17)
+		expect(h.gestureRows()).toHaveLength(8); // /new + /workspace + /dsi-prompts + the two settings rows + /dsi-skills (2026-09-21) + @mention, always (/loadinjected retired 2026-09-17)
 		expect(h.rows()[0]?.getAttribute('data-name')).toBe('new');
 		expect(h.rows()[1]?.getAttribute('data-name')).toBe('workspace');
 		expect(h.rows()[2]?.getAttribute('data-name')).toBe('promptmanager');
 		expect(h.rows()[3]?.getAttribute('data-name')).toBe('dsisettings');
 		expect(h.rows()[4]?.getAttribute('data-name')).toBe('dshsettings');
-		expect(h.rows()[5]?.getAttribute('data-name')).toBe('skillshelf');
-		expect(h.rows()[6]?.getAttribute('data-name')).toBe('@mention');
-		expect(h.rows()[7]?.getAttribute('data-name')).toBe('compact'); // then the host catalog
+		expect(h.rows()[5]?.getAttribute('data-name')).toBe('terminal');
+		expect(h.rows()[6]?.getAttribute('data-name')).toBe('skillshelf');
+		expect(h.rows()[7]?.getAttribute('data-name')).toBe('@mention');
+		expect(h.rows()[8]?.getAttribute('data-name')).toBe('compact'); // then the host catalog
 		// The mention row renders verbatim — never re-prefixed with '/'.
-		expect(h.gestureRows()[2]?.textContent).toContain('/promptmanager');
-		expect(h.gestureRows()[5]?.textContent).toContain('/dsi-skill-shelf');
-		expect(h.gestureRows()[6]?.textContent).toContain('@mention');
+		expect(h.gestureRows()[2]?.textContent).toContain('/dsi-prompts');
+		expect(h.gestureRows()[5]?.textContent).toContain('/dsi-terminal');
+		expect(h.gestureRows()[6]?.textContent).toContain('/dsi-skills');
+		expect(h.gestureRows()[7]?.textContent).toContain('@mention');
 		h.cleanup();
 	});
 
@@ -300,10 +302,10 @@ describe('PromptInput × SlashMenu — DSI gesture rows (ADR §1.1 layer A)', ()
 		const h = mountMenu({ onsubmit });
 		type(h, '/n'); // partial draft — parseCommand declines, the menu opens
 		// The matcher is substring-AND: the single letter 'n' hits every
-		// gesture row (/new, /promptmanager, @mention), so the pick targets
+		// gesture row (/new, /dsi-prompts, @mention), so the pick targets
 		// the row by name.
 		const rows = h.gestureRows();
-		expect(rows).toHaveLength(7); // + /dsi-skill-shelf (The Shelf Voice W1, 2026-09-21)
+		expect(rows).toHaveLength(8); // + /dsi-skills (The Shelf Voice W1, 2026-09-21)
 		const newRow = rows.find((r) => r.getAttribute('data-name') === 'new') as HTMLElement;
 		newRow.click();
 		flushSync();
@@ -321,7 +323,7 @@ describe('PromptInput × SlashMenu — DSI gesture rows (ADR §1.1 layer A)', ()
 		const onsubmit = vi.fn(async () => true);
 		const h = mountMenu({ onsubmit });
 		type(h, '/');
-		(h.gestureRows()[6] as HTMLElement).click(); // @mention (last row — /loadinjected retired 2026-09-17; /dsi-skill-shelf joined 2026-09-21)
+		(h.gestureRows()[7] as HTMLElement).click(); // @mention (last row — /loadinjected retired 2026-09-17; /dsi-skills joined 2026-09-21; /dsi-terminal joined 2026-09-24)
 		flushSync();
 		expect(h.value()).toBe('@session-'); // the uuid-tail scaffold
 		expect(onsubmit).not.toHaveBeenCalled();
@@ -331,7 +333,7 @@ describe('PromptInput × SlashMenu — DSI gesture rows (ADR §1.1 layer A)', ()
 	it('an EMPTY host catalog (subagent edge) still lists the client gestures', () => {
 		const h = mountMenu({}, { commands: [], skills: [], state: 'ready' });
 		type(h, '/');
-		expect(h.gestureRows()).toHaveLength(7); // settings rows + /workspace (2026-09-15); /loadinjected retired (2026-09-17); /dsi-skill-shelf joined (2026-09-21)
+		expect(h.gestureRows()).toHaveLength(8); // settings rows + /workspace (2026-09-15); /loadinjected retired (2026-09-17); /dsi-skills joined (2026-09-21)
 		expect(h.commandRows()).toHaveLength(0);
 		expect(h.skillRows()).toHaveLength(0);
 		h.cleanup();
@@ -387,15 +389,16 @@ describe('PromptInput × SlashMenu — row-gated keyboard guard', () => {
 		const onpickcommandwithhint = vi.fn();
 		const h = mountMenu({ onpickcommand, onpickcommandwithhint });
 		type(h, '/');
-		expect(h.rows()).toHaveLength(11); // 7 gestures + 2 commands + 2 skills (/loadinjected retired 2026-09-17; /dsi-skill-shelf joined 2026-09-21)
+		expect(h.rows()).toHaveLength(12); // 8 gestures + 2 commands + 2 skills (/loadinjected retired 2026-09-17; /dsi-skills joined 2026-09-21; /dsi-terminal joined 2026-09-24)
 		key(h, 'ArrowDown'); // 1 → /workspace
-		key(h, 'ArrowDown'); // 2 → /promptmanager
-		key(h, 'ArrowDown'); // 3 → /dsisettings
-		key(h, 'ArrowDown'); // 4 → /dshsettings
-		key(h, 'ArrowDown'); // 5 → /dsi-skill-shelf
-		key(h, 'ArrowDown'); // 6 → @mention
-		key(h, 'ArrowDown'); // 7 → compact
-		key(h, 'ArrowDown'); // 8 → plan (hint)
+		key(h, 'ArrowDown'); // 2 → /dsi-prompts
+		key(h, 'ArrowDown'); // 3 → /dsi-settings
+		key(h, 'ArrowDown'); // 4 → /dsh-settings
+		key(h, 'ArrowDown'); // 5 → /dsi-terminal
+		key(h, 'ArrowDown'); // 6 → /dsi-skills
+		key(h, 'ArrowDown'); // 7 → @mention
+		key(h, 'ArrowDown'); // 8 → compact
+		key(h, 'ArrowDown'); // 9 → plan (hint)
 		key(h, 'Enter');
 		await settle();
 		expect(onpickcommandwithhint).toHaveBeenCalledWith('plan');
@@ -436,13 +439,14 @@ describe('PromptInput × SlashMenu — row-gated keyboard guard', () => {
 		const h = mountMenu({ onpickcommandwithhint, onsubmit });
 		type(h, '/');
 		key(h, 'ArrowDown'); // 1 → /workspace
-		key(h, 'ArrowDown'); // 2 → /promptmanager
-		key(h, 'ArrowDown'); // 3 → /dsisettings
-		key(h, 'ArrowDown'); // 4 → /dshsettings
-		key(h, 'ArrowDown'); // 5 → /dsi-skill-shelf
-		key(h, 'ArrowDown'); // 6 → @mention
-		key(h, 'ArrowDown'); // 7 → compact (no hint)
-		key(h, 'ArrowDown'); // 8 → plan (hint)
+		key(h, 'ArrowDown'); // 2 → /dsi-prompts
+		key(h, 'ArrowDown'); // 3 → /dsi-settings
+		key(h, 'ArrowDown'); // 4 → /dsh-settings
+		key(h, 'ArrowDown'); // 5 → /dsi-terminal
+		key(h, 'ArrowDown'); // 6 → /dsi-skills
+		key(h, 'ArrowDown'); // 7 → @mention
+		key(h, 'ArrowDown'); // 8 → compact (no hint)
+		key(h, 'ArrowDown'); // 9 → plan (hint)
 		key(h, 'Tab');
 		flushSync();
 		expect(onpickcommandwithhint).toHaveBeenCalledWith('plan');
@@ -455,7 +459,7 @@ describe('PromptInput × SlashMenu — row-gated keyboard guard', () => {
 		const onsubmit = vi.fn(async () => true);
 		const h = mountMenu({ onsubmit });
 		type(h, '/');
-		key(h, 'ArrowDown'); // 1 → /promptmanager
+		key(h, 'ArrowDown'); // 1 → /dsi-prompts
 		key(h, 'Tab', true); // Shift+Tab → back to 0 (/new)
 		key(h, 'Enter');
 		flushSync();

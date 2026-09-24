@@ -101,8 +101,8 @@ describe('SlashMenu — sections + order', () => {
 				Node.DOCUMENT_POSITION_FOLLOWING
 		).toBeTruthy();
 		const names = h.qa('[data-testid="slash-gesture-row"]').map((el) => el.getAttribute('data-name'));
-		// MENU_GESTURES order — /promptmanager joined 2026-09-06 (D7 menu
-		// row); /dsisettings + /dshsettings joined 2026-09-07 (Settings
+		// MENU_GESTURES order — /dsi-prompts joined 2026-09-06 (D7 menu
+		// row); /dsi-settings + /dsh-settings joined 2026-09-07 (Settings
 		// Panel ADR D3, one row per COMMAND_HELP); /workspace joined
 		// 2026-09-15 (Workspace Command ADR D6); /loadinjected RETIRED
 		// 2026-09-17 (The Retired Typed Command ADR D1).
@@ -112,7 +112,8 @@ describe('SlashMenu — sections + order', () => {
 			'promptmanager',
 			'dsisettings',
 			'dshsettings',
-			'skillshelf', // The Shelf Voice W1 (2026-09-21): /dsi-skill-shelf joins the menu
+			'terminal', // Web Terminal spec (2026-09-24): /dsi-terminal joins the menu
+			'skillshelf', // The Shelf Voice W1 (2026-09-21): /dsi-skills joins the menu
 			'@mention'
 		]);
 		const cmdNames = h.qa('[data-testid="slash-command-row"]').map((el) => el.getAttribute('data-name'));
@@ -127,11 +128,12 @@ describe('SlashMenu — sections + order', () => {
 		const rows = h.qa('[data-testid="slash-gesture-row"]');
 		expect(rows[0]?.textContent).toContain('/new');
 		expect(rows[1]?.textContent).toContain('/workspace'); // joined 2026-09-15
-		expect(rows[2]?.textContent).toContain('/promptmanager'); // joined 2026-09-06
-		expect(rows[3]?.textContent).toContain('/dsisettings'); // joined 2026-09-07
-		expect(rows[4]?.textContent).toContain('/dshsettings'); // joined 2026-09-07
-		expect(rows[5]?.textContent).toContain('/dsi-skill-shelf'); // The Shelf Voice W1 (2026-09-21)
-		expect(rows[6]?.textContent).toContain('@mention'); // /loadinjected retired 2026-09-17
+		expect(rows[2]?.textContent).toContain('/dsi-prompts'); // joined 2026-09-06
+		expect(rows[3]?.textContent).toContain('/dsi-settings'); // joined 2026-09-07
+		expect(rows[4]?.textContent).toContain('/dsh-settings'); // joined 2026-09-07
+		expect(rows[5]?.textContent).toContain('/dsi-terminal'); // Web Terminal spec (2026-09-24)
+		expect(rows[6]?.textContent).toContain('/dsi-skills'); // The Shelf Voice W1 (2026-09-21)
+		expect(rows[7]?.textContent).toContain('@mention'); // /loadinjected retired 2026-09-17
 		const last = rows[rows.length - 1];
 		expect(last?.textContent).toContain('@mention');
 		expect(last?.querySelector('.slash-name')?.textContent).not.toMatch(/^\//);
@@ -140,7 +142,7 @@ describe('SlashMenu — sections + order', () => {
 
 	it('a bare "/" lists the whole vocabulary (no terms match everything)', () => {
 		const h = mountMenu();
-		expect(h.qa('[data-testid="slash-gesture-row"]')).toHaveLength(7); // + /dsi-skill-shelf (The Shelf Voice W1, 2026-09-21)
+		expect(h.qa('[data-testid="slash-gesture-row"]')).toHaveLength(8); // + /dsi-skills (The Shelf Voice W1, 2026-09-21); /dsi-terminal (Web Terminal spec, 2026-09-24)
 		expect(h.qa('[data-testid="slash-command-row"]')).toHaveLength(2);
 		expect(h.qa('[data-testid="slash-skill-row"]')).toHaveLength(2);
 		h.cleanup();
@@ -187,11 +189,14 @@ describe('SlashMenu — kind-aware picks', () => {
 		flushSync();
 		expect(h.onpickgesture).toHaveBeenCalledWith('/workspace '); // joined 2026-09-15
 		(rows[2] as HTMLElement).click();
-		expect(h.onpickgesture).toHaveBeenCalledWith('/promptmanager ');
+		expect(h.onpickgesture).toHaveBeenCalledWith('/dsi-prompts ');
+		(rows[6] as HTMLElement).click();
+		flushSync();
+		expect(h.onpickgesture).toHaveBeenCalledWith('/dsi-skills '); // The Shelf Voice W1 (2026-09-21)
 		(rows[5] as HTMLElement).click();
 		flushSync();
-		expect(h.onpickgesture).toHaveBeenCalledWith('/dsi-skill-shelf '); // The Shelf Voice W1 (2026-09-21)
-		(rows[6] as HTMLElement).click();
+		expect(h.onpickgesture).toHaveBeenCalledWith('/dsi-terminal '); // Web Terminal spec (2026-09-24)
+		(rows[7] as HTMLElement).click();
 		flushSync();
 		expect(h.onpickgesture).toHaveBeenCalledWith('@session-'); // the mention scaffold (last row — /loadinjected retired 2026-09-17)
 		expect(h.onpickcommand).not.toHaveBeenCalled();
@@ -247,12 +252,12 @@ describe('SlashMenu — kind-aware picks', () => {
 
 describe('SlashMenu — highlight + match count contract', () => {
 	it('activeIndex highlights by composite position: gestures, commands, then skills', () => {
-		const h = mountMenu({ activeIndex: 9 }); // 7 gestures + 2 commands → index 9 = first skill
+		const h = mountMenu({ activeIndex: 10 }); // 8 gestures + 2 commands → index 10 = first skill
 		const selected = h.qa('[role="option"][aria-selected="true"]');
 		expect(selected).toHaveLength(1);
 		expect(selected[0]?.getAttribute('data-name')).toBe('dsh-doc');
 		h.cleanup();
-		const h2 = mountMenu({ activeIndex: 7 }); // index 7 = first command (7 gestures)
+		const h2 = mountMenu({ activeIndex: 8 }); // index 8 = first command (8 gestures)
 		const selected2 = h2.qa('[role="option"][aria-selected="true"]');
 		expect(selected2[0]?.getAttribute('data-name')).toBe('compact');
 		h2.cleanup();
@@ -272,7 +277,7 @@ describe('SlashMenu — highlight + match count contract', () => {
 		expect(h.q('[data-testid="slash-gestures-label"]')).not.toBeNull();
 		expect(h.q('[data-testid="slash-commands-label"]')).not.toBeNull();
 		expect(h.q('[data-testid="slash-skills-label"]')).not.toBeNull();
-		expect(h.qa('[data-testid="slash-gesture-row"]')).toHaveLength(7); // + /dsi-skill-shelf (The Shelf Voice W1, 2026-09-21)
+		expect(h.qa('[data-testid="slash-gesture-row"]')).toHaveLength(8); // + /dsi-skills (The Shelf Voice W1, 2026-09-21); /dsi-terminal (Web Terminal spec, 2026-09-24)
 		expect(h.qa('[data-testid="slash-command-row"]')).toHaveLength(0);
 		expect(h.qa('[data-testid="slash-skill-row"]')).toHaveLength(0);
 		expect(h.q('[data-testid="slash-menu-nomatch"]')).toBeNull(); // empty is a correct answer

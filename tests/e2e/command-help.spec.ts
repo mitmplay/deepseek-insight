@@ -108,14 +108,14 @@ test('04 · the settings commands answer with their own topics (Settings Panel W
 	await expect(page.getByTestId('access-mode-chip')).toBeVisible();
 
 	const input = page.getByTestId('prompt-textarea');
-	await input.fill('/dsisettings ?');
+	await input.fill('/dsi-settings ?');
 	await expect(page.getByTestId('command-help')).toBeVisible();
-	await expect(page.getByTestId('command-help')).toContainText('/dsisettings');
+	await expect(page.getByTestId('command-help')).toContainText('/dsi-settings');
 	await expect(page.getByTestId('command-help')).toContainText('settings.yaml');
 
-	await input.fill('/dshsettings ?');
+	await input.fill('/dsh-settings ?');
 	await expect(page.getByTestId('command-help')).toBeVisible();
-	await expect(page.getByTestId('command-help')).toContainText('/dshsettings');
+	await expect(page.getByTestId('command-help')).toContainText('/dsh-settings');
 
 	// Help is never a send (the ? line never reaches the stub's prompt wire).
 	await input.press('Escape');

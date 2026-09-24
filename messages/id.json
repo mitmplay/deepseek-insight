@@ -309,7 +309,7 @@
 	"thinkLabel": "berpikir",
 	"thinkingLabel": "sedang berpikir",
 	"ctxChipContext": "konteks",
-		"ctxSnapshotSupersedes": "Menggantikan cuplikan sebelumnya",
+	"ctxSnapshotSupersedes": "Menggantikan cuplikan sebelumnya",
 	"ctxChipInstructions": "instruksi",
 	"ctxChipSkills": "skill",
 	"ctxChipSkill": "skill",
@@ -359,7 +359,7 @@
 	"skillsShelfOpenAuthor": "Buka profil penulis di tab baru",
 	"skillsShelfInstall": "Instal",
 	"skillsShelfUninstall": "Copot",
-		"skillsShelfBadgeInstalled": "terpasang",
+	"skillsShelfBadgeInstalled": "terpasang",
 	"skillsShelfNoOverview": "Belum ada ikhtisar di SKILL.md",
 	"skillsShelfBadgeForeign": "asing",
 	"skillsShelfUnsignedRefusal": "Ditolak: skill itu tidak punya tanda tangan rak (D5).",
@@ -377,5 +377,14 @@
 	"skillsVoiceDsiSpcheck": "Verifikasi koherensi spesifikasi fitur: telusuri fakta lintas konteks Karpathy, PRD, dan Tasks untuk menemukan cabang yang hilang.",
 	"skillsVoiceDsiSpec": "Analisis permintaan fitur dengan metode Karpathy dan hasilkan PRD + Tasks dengan checklist eksekusi.",
 	"skillsVoiceDsiSync": "Cerminkan DeepSeek Insight ke target GitHub-nya: sinkron ulang, commit, push, dan lewati bersih saat tidak ada perubahan.",
-	"skillsVoiceDsiTask": "Eksekusi tugas implementasi dari konteks Karpathy + dokumen tugas: checklist terlihat, gerbang, dan disiplin gelombang."
+	"skillsVoiceDsiTask": "Eksekusi tugas implementasi dari konteks Karpathy + dokumen tugas: checklist terlihat, gerbang, dan disiplin gelombang.",
+	"terminalPanelTitle": "Terminal",
+	"terminalDisabled": "Terminal dinonaktifkan — aktifkan di pengaturan (terminal.enabled).",
+	"terminalOpening": "Membuka terminal…",
+	"terminalClose": "Tutup",
+	"terminalClosed": "Terminal ditutup",
+	"terminalSettleStdinRead": "menunggu masukan",
+	"terminalSettleInferredIdle": "keluaran senggang",
+	"terminalSettleTimeout": "habis waktu",
+	"terminalSettleSessionExit": "shell keluar"
 }

@@ -4,7 +4,7 @@
  * DSH host, prompts routes REAL over the shared tmp DSI_PROMPTS_DB
  * (BC-10), one journey:
  *
- *   /promptmanager at zoom 0.75 → manager panel right of the
+ *   /dsi-prompts at zoom 0.75 → manager panel right of the
  *   conversation, newcomer selected → edit a prompt through the
  *   PORTALED dialog (unscaled under document.body — no transformed
  *   ancestor, BC-7) → Save round-trips through /api/prompts → a second
@@ -89,7 +89,7 @@ async function openTray(page: import('@playwright/test').Page): Promise<void> {
 	await page.getByTestId('controlbar-tray').waitFor({ state: 'visible' });
 }
 
-test('W4 4.2-T · /promptmanager at zoom 0.75 — embedded mount, portaled edit, scoped Escape', async ({ page }) => {
+test('W4 4.2-T · /dsi-prompts at zoom 0.75 — embedded mount, portaled edit, scoped Escape', async ({ page }) => {
 	seedPromptsDb([{ label: null, text: EDIT_TEXT, use_count: 3 }]);
 	await page.goto(`/?sessionKey=${STUB_SESSION_ID}`);
 	await expect(page.getByTestId('panel-column')).toHaveCount(1);
@@ -102,7 +102,7 @@ test('W4 4.2-T · /promptmanager at zoom 0.75 — embedded mount, portaled edit,
 
 	// The command, from the conversation's composer.
 	const composer = page.getByTestId('prompt-textarea').first();
-	await composer.fill('/promptmanager');
+	await composer.fill('/dsi-prompts');
 	await composer.press('Enter');
 
 	// The manager lands right of the conversation and renders its table.
@@ -148,7 +148,7 @@ test('W4 4.2-T · /promptmanager at zoom 0.75 — embedded mount, portaled edit,
 	expect(api.results.map((r) => r.label)).toContain(EDIT_LABEL);
 
 	// A SECOND manager joins (two live managers are legal, D3).
-	await composer.fill('/promptmanager');
+	await composer.fill('/dsi-prompts');
 	await composer.press('Enter');
 	await expect(page.getByTestId('panel-manager')).toHaveCount(2);
 
@@ -177,7 +177,7 @@ test('W6 6.2-T widened · Alt+Click opens the manager lens; the conversation len
 
 	// A manager joins via the command.
 	const composer = page.getByTestId('prompt-textarea').first();
-	await composer.fill('/promptmanager');
+	await composer.fill('/dsi-prompts');
 	await composer.press('Enter');
 	const manager = page.getByTestId('panel-manager');
 	await expect(manager).toBeVisible();

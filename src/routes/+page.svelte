@@ -48,6 +48,7 @@
 	import AppSidebar from '$lib/components/common/layout/AppSidebar.svelte';
 	import ConversationPanel from '$lib/components/chat/ConversationPanel.svelte';
 	import PromptManagerPanel from '$lib/components/prompt-manager/PromptManagerPanel.svelte';
+	import TerminalPanel from '$lib/components/terminal/TerminalPanel.svelte';
 	import SettingsSkillsPanel from '$lib/components/settings-skills/SettingsSkillsPanel.svelte';
 	import SettingsEditorPanel from '$lib/components/panels/SettingsEditorPanel.svelte';
 	import InjectedDocPanel from '$lib/components/panels/InjectedDocPanel.svelte';
@@ -187,6 +188,16 @@ import {
 		};
 	}
 
+	/** A terminal floor slot (Web Terminal spec Wave 5, 2026-09-24): no
+	 *  session, no preset — the panel self-gates on terminal.enabled. */
+	function makeTerminalPanel(): DsiPanelEntry {
+		return {
+			id: nextPanelId(),
+			kind: 'terminal',
+			width: clampPanelWidth(panelWidth)
+		};
+	}
+
 	/** A prompt-manager floor slot (ADR D6/D8): no session, no preset —
 	 *  the embedded manager content is W4's mount; this wave only mints
 	 *  the entry so the union, persistence, and rows are honest. */
@@ -269,7 +280,7 @@ import {
 
 	/** A settings-home explorer (The Settings Tree ADR 2026-09-18, D2/D3):
 	 *  a SESSION-LESS workspace-explorer over ~/.dsi or ~/.dsh, titled —
-	 *  the /dsisettings · /dshsettings content. `home` selects the
+	 *  the /dsi-settings · /dsh-settings content. `home` selects the
 	 *  DSI-local data plane; `sessionId: null` is honest provenance. */
 	function makeSettingsHomePanel(home: 'dsi' | 'dsh'): DsiWorkspaceExplorerPanel {
 		const root = appConfig().settingsHomes[home];
@@ -946,7 +957,7 @@ import {
 		// reads /api/prompts itself.
 		// Settings-home branch (The Settings Tree ADR 2026-09-18 D2): the
 		// explorer's OWN dedupe runs FIRST (Shared Tree D1 — the root is the
-		// key), so a repeat /dsisettings FOCUSES the open home panel.
+		// key), so a repeat /dsi-settings FOCUSES the open home panel.
 		if (request.kind === 'settings-home') {
 			const root = appConfig().settingsHomes[request.home];
 			const open = findWorkspaceExplorerPanel(panels, root);
@@ -964,6 +975,23 @@ import {
 				makeSettingsHomePanel(request.home),
 				anchorIdx >= 0 ? anchorIdx + 1 : insertionSlot()
 			);
+			return;
+		}
+		if (request.kind === 'terminal') {
+			// One live terminal (the manager-request grammar, spec Wave 5):
+			// the open terminal takes the FOCUS; only a miss inserts.
+			const open = panels.find((p) => p.kind === 'terminal');
+			if (open) {
+				selectedPanelId = open.id;
+				return;
+			}
+			const anchorIdx =
+				request.afterSessionId !== undefined
+					? panels.findIndex(
+							(p) => p.kind === 'conversation' && p.sessionId === request.afterSessionId
+						)
+					: -1;
+			insertPanel(makeTerminalPanel(), anchorIdx >= 0 ? anchorIdx + 1 : insertionSlot());
 			return;
 		}
 		if (request.kind === 'prompt-manager') {
@@ -1139,7 +1167,7 @@ import {
 		// panel via doAdd and never replace — a stray request of those kinds
 		// is an honest no-op, never a swap. /new and /loadinjected keep
 		// their swaps.
-		if (request.kind === 'prompt-manager' || request.kind === 'settings-home' || request.kind === 'skill-shelf') {
+		if (request.kind === 'terminal' || request.kind === 'prompt-manager' || request.kind === 'settings-home' || request.kind === 'skill-shelf') {
 			return;
 		}
 		// Injected-doc successor-swap (Loadinjected ADR D4: bare
@@ -1173,6 +1201,7 @@ import {
 	 *  silently no-op on the dead slot. Miss → false (caller reports). */
 	function doReplacePanelBySession(sessionId: string, request: PanelAddRequest): boolean {
 		if (
+			request.kind === 'terminal' ||
 			request.kind === 'prompt-manager' ||
 			request.kind === 'settings-home' ||
 			request.kind === 'injected-doc' ||
@@ -1196,6 +1225,7 @@ import {
 		// manager successor-swap before the session ladder) — the guard is
 		// defensive: a swap needs a successor session.
 		if (
+			request.kind === 'terminal' ||
 			request.kind === 'prompt-manager' ||
 			request.kind === 'settings-home' ||
 			request.kind === 'injected-doc' ||
@@ -1609,7 +1639,14 @@ import {
      full-props mount, the onNeedCold mount — is byte-identical at both
      sites. -->
 {#snippet panelBody(panel: DsiPanelEntry, floorPanelId: string | null, hostClose?: () => void)}
-	{#if panel.kind === 'prompt-manager'}
+	{#if panel.kind === 'terminal'}
+		<!-- Terminal branch (Web Terminal spec Wave 5) — kind switches before
+		     the session path: a terminal slot has no session. The content
+		     self-gates on terminal.enabled and owns its whole lifecycle. -->
+		<div class="panel-manager-body" data-testid="panel-terminal">
+			<TerminalPanel />
+		</div>
+	{:else if panel.kind === 'prompt-manager'}
 		<!-- Manager branch (ADR D6/D8) — KIND SWITCHES BEFORE THE SESSION
 		     PATH: a manager slot has no session, so the dead/cold ladder
 		     below is unreachable for it by type. The EMBEDDED host (W4):

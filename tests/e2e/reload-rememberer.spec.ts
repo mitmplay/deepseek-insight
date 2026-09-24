@@ -60,7 +60,7 @@ async function openShelf(page: import('@playwright/test').Page): Promise<void> {
 	await page.goto('/?sessionKey=' + STUB_SESSION_ID);
 	const composer = page.locator('textarea').first();
 	await expect(composer).toBeVisible();
-	await composer.fill('/dsi-skill-shelf');
+	await composer.fill('/dsi-skills');
 	await composer.press('Enter');
 	await expect(page.getByTestId('skill-shelf')).toBeVisible();
 }

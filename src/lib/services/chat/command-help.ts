@@ -38,6 +38,7 @@ export type CommandHelpTopic =
 	| 'permission'
 	| 'mention'
 	| 'promptmanager'
+	| 'terminal'
 	| 'dsisettings'
 	| 'dshsettings'
 	| 'skillshelf';
@@ -132,32 +133,44 @@ export const COMMAND_HELP: Record<CommandHelpTopic, CommandHelpEntry> = {
 			}
 		]
 	},
+	terminal: {
+		usage: '/dsi-terminal',
+		summary:
+			'Aims the operator terminal panel: the open terminal takes the focus; otherwise a NEW panel opens to the right of this conversation. Renders the disabled note unless terminal.enabled is set in settings.',
+		params: [],
+		examples: [
+			{
+				line: '/dsi-terminal',
+				description: 'The terminal panel comes forward — beside this conversation if it was closed.'
+			}
+		]
+	},
 	promptmanager: {
-		usage: '/promptmanager',
+		usage: '/dsi-prompts',
 		summary:
 			'Aims the prompts manager panel: if one is already open it takes the focus; otherwise it opens in a NEW panel to the right of this conversation — and takes the focus. Nothing you have open is ever replaced.',
 		params: [],
 		examples: [
 			{
-				line: '/promptmanager',
+				line: '/dsi-prompts',
 				description: 'The prompts manager panel comes forward — opened beside this conversation if it was closed.'
 			}
 		]
 	},
 	dsisettings: {
-		usage: '/dsisettings',
+		usage: '/dsi-settings',
 		summary:
 			'Aims the DSI settings home explorer (~/.dsi, titled “DSI - Settings”): the open explorer takes the focus; otherwise a NEW explorer opens to the right of this conversation, selected. settings.yaml opens as a tab and stays editable; saves are YAML-checked on read.',
 		params: [],
 		examples: [
 			{
-				line: '/dsisettings',
+				line: '/dsi-settings',
 				description: 'The DSI settings explorer comes forward — opened beside this conversation if it was closed.'
 			}
 		]
 	},
 	skillshelf: {
-		usage: '/dsi-skill-shelf [--reload]',
+		usage: '/dsi-skills [--reload]',
 		// The Shelf Voice W1.5 (BUG-2 fix): the shelf pilots localized help
 		// copy - getters resolve the ACTIVE locale at read time, so the card
 		// re-renders in the operator's language when the locale flips.
@@ -174,19 +187,19 @@ export const COMMAND_HELP: Record<CommandHelpTopic, CommandHelpEntry> = {
 		],
 		examples: [
 			{
-				line: '/dsi-skill-shelf',
+				line: '/dsi-skills',
 				get description() {
 					return t(m.commandHelpSkillshelfExampleBare);
 				}
 			},
 			{
-				line: '/dsi-skill-shelf --reload',
+				line: '/dsi-skills --reload',
 				get description() {
 					return t(m.commandHelpSkillshelfExampleReload);
 				}
 			},
 			{
-				line: '/dsi-skill-shelf ?',
+				line: '/dsi-skills ?',
 				get description() {
 					return t(m.commandHelpSkillshelfExampleHelp);
 				}
@@ -194,13 +207,13 @@ export const COMMAND_HELP: Record<CommandHelpTopic, CommandHelpEntry> = {
 		]
 	},
 	dshsettings: {
-		usage: '/dshsettings',
+		usage: '/dsh-settings',
 		summary:
 			'Aims the harness settings home explorer (~/.dsh, titled “DSH - Settings”): the open explorer takes the focus; otherwise a NEW explorer opens to the right of this conversation, selected. settings.yaml opens as a tab and stays editable; the running harness picks edits up through its own file watcher.',
 		params: [],
 		examples: [
 			{
-				line: '/dshsettings',
+				line: '/dsh-settings',
 				description: 'The DSH settings explorer comes forward — opened beside this conversation if it was closed.'
 			}
 		]
@@ -273,30 +286,38 @@ export const MENU_GESTURES: readonly DsiGestureRow[] = [
 	},
 	{
 		name: 'promptmanager',
-		display: '/promptmanager',
-		seed: '/promptmanager ',
+		display: '/dsi-prompts',
+		seed: '/dsi-prompts ',
 		// W6 follow-up (2026-09-06): the D7 command joins the menu — one
 		// row per COMMAND_HELP, the zero-extra-names rule holds.
 		description: COMMAND_HELP.promptmanager.summary
 	},
 	{
 		name: 'dsisettings',
-		display: '/dsisettings',
-		seed: '/dsisettings ',
+		display: '/dsi-settings',
+		seed: '/dsi-settings ',
 		// Settings Panel ADR D3 (2026-09-07): one row per COMMAND_HELP,
 		// the zero-extra-names rule holds.
 		description: COMMAND_HELP.dsisettings.summary
 	},
 	{
 		name: 'dshsettings',
-		display: '/dshsettings',
-		seed: '/dshsettings ',
+		display: '/dsh-settings',
+		seed: '/dsh-settings ',
 		description: COMMAND_HELP.dshsettings.summary
 	},
 	{
+		name: 'terminal',
+		display: '/dsi-terminal',
+		seed: '/dsi-terminal ',
+		// Web Terminal spec (2026-09-24): one row per COMMAND_HELP, the
+		// zero-extra-names rule holds.
+		description: COMMAND_HELP.terminal.summary
+	},
+	{
 		name: 'skillshelf',
-		display: '/dsi-skill-shelf',
-		seed: '/dsi-skill-shelf ',
+		display: '/dsi-skills',
+		seed: '/dsi-skills ',
 		// The Shelf Voice W1 (RCA fix, 2026-09-21): one row per COMMAND_HELP,
 		// the zero-extra-names rule holds - and the completeness guard now
 		// enforces it. Getter (W1.5): the description resolves the ACTIVE

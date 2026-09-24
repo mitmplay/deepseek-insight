@@ -91,7 +91,9 @@ export default defineConfig({
 			// (The Session Full Path W1, 2026-09-14)
 			['tests/unit/session-path.test.ts', 'node'],
 			['tests/unit/dsh-sessions-root-config.test.ts', 'node'],
-			['tests/unit/api-dsh-session-path-route.test.ts', 'node']
+			['tests/unit/api-dsh-session-path-route.test.ts', 'node'],
+			// terminal route seams — server-only registry/session mocks
+			['tests/unit/terminal-route-seams.test.ts', 'node']
 		],
 		coverage: {
 			provider: 'v8',

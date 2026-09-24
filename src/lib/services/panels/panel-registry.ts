@@ -26,6 +26,7 @@
  * session path unreachable for it. */
 export type PanelAddRequest =
 	| ConversationPanelAddRequest
+	| TerminalPanelAddRequest
 	| ManagerPanelAddRequest
 	| SettingsHomePanelAddRequest
 	| InjectedDocAddRequest
@@ -62,7 +63,17 @@ export interface ConversationPanelAddRequest {
 	keepSelection?: boolean;
 }
 
-/** The /promptmanager request (re-aimed 2026-09-17, The Focus Command ADR
+/** The /dsi-terminal request (Web Terminal spec Wave 5, 2026-09-24): aims the
+ *  operator terminal as a floor panel — the manager-request grammar: ONE
+ *  live terminal, a repeat command FOCUSES the open copy. The panel's
+ *  content self-gates on terminal.enabled (its own /api/terminal probe),
+ *  so the request carries no flag facts. */
+export interface TerminalPanelAddRequest {
+	kind: 'terminal';
+	afterSessionId?: string;
+}
+
+/** The /dsi-prompts request (re-aimed 2026-09-17, The Focus Command ADR
  *  D1/D3): aims the prompts-manager content as a floor panel.
  *  `afterSessionId` anchors placement to the composer's panel; ONE live
  *  manager — the floor dedupes and focuses the open copy (D3, retired
@@ -72,7 +83,7 @@ export interface ManagerPanelAddRequest {
 	afterSessionId?: string;
 }
 
-/** The /dsisettings and /dshsettings request (re-pointed by The Settings
+/** The /dsi-settings and /dsh-settings request (re-pointed by The Settings
  *  Tree ADR, 2026-09-18, D2): opens a SESSION-LESS workspace-explorer
  *  over the settings HOME folder (~/.dsi | ~/.dsh), titled — not the
  *  retired single-file settings-editor. Same placement grammar as the
@@ -100,7 +111,7 @@ export interface InjectedDocAddRequest {
 	afterSessionId?: string;
 }
 
-/** The /dsi-skill-shelf request (The Skill Shelf ADR, 2026-09-20, D1):
+/** The /dsi-skills request (The Skill Shelf ADR, 2026-09-20, D1):
  *  aims the SettingsSkillsPanel — ONE live shelf, the floor dedupes and
  *  focuses the open copy (the manager-request grammar). No session: the
  *  shelf reads the DSI-local /api/skills routes itself. */
