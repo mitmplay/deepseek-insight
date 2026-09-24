@@ -6,7 +6,7 @@
  */
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
-import GoalCard from '$lib/components/message/GoalCard.svelte';
+import GoalCard from '$lib/components/message/cards/GoalCard.svelte';
 
 function render(props: Record<string, unknown> & { toolName: string }) {
 	const target = document.createElement('div');

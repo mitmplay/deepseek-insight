@@ -7,7 +7,7 @@
 	 * state. `inStrip` controls whether the chip sits inside a
 	 * .suggest-strip ancestor (the ⋯ menu's alignment anchor).
 	 */
-	import StripChip from '../../src/lib/components/chat/StripChip.svelte';
+	import StripChip from '../../src/lib/components/chat/suggest-strip/StripChip.svelte';
 	import type { SuggestedPrompt } from '../../src/lib/services/chat/prompt-trigger.js';
 
 	let {

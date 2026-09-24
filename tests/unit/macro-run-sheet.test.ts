@@ -13,7 +13,7 @@
  */
 import { mount, unmount, flushSync } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import MacroRunSheet from '$lib/components/chat/MacroRunSheet.svelte';
+import MacroRunSheet from '$lib/components/conversation/MacroRunSheet.svelte';
 import type { MacroLineRecord, MacroRunState } from '$lib/services/chat/macro-runner.svelte';
 
 function rec(

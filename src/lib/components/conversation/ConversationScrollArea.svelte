@@ -20,17 +20,17 @@
 	 * floating anchor stack (jumper + back-to-top act on this scroller).
 	 */
 	import LoadOlderSentinel from '$lib/components/message/LoadOlderSentinel.svelte';
-	import PromptBubble from '$lib/components/message/PromptBubble.svelte';
+	import PromptBubble from '$lib/components/message/prompt/PromptBubble.svelte';
 	import ContextInjection from '$lib/components/message/ContextInjection.svelte';
 	import ContextSnapshotBody from '$lib/components/message/ContextSnapshotBody.svelte';
-	import SystemPromptChip from '$lib/components/message/SystemPromptChip.svelte';
-	import ChipPopup from '$lib/components/message/ChipPopup.svelte';
-	import AssistantTurn from '$lib/components/message/AssistantTurn.svelte';
+	import SystemPromptChip from '$lib/components/message/chips/SystemPromptChip.svelte';
+	import ChipPopup from '$lib/components/message/assistant/ChipPopup.svelte';
+	import AssistantTurn from '$lib/components/message/assistant/AssistantTurn.svelte';
 	import MarkdownContent from '$lib/components/common/viewers/MarkdownContent.svelte';
-	import InlineToolCalls from '$lib/components/message/InlineToolCalls.svelte';
-	import TurnProcessDisclosure from '$lib/components/chat/TurnProcessDisclosure.svelte';
-	import ApprovalCard from '$lib/components/answerer/ApprovalCard.svelte';
-	import QuestionCard from '$lib/components/answerer/QuestionCard.svelte';
+	import InlineToolCalls from '$lib/components/message/assistant/InlineToolCalls.svelte';
+	import TurnProcessDisclosure from '$lib/components/message/assistant/TurnProcessDisclosure.svelte';
+	import ApprovalCard from '$lib/components/card/ApprovalCard.svelte';
+	import QuestionCard from '$lib/components/card/QuestionCard.svelte';
 	import { turnLastTime, turnStartTime, turnUsage, turnText, splitRuns, groupTurns, turnAnchorSeq, turnProcess, type TurnMember, type TurnRun } from '$lib/utils/turn-grouping';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { appConfig } from '$lib/services/config/app-config.svelte';

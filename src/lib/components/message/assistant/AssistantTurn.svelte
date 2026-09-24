@@ -26,9 +26,9 @@
 	 * members through the existing components (reasoning section, markdown
 	 * body, tool chips); this component owns the grouping visual contract.
 	 */
-	import ToolsMessage from '$lib/components/message/ToolsMessage.svelte';
-	import RelativeTime from '$lib/components/message/RelativeTime.svelte';
-	import TurnUsagePanel from '$lib/components/message/TurnUsagePanel.svelte';
+	import ToolsMessage from '$lib/components/message/common/ToolsMessage.svelte';
+	import RelativeTime from '$lib/components/message/common/RelativeTime.svelte';
+	import TurnUsagePanel from '$lib/components/message/assistant/TurnUsagePanel.svelte';
 	import { formatRunDuration } from '$lib/utils/time';
 	import type { DsiTokenUsage } from '$lib/types';
 

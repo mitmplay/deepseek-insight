@@ -10,7 +10,7 @@
  */
 import { mount, unmount, flushSync } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import SuggestStrip from '$lib/components/chat/SuggestStrip.svelte';
+import SuggestStrip from '$lib/components/chat/suggest-strip/SuggestStrip.svelte';
 import type { SuggestedPrompt } from '$lib/services/chat/prompt-trigger.js';
 
 function row(partial: Partial<SuggestedPrompt> = {}): SuggestedPrompt {

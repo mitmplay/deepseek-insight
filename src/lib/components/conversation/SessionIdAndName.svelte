@@ -4,9 +4,9 @@
 
 	import { copyWithFeedback } from '$lib/utils/clipboard.js';
 
-	import DisplayWorkspace from '$lib/components/chat/DisplayWorkspace.svelte';
-	import EditingTitle from '$lib/components/chat/EditingTitle.svelte';
-	import SessionAccess from '$lib/components/chat/SessionAccess.svelte';
+	import DisplayWorkspace from '$lib/components/conversation/DisplayWorkspace.svelte';
+	import EditingTitle from '$lib/components/conversation/EditingTitle.svelte';
+	import SessionAccess from '$lib/components/conversation/SessionAccess.svelte';
 
 	/**
 	 * SessionIdAndName — the header's identity cluster (extracted from the

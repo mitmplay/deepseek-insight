@@ -14,7 +14,7 @@
 import { flushSync } from 'svelte';
 import { mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import StripChip from '$lib/components/chat/StripChip.svelte';
+import StripChip from '$lib/components/chat/suggest-strip/StripChip.svelte';
 import StripChipHost from '../fixtures/StripChipHost.svelte';
 import type { SuggestedPrompt } from '$lib/services/chat/prompt-trigger.js';
 

@@ -15,8 +15,8 @@
 	 * placement); children-only mounts (context chips) get neither.
 	 */
 	import MarkdownContent from '$lib/components/common/viewers/MarkdownContent.svelte';
-	import ToolsMessage from '$lib/components/message/ToolsMessage.svelte';
-	import RelativeTime from '$lib/components/message/RelativeTime.svelte';
+	import ToolsMessage from '$lib/components/message/common/ToolsMessage.svelte';
+	import RelativeTime from '$lib/components/message/common/RelativeTime.svelte';
 
 	let {
 		role,

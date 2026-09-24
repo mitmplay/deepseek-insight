@@ -7,7 +7,7 @@
  */
 import { mount, unmount, flushSync } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import TurnProcessDisclosure from '$lib/components/chat/TurnProcessDisclosure.svelte';
+import TurnProcessDisclosure from '$lib/components/message/assistant/TurnProcessDisclosure.svelte';
 
 function mountRow(props: Record<string, unknown> = {}) {
 	const target = document.createElement('div');

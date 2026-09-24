@@ -46,7 +46,7 @@
 	import { page } from '$app/state';
 	import { appConfig } from '$lib/services/config/app-config.svelte';
 	import AppSidebar from '$lib/components/common/layout/AppSidebar.svelte';
-	import ConversationPanel from '$lib/components/chat/ConversationPanel.svelte';
+	import ConversationPanel from '$lib/components/conversation/ConversationPanel.svelte';
 	import PromptManagerPanel from '$lib/components/prompt-manager/PromptManagerPanel.svelte';
 	import TerminalDesk from '$lib/components/terminal/TerminalDesk.svelte';
 	import SettingsSkillsPanel from '$lib/components/settings-skills/SettingsSkillsPanel.svelte';

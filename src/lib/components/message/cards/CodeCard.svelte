@@ -29,7 +29,7 @@
 	 */
 	import { Code2 } from '@lucide/svelte';
 	import ToolCallDetail from '$lib/components/message/ToolCallDetail.svelte';
-	import FileContentViewer from '$lib/components/message/FileContentViewer.svelte';
+	import FileContentViewer from '$lib/components/common/viewers/FileContentViewer.svelte';
 	import TerminalContentViewer from '$lib/components/common/viewers/TerminalContentViewer.svelte';
 	import { highlightCode } from '$lib/utils/highlight-code';
 	import { truncate } from '$lib/utils/truncate';

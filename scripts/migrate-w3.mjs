@@ -110,7 +110,7 @@ for (const locale of ['en', 'zh', 'id']) {
 // ---------- component replacements ----------
 // [file, from, to]
 const R = [
-	['src/lib/components/answerer/ApprovalCard.svelte', 'Tool approval:', '{m.toolApproval()}'],
+	['src/lib/components/card/ApprovalCard.svelte', 'Tool approval:', '{m.toolApproval()}'],
 	['src/lib/components/chat/AttachmentManager.svelte', 'title="Attach images"', 'title={m.attachImages()}'],
 	['src/lib/components/chat/AttachmentManager.svelte', 'aria-label="Attach images"', 'aria-label={m.attachImages()}'],
 	['src/lib/components/chat/CommandHelpCard.svelte', 'aria-label="Command help"', 'aria-label={m.commandHelp()}'],

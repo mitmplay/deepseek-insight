@@ -5,7 +5,7 @@
 import { flushSync } from 'svelte';
 import { mount, unmount } from 'svelte';
 import { describe, expect, it } from 'vitest';
-import WorkflowRunCard from '../../src/lib/components/message/WorkflowRunCard.svelte';
+import WorkflowRunCard from '../../src/lib/components/message/cards/WorkflowRunCard.svelte';
 import type { DsiEntry, DsiWorkflowAgent } from '$lib/types';
 
 function mountCard(entry: Extract<DsiEntry, { kind: 'workflow-run' }>) {

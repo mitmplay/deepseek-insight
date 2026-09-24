@@ -10,7 +10,7 @@
 import { flushSync } from 'svelte';
 import { mount, unmount } from 'svelte';
 import { describe, expect, it } from 'vitest';
-import CodeCard from '$lib/components/message/CodeCard.svelte';
+import CodeCard from '$lib/components/message/cards/CodeCard.svelte';
 import type { DsiCodeDispatch } from '$lib/types';
 
 const ARGS = JSON.stringify({ description: 'Read AIP and OCI READMEs', code: 'const r = await tools.read({ file_path: "/x/a.md" });' });
@@ -186,7 +186,7 @@ describe('CodeCard — dispatch sections', () => {
 describe('FileContentViewer markdown — OCI-parity Copy/Raw pair (2026-09-05)', () => {
 	it('the .md dispatch body shows the hover Copy + Raw toggle top-right', async () => {
 		const { mount, unmount } = await import('svelte');
-		const FileContentViewer = (await import('$lib/components/message/FileContentViewer.svelte')).default;
+		const FileContentViewer = (await import('$lib/components/common/viewers/FileContentViewer.svelte')).default;
 		const target = document.createElement('div');
 		document.body.appendChild(target);
 		const comp = mount(FileContentViewer, {

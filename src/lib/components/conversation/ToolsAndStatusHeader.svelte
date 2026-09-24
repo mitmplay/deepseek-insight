@@ -21,9 +21,9 @@
 	 */
 	import { Check, Copy } from '@lucide/svelte';
 	import CanvasCopyButton from '$lib/components/common/buttons/CanvasCopyButton.svelte';
-	import ForkButton from '$lib/components/chat/ForkButton.svelte';
-	import OpenParentButton from '$lib/components/chat/OpenParentButton.svelte';
-	import PlanModeChip from '$lib/components/chat/PlanModeChip.svelte';
+	import ForkButton from '$lib/components/conversation/ForkButton.svelte';
+	import OpenParentButton from '$lib/components/conversation/OpenParentButton.svelte';
+	import PlanModeChip from '$lib/components/conversation/PlanModeChip.svelte';
 	import { copyWithFeedback } from '$lib/utils/clipboard';
 	import type { DsiPlanProjection } from '$lib/services/conversation/plan-projection';
 

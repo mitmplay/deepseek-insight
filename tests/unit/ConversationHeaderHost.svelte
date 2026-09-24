@@ -1,5 +1,5 @@
 <script lang="ts">
-	import ConversationHeader from '$lib/components/chat/ConversationHeader.svelte';
+	import ConversationHeader from '$lib/components/conversation/ConversationHeader.svelte';
 
 	let {
 		sessionId = 'ses_test',

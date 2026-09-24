@@ -3,7 +3,7 @@
 	import { t } from '$lib/services/locale/locale-state.svelte';
 	import PromptInputText from '$lib/components/chat/PromptInputText.svelte';
 	import SlashMenu, { slashMenuMatches } from '$lib/components/chat/SlashMenu.svelte';
-	import SuggestStrip from '$lib/components/chat/SuggestStrip.svelte';
+	import SuggestStrip from '$lib/components/chat/suggest-strip/SuggestStrip.svelte';
 	import { ArrowUp, X } from '@lucide/svelte';
 	import {
 		acceptSyncSlashExecute,

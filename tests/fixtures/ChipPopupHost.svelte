@@ -4,7 +4,7 @@
 	 * test can assert the scroll box actually lands in the host's state
 	 * (the stick-to-bottom attach point).
 	 */
-	import ChipPopup from '$lib/components/message/ChipPopup.svelte';
+	import ChipPopup from '$lib/components/message/assistant/ChipPopup.svelte';
 	let scroller: HTMLElement | null = $state(null);
 </script>
 

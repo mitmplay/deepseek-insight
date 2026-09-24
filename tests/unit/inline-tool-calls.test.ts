@@ -13,7 +13,7 @@
 import { flushSync } from 'svelte';
 import { mount, unmount } from 'svelte';
 import { describe, expect, it, vi } from 'vitest';
-import InlineToolCalls from '$lib/components/message/InlineToolCalls.svelte';
+import InlineToolCalls from '$lib/components/message/assistant/InlineToolCalls.svelte';
 import ThinkHost from '../fixtures/ThinkHost.svelte';
 import type { DsiEntry, DsiReadView } from '$lib/types';
 import type { TurnMember, ContextEntry, AssistantSideEntry } from '$lib/utils/turn-grouping';

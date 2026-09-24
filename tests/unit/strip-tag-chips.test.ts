@@ -11,8 +11,8 @@
  */
 import { mount, unmount, flushSync } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import SuggestStrip from '$lib/components/chat/SuggestStrip.svelte';
-import StripTagChips from '$lib/components/chat/StripTagChips.svelte';
+import SuggestStrip from '$lib/components/chat/suggest-strip/SuggestStrip.svelte';
+import StripTagChips from '$lib/components/chat/suggest-strip/StripTagChips.svelte';
 import { setWorkspaceState } from '$lib/services/conversation/workspace-context.svelte';
 import type { SuggestedPrompt } from '$lib/services/chat/prompt-trigger';
 

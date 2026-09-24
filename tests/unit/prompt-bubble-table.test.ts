@@ -7,7 +7,7 @@
  */
 import { mount, unmount, flushSync } from 'svelte';
 import { describe, expect, it, vi } from 'vitest';
-import PromptBubble from '$lib/components/message/PromptBubble.svelte';
+import PromptBubble from '$lib/components/message/prompt/PromptBubble.svelte';
 
 // The EXACT table from the session's final report (em-dashes, backticks,
 // 6 data rows, empty 3-cell header) — verbatim wire shape.

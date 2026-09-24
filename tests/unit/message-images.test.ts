@@ -4,7 +4,7 @@
  */
 import { mount, unmount, flushSync } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import MessageImages from '$lib/components/message/MessageImages.svelte';
+import MessageImages from '$lib/components/message/prompt/MessageImages.svelte';
 import type { DsiImageRef } from '$lib/types';
 import {
 	invalidateSessionAttachmentUrls,

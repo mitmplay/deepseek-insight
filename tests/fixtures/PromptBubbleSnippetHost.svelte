@@ -7,7 +7,7 @@
 	AssistantTurn now.
 -->
 <script lang="ts">
-	import PromptBubble from '$lib/components/message/PromptBubble.svelte';
+	import PromptBubble from '$lib/components/message/prompt/PromptBubble.svelte';
 	import StreamingIndicator from '$lib/components/chat/StreamingIndicator.svelte';
 
 	let { text = 'thinking…', time }: { text?: string; time?: number } = $props();

@@ -6,7 +6,7 @@
  */
 import { createRawSnippet, mount, unmount, flushSync } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import PromptBubble from '$lib/components/message/PromptBubble.svelte';
+import PromptBubble from '$lib/components/message/prompt/PromptBubble.svelte';
 import type { DsiImageRef } from '$lib/types';
 import { invalidateSessionAttachmentUrls } from '$lib/services/conversation/attachment-urls.svelte';
 

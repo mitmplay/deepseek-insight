@@ -20,17 +20,17 @@
 	 */
 	import ToolPeekButton from '$lib/components/message/ToolPeekButton.svelte';
 	import ReasoningSection from '$lib/components/message/ReasoningSection.svelte';
-	import ToolCallChip from '$lib/components/message/ToolCallChip.svelte';
+	import ToolCallChip from '$lib/components/message/chips/ToolCallChip.svelte';
 	import ToolCallDetail from '$lib/components/message/ToolCallDetail.svelte';
-	import TurnErrorChip from '$lib/components/message/TurnErrorChip.svelte';
-	import ChipPopup from '$lib/components/message/ChipPopup.svelte';
+	import TurnErrorChip from '$lib/components/message/chips/TurnErrorChip.svelte';
+	import ChipPopup from '$lib/components/message/assistant/ChipPopup.svelte';
 	import ContextInjection from '$lib/components/message/ContextInjection.svelte';
-import ContextSnapshotBody from '$lib/components/message/ContextSnapshotBody.svelte';
-	import WorkflowRunCard from '$lib/components/message/WorkflowRunCard.svelte';
-	import QuestionCard from '$lib/components/answerer/QuestionCard.svelte';
-	import GoalCard from '$lib/components/message/GoalCard.svelte';
-	import CodeCard from '$lib/components/message/CodeCard.svelte';
-	import TodoCard from '$lib/components/message/TodoCard.svelte';
+	import ContextSnapshotBody from '$lib/components/message/ContextSnapshotBody.svelte';
+	import WorkflowRunCard from '$lib/components/message/cards/WorkflowRunCard.svelte';
+	import QuestionCard from '$lib/components/card/QuestionCard.svelte';
+	import GoalCard from '$lib/components/message/cards/GoalCard.svelte';
+	import CodeCard from '$lib/components/message/cards/CodeCard.svelte';
+	import TodoCard from '$lib/components/message/cards/TodoCard.svelte';
 	import MarkdownContent from '$lib/components/common/viewers/MarkdownContent.svelte';
 	import ReasoningContentViewer from '$lib/components/common/viewers/ReasoningContentViewer.svelte';
 	import type { TurnMember } from '$lib/utils/turn-grouping';

@@ -13,9 +13,9 @@
 	import { DEFAULT_IMAGE_LIMITS } from '$lib/services/conversation/image-limits';
 	import { appConfig, loadAppConfig } from '$lib/services/config/app-config.svelte';
 	import { ArrowUp, Square, SquareCheck } from '@lucide/svelte';
-	import SuggestStrip from './SuggestStrip.svelte';
+	import SuggestStrip from './suggest-strip/SuggestStrip.svelte';
 	import PromptInputText from './PromptInputText.svelte';
-	import CommandHelpCard from './CommandHelpCard.svelte';
+	import CommandHelpCard from '../card/CommandHelpCard.svelte';
 	import SlashMenu, { slashMenuMatches } from './SlashMenu.svelte';
 	import PromptsManagerDialog from '../prompt-manager/PromptsManagerDialog.svelte';
 	import {

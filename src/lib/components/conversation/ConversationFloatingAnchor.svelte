@@ -12,7 +12,7 @@
 	import UserMessagesButton from '$lib/components/common/buttons/UserMessagesButton.svelte';
 	import BackToTheEdgeButton from '$lib/components/common/buttons/BackToTheEdgeButton.svelte';
 	import PlanButton from '$lib/components/common/buttons/PlanButton.svelte';
-	import InjectedShelfButton from '$lib/components/chat/InjectedShelfButton.svelte';
+	import InjectedShelfButton from '$lib/components/conversation/InjectedShelfButton.svelte';
 	import { groupTurns } from '$lib/utils/turn-grouping';
 	import type { TodoItem } from '$lib/utils/todo-lists';
 	import type { DsiEntry } from '$lib/types';

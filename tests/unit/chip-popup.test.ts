@@ -7,7 +7,7 @@ import { createRawSnippet, flushSync } from 'svelte';
 import { mount, unmount } from 'svelte';
 import type { Snippet } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
-import ChipPopup from '$lib/components/message/ChipPopup.svelte';
+import ChipPopup from '$lib/components/message/assistant/ChipPopup.svelte';
 import ChipPopupHost from '../fixtures/ChipPopupHost.svelte';
 
 /** ChipPopup's prop shape (inline — svelte-check's ComponentProps drifts). */

@@ -8,7 +8,7 @@
 import { flushSync } from 'svelte';
 import { mount, unmount } from 'svelte';
 import { describe, expect, it } from 'vitest';
-import TurnUsagePanel from '$lib/components/message/TurnUsagePanel.svelte';
+import TurnUsagePanel from '$lib/components/message/assistant/TurnUsagePanel.svelte';
 import type { DsiTokenUsage } from '$lib/types';
 
 function mountPanel(props: { usage: DsiTokenUsage; class?: string }) {

@@ -8,7 +8,7 @@
  */
 import { mount, unmount, flushSync, type ComponentProps } from 'svelte';
 import { describe, expect, it, vi } from 'vitest';
-import SessionIdAndName from '$lib/components/chat/SessionIdAndName.svelte';
+import SessionIdAndName from '$lib/components/conversation/SessionIdAndName.svelte';
 
 function mountCluster(props: Partial<ComponentProps<typeof SessionIdAndName>> = {}) {
 	const target = document.createElement('div');

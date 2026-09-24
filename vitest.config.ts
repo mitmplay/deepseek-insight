@@ -51,6 +51,12 @@ export default defineConfig({
 	},
 	test: {
 		environment: 'happy-dom',
+		// Global fetch double (RCA 2026-09-24): unstubbed relative fetch() from
+		// mounted components rode happy-dom's http://localhost:3000 base into a
+		// real ECONNREFUSED AggregateError storm (~75 per run, stderr noise only).
+		// Same-origin /api/ URLs get a safe synthetic 404; per-test stubs
+		// (installDefaultFetch / vi.stubGlobal) replace this when installed.
+		setupFiles: ['tests/stubs/fetch-double.ts'],
 		include: ['tests/unit/**/*.{test,spec}.{ts,js}', 'tests/live/**/*.{test,spec}.{ts,js}'],
 		exclude: ['node_modules', '.svelte-kit', 'dist'],
 		environmentMatchGlobs: [

@@ -12,7 +12,7 @@
 import { flushSync } from 'svelte';
 import { mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import SystemPromptChip from '$lib/components/message/SystemPromptChip.svelte';
+import SystemPromptChip from '$lib/components/message/chips/SystemPromptChip.svelte';
 
 function mountChip(props: { text: string; open?: boolean; ontoggle?: () => void }) {
 	const target = document.createElement('div');

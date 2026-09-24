@@ -15,7 +15,7 @@
 import { mount, unmount, flushSync, type ComponentProps } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import SessionIdAndName from '$lib/components/chat/SessionIdAndName.svelte';
+import SessionIdAndName from '$lib/components/conversation/SessionIdAndName.svelte';
 
 const PATH = '/Users/op/.dsh/sessions/--Users-op-proj--/session-abc-123';
 

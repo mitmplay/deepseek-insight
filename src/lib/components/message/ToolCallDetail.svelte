@@ -10,7 +10,7 @@
 	 * markdown files as prose and source files with syntax highlighting
 	 * (ts/js/svelte/css/json/…), OCI ChipDetail parity.
 	 */
-	import FileContentViewer from '$lib/components/message/FileContentViewer.svelte';
+	import FileContentViewer from '$lib/components/common/viewers/FileContentViewer.svelte';
 	import type { DsiReadView } from '$lib/types';
 
 	let {

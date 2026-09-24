@@ -5,7 +5,7 @@
  */
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
-import MessageBubble from '$lib/components/message/MessageBubble.svelte';
+import MessageBubble from '$lib/components/message/prompt/MessageBubble.svelte';
 
 type Props = {
 	role?: 'user' | 'assistant';

@@ -5,7 +5,7 @@
 	 * so tests can grow the reasoning text AFTER mount — the streaming
 	 * shape the popup's stick-to-bottom follows (ScrollAreaHost pattern).
 	 */
-	import InlineToolCalls from '../../src/lib/components/message/InlineToolCalls.svelte';
+	import InlineToolCalls from '../../src/lib/components/message/assistant/InlineToolCalls.svelte';
 	import type { DsiEntry } from '$lib/types';
 	import type { AssistantSideEntry } from '$lib/utils/turn-grouping';
 

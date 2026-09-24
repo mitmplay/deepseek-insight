@@ -16,7 +16,7 @@
 import { flushSync } from 'svelte';
 import { mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
-import FileContentViewer from '$lib/components/message/FileContentViewer.svelte';
+import FileContentViewer from '$lib/components/common/viewers/FileContentViewer.svelte';
 import type { DsiReadLine, DsiReadView } from '$lib/types';
 
 function line(number: number, text = `line ${number}`): DsiReadLine {

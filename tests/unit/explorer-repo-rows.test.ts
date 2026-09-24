@@ -143,7 +143,7 @@ describe('explorer repo rows — Git Eye task 3.1-T', () => {
 			ok: true,
 			enabled: true,
 			truncated: false,
-			files: [{ code: 'M', path: 'src/lib/components/answerer/ApprovalCard.svelte' }]
+			files: [{ code: 'M', path: 'src/lib/components/card/ApprovalCard.svelte' }]
 		};
 
 		const view = mountPanel('/ws', ['src', 'src/lib']);
