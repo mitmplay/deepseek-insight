@@ -232,7 +232,7 @@
 		<button
 			type="button"
 			bind:this={triggerEl}
-			class="inline-flex items-center gap-1 rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50"
+			class="inline-flex items-center gap-1 rounded-md border border-[#7c3aed] px-2 py-1 text-xs font-medium text-[#7c3aed] hover:bg-slate-100 disabled:opacity-50"
 			disabled={disabled || picking !== null}
 			aria-haspopup="listbox"
 			aria-expanded={open}
@@ -244,7 +244,7 @@
 			<!-- Shield glyphs (DSH design set 1556, ported verbatim): check =
 			     read-only, pencil = workspace write, exclamation = full
 			     access; currentColor so the trigger tints them. -->
-			<span class="text-slate-500" aria-hidden="true">
+			<span class="text-[#7c3aed]" aria-hidden="true">
 				{#if (picking ?? permission.current) === 'read-only'}
 					<svg width="14" height="14" viewBox="0 0 16 16" fill="none">
 						<path d="M8.20554 0.899994L14.7901 3.36857V7.01026C14.7901 12 11.0466 14.2103 8.20554 15.3C5.36446 14.2103 1.62012 12 1.62012 7.01026V3.36857L8.20554 0.899994Z" stroke="currentColor" stroke-width="1.31831" stroke-linejoin="round" />
@@ -267,7 +267,7 @@
 				{/if}
 			</span>
 			{currentLabel}
-			<span class="text-slate-400" aria-hidden="true">▾</span>
+			<span class="text-[#7c3aed]" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
 		</button>
 
 		{#if open}

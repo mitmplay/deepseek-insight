@@ -109,11 +109,11 @@ describe('SlashMenu — sections + order', () => {
 		expect(names).toEqual([
 			'new',
 			'workspace',
+			'terminal', // Web Terminal spec (2026-09-24): /dsi-terminal joins the menu
 			'promptmanager',
+			'skillshelf', // The Shelf Voice W1 (2026-09-21): /dsi-skills joins the menu
 			'dsisettings',
 			'dshsettings',
-			'terminal', // Web Terminal spec (2026-09-24): /dsi-terminal joins the menu
-			'skillshelf', // The Shelf Voice W1 (2026-09-21): /dsi-skills joins the menu
 			'@mention'
 		]);
 		const cmdNames = h.qa('[data-testid="slash-command-row"]').map((el) => el.getAttribute('data-name'));
@@ -128,11 +128,11 @@ describe('SlashMenu — sections + order', () => {
 		const rows = h.qa('[data-testid="slash-gesture-row"]');
 		expect(rows[0]?.textContent).toContain('/new');
 		expect(rows[1]?.textContent).toContain('/workspace'); // joined 2026-09-15
-		expect(rows[2]?.textContent).toContain('/dsi-prompts'); // joined 2026-09-06
-		expect(rows[3]?.textContent).toContain('/dsi-settings'); // joined 2026-09-07
-		expect(rows[4]?.textContent).toContain('/dsh-settings'); // joined 2026-09-07
-		expect(rows[5]?.textContent).toContain('/dsi-terminal'); // Web Terminal spec (2026-09-24)
-		expect(rows[6]?.textContent).toContain('/dsi-skills'); // The Shelf Voice W1 (2026-09-21)
+		expect(rows[2]?.textContent).toContain('/dsi-terminal'); // Web Terminal spec (2026-09-24)
+		expect(rows[3]?.textContent).toContain('/dsi-prompts'); // joined 2026-09-06
+		expect(rows[4]?.textContent).toContain('/dsi-skills'); // The Shelf Voice W1 (2026-09-21)
+		expect(rows[5]?.textContent).toContain('/dsi-settings'); // joined 2026-09-07
+		expect(rows[6]?.textContent).toContain('/dsh-settings'); // joined 2026-09-07
 		expect(rows[7]?.textContent).toContain('@mention'); // /loadinjected retired 2026-09-17
 		const last = rows[rows.length - 1];
 		expect(last?.textContent).toContain('@mention');
@@ -188,14 +188,14 @@ describe('SlashMenu — kind-aware picks', () => {
 				(rows[1] as HTMLElement).click();
 		flushSync();
 		expect(h.onpickgesture).toHaveBeenCalledWith('/workspace '); // joined 2026-09-15
-		(rows[2] as HTMLElement).click();
+		(rows[3] as HTMLElement).click();
 		expect(h.onpickgesture).toHaveBeenCalledWith('/dsi-prompts ');
-		(rows[6] as HTMLElement).click();
-		flushSync();
-		expect(h.onpickgesture).toHaveBeenCalledWith('/dsi-skills '); // The Shelf Voice W1 (2026-09-21)
-		(rows[5] as HTMLElement).click();
+		(rows[2] as HTMLElement).click();
 		flushSync();
 		expect(h.onpickgesture).toHaveBeenCalledWith('/dsi-terminal '); // Web Terminal spec (2026-09-24)
+		(rows[4] as HTMLElement).click();
+		flushSync();
+		expect(h.onpickgesture).toHaveBeenCalledWith('/dsi-skills '); // The Shelf Voice W1 (2026-09-21)
 		(rows[7] as HTMLElement).click();
 		flushSync();
 		expect(h.onpickgesture).toHaveBeenCalledWith('@session-'); // the mention scaffold (last row — /loadinjected retired 2026-09-17)

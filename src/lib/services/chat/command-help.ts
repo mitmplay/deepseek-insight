@@ -293,12 +293,32 @@ export const MENU_GESTURES: readonly DsiGestureRow[] = [
 		description: COMMAND_HELP.workspace.summary
 	},
 	{
+		name: 'terminal',
+		display: '/dsi-terminal',
+		seed: '/dsi-terminal ',
+		// Web Terminal spec (2026-09-24): one row per COMMAND_HELP, the
+		// zero-extra-names rule holds.
+		description: COMMAND_HELP.terminal.summary
+	},
+	{
 		name: 'promptmanager',
 		display: '/dsi-prompts',
 		seed: '/dsi-prompts ',
 		// W6 follow-up (2026-09-06): the D7 command joins the menu — one
 		// row per COMMAND_HELP, the zero-extra-names rule holds.
 		description: COMMAND_HELP.promptmanager.summary
+	},
+	{
+		name: 'skillshelf',
+		display: '/dsi-skills',
+		seed: '/dsi-skills ',
+		// The Shelf Voice W1 (RCA fix, 2026-09-21): one row per COMMAND_HELP,
+		// the zero-extra-names rule holds - and the completeness guard now
+		// enforces it. Getter (W1.5): the description resolves the ACTIVE
+		// locale at render, never frozen at module init.
+		get description() {
+			return t(m.commandHelpSkillshelfSummary);
+		}
 	},
 	{
 		name: 'dsisettings',
@@ -313,26 +333,6 @@ export const MENU_GESTURES: readonly DsiGestureRow[] = [
 		display: '/dsh-settings',
 		seed: '/dsh-settings ',
 		description: COMMAND_HELP.dshsettings.summary
-	},
-	{
-		name: 'terminal',
-		display: '/dsi-terminal',
-		seed: '/dsi-terminal ',
-		// Web Terminal spec (2026-09-24): one row per COMMAND_HELP, the
-		// zero-extra-names rule holds.
-		description: COMMAND_HELP.terminal.summary
-	},
-	{
-		name: 'skillshelf',
-		display: '/dsi-skills',
-		seed: '/dsi-skills ',
-		// The Shelf Voice W1 (RCA fix, 2026-09-21): one row per COMMAND_HELP,
-		// the zero-extra-names rule holds - and the completeness guard now
-		// enforces it. Getter (W1.5): the description resolves the ACTIVE
-		// locale at render, never frozen at module init.
-		get description() {
-			return t(m.commandHelpSkillshelfSummary);
-		}
 	},
 	{
 		name: '@mention',

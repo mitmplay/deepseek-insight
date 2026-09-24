@@ -1463,11 +1463,11 @@ describe('ContextConsumption — percentage bar + honest fallback', () => {
 		unmount(comp);
 	});
 
-	it('thresholds keep OCI colors: <60 green-band class, ≥85 red', () => {
+	it('bar keeps the fixed violet fill at any threshold', () => {
 		const { target, comp } = mountCtx({ used: 900_000, limit: 1_000_000 });
 		const el = target.querySelector('[data-testid="context-consumption"]');
 		const fill = el?.querySelector('[style*="width"]') as HTMLElement | null;
-		expect(fill?.className).toContain('bg-red-500');
+		expect(fill?.className).toContain('bg-[#7c3aed]');
 		unmount(comp);
 	});
 

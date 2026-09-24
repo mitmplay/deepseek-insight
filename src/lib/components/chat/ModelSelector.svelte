@@ -124,7 +124,7 @@
 <div class="relative">
 	<button
 		type="button"
-		class="inline-flex items-center gap-1 rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50"
+		class="inline-flex items-center gap-1 rounded-md border border-[#7c3aed] px-2 py-1 text-xs font-medium text-[#7c3aed] hover:bg-slate-100 disabled:opacity-50"
 		disabled={disabled}
 		aria-haspopup="listbox"
 		aria-expanded={open}
@@ -132,7 +132,7 @@
 		onclick={() => toggle()}
 	>
 		{currentLabel}
-		<span class="text-slate-400" aria-hidden="true">▾</span>
+		<span class="text-[#7c3aed]" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
 	</button>
 	{#if open}
 		<div

@@ -2,8 +2,9 @@
  * ContextConsumption unit tests — the context-window indicator's three
  * display modes and the bar's color tiers:
  *
- *  - both values    → the bar, tiered green <60 / amber <85 / red ≥85,
- *                     width capped at 100% for over-window usage
+ *  - both values    → the bar in a fixed violet fill (#7c3aed,
+ *                     2026-09-24 — replaced the OCI green/amber/red
+ *                     tiers), width capped at 100% for over-window usage
  *  - used only      → the "≈N ctx" fallback label (k-format above 1000)
  *  - neither        → renders nothing
  *  - limit 0        → no denominator → the used-only fallback
@@ -35,22 +36,22 @@ afterEach(() => {
 });
 
 describe('ContextConsumption — the bar (both values present)', () => {
-	it('under 60% renders the green tier at the exact percentage', () => {
+	it('renders the fixed violet fill at the exact percentage', () => {
 		const { target, instance } = mountusage({ used: 5000, limit: 10000 });
 		expect(bar(target)?.getAttribute('style')).toBe('width: 50%;');
-		expect(barColor(target)).toBe('bg-emerald-500');
+		expect(barColor(target)).toBe('bg-[#7c3aed]');
 		unmount(instance);
 	});
 
-	it('60–84% renders the amber tier', () => {
+	it('keeps the violet fill in the mid band', () => {
 		const { target, instance } = mountusage({ used: 7000, limit: 10000 });
-		expect(barColor(target)).toBe('bg-amber-500');
+		expect(barColor(target)).toBe('bg-[#7c3aed]');
 		unmount(instance);
 	});
 
-	it('85% and above renders the red tier', () => {
+	it('keeps the violet fill at 85% and above (no tier change)', () => {
 		const { target, instance } = mountusage({ used: 9000, limit: 10000 });
-		expect(barColor(target)).toBe('bg-red-500');
+		expect(barColor(target)).toBe('bg-[#7c3aed]');
 		unmount(instance);
 	});
 
