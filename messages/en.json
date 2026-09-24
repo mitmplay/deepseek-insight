@@ -379,6 +379,8 @@
 	"skillsVoiceDsiSync": "Mirror DeepSeek Insight into its GitHub-ready target: resync, commit, push, and skip cleanly when nothing changed.",
 	"skillsVoiceDsiTask": "Execute implementation tasks from a Karpathy context + tasks document: visible checklists, gates, and wave discipline.",
 	"terminalPanelTitle": "Terminal",
+	"terminalTabClose": "Close tab",
+	"terminalSessionCap": "Session cap reached — close a terminal to open another.",
 	"terminalDisabled": "Terminal is disabled — enable it in settings (terminal.enabled).",
 	"terminalOpening": "Opening terminal…",
 	"terminalClosed": "Terminal closed",

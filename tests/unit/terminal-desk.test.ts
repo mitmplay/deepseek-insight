@@ -1,0 +1,417 @@
+/**
+ * TerminalDesk tests (Terminal Desk Wave 2, tasks 2.1-T / 2.3-T): the
+ * structure trees of input Scenarios 1.1 / 1.1.1 / 1.2 / 1.2.1 verbatim,
+ * the D5 close cascades (tab x kills its rows; last tab removes the
+ * desk), and the one-desk invariant + action forward pinned at the floor
+ * source level. Same mock harness as terminal-panel-coverage: xterm,
+ * addon-fit, EventSource, ResizeObserver mocked; fetch routed by URL.
+ */
+import { mount, unmount, flushSync } from 'svelte';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+
+vi.mock('@xterm/xterm', () => ({
+	Terminal: class {
+		open() {}
+		loadAddon() {}
+		write() {}
+		onData() {}
+		focus() {}
+		dispose() {}
+	}
+}));
+
+vi.mock('@xterm/addon-fit', () => ({
+	FitAddon: class {
+		fit() {}
+	}
+}));
+
+interface FakeES {
+	url: string;
+	close(): void;
+	addEventListener(kind: string, fn: (e: MessageEvent) => void): void;
+	emit(kind: string, data?: string): void;
+}
+
+const eventSources: FakeES[] = [];
+
+class FakeEventSource implements FakeES {
+	url: string;
+	listeners = new Map<string, Array<(e: MessageEvent) => void>>();
+	constructor(url: string) {
+		this.url = url;
+		eventSources.push(this);
+	}
+	close() {}
+	addEventListener(kind: string, fn: (e: MessageEvent) => void) {
+		const arr = this.listeners.get(kind) ?? [];
+		arr.push(fn);
+		this.listeners.set(kind, arr);
+	}
+	emit(kind: string, data?: string) {
+		for (const fn of this.listeners.get(kind) ?? []) fn({ data: data ?? '' } as MessageEvent);
+	}
+}
+
+class FakeResizeObserver {
+	constructor(cb: () => void) {
+		void cb;
+	}
+	observe() {}
+	disconnect() {}
+}
+
+type FetchRoute = (url: string, init?: RequestInit) => Promise<Response> | undefined;
+let fetchRoute: FetchRoute = () => undefined;
+let postOpens = 0;
+const closeCalls: string[] = [];
+
+function jsonResponse(body: unknown): Response {
+	return new Response(JSON.stringify(body), { status: 200, headers: { 'content-type': 'application/json' } });
+}
+
+async function tick(ms = 10): Promise<void> {
+	await new Promise((r) => setTimeout(r, ms));
+}
+
+let deskRef: { applyAction: (a: 'new-tab' | 'split-down') => void } | null = null;
+
+async function mountDesk(): Promise<{ target: HTMLElement; cleanup: () => void }> {
+	postOpens = 0;
+	closeCalls.length = 0;
+	eventSources.length = 0;
+	const { default: Host } = await import('./TerminalDeskHost.svelte');
+	const target = document.body.appendChild(document.createElement('div'));
+	const app = mount(Host, {
+		target,
+		props: {
+			register: (d: unknown) => {
+				deskRef = d as { applyAction: (a: 'new-tab' | 'split-down') => void };
+			},
+			onShellExit: () => {}
+		}
+	});
+	flushSync();
+	await tick();
+	flushSync();
+	return { target, cleanup: () => { unmount(app); target.remove(); } };
+}
+
+function route(): FetchRoute {
+	let n = 0;
+	return (url, init) => {
+		if (url === '/api/terminal' && !init) return Promise.resolve(jsonResponse({ enabled: true, sessions: [] }));
+		if (url === '/api/terminal' && init) {
+			postOpens++;
+			return Promise.resolve(jsonResponse({ sessionId: 'desk-' + ++n, token: 'tok-' + n, totalBytes: 0 }));
+		}
+		if (url.includes('/send')) {
+			const body = JSON.parse(String(init?.body ?? '{}')) as { token?: string; action?: string };
+			closeCalls.push((body.token ?? '?') + ':' + (body.action ?? '?'));
+			return Promise.resolve(jsonResponse({ ok: true }));
+		}
+		return Promise.resolve(jsonResponse({}));
+	};
+}
+
+beforeEach(() => {
+	postOpens = 0;
+	closeCalls.length = 0;
+	eventSources.length = 0;
+	vi.stubGlobal('EventSource', FakeEventSource);
+	vi.stubGlobal('ResizeObserver', FakeResizeObserver as unknown as typeof ResizeObserver);
+	vi.stubGlobal('fetch', vi.fn((url: string | URL | Request, init?: RequestInit) => fetchRoute(String(url), init)));
+	deskRef = null;
+});
+
+afterEach(() => {
+	vi.unstubAllGlobals();
+	document.body.innerHTML = '';
+});
+
+describe('TerminalDesk — scenario structure trees (Wave 2)', () => {
+	it('Scenario 1.1 — bare create: one tab, one row, both selected', async () => {
+		fetchRoute = route();
+		const h = await mountDesk();
+		await tick();
+		expect(h.target.querySelector('[data-testid="terminal-tab-button-0"]')).not.toBeNull();
+		expect(h.target.querySelector('[data-testid="terminal-tab-button-1"]')).toBeNull();
+		expect(h.target.querySelector('[data-testid="terminal-tab-button-0"]')?.getAttribute('data-selected')).toBe('true');
+		expect(h.target.querySelector('[data-testid="terminal-tab-container-0"]')?.getAttribute('data-visible')).toBe('true');
+		expect(h.target.querySelectorAll('[data-testid="terminal-panel"]').length).toBe(1);
+		h.cleanup();
+	});
+
+	it('Scenario 1.1.1 — split-down: two rows in tab[0], second selected host', async () => {
+		fetchRoute = route();
+		const h = await mountDesk();
+		await tick();
+		deskRef!.applyAction('split-down');
+		await tick();
+		flushSync();
+		const c0 = h.target.querySelector('[data-testid="terminal-tab-container-0"]')!;
+		expect(c0.getAttribute('data-visible')).toBe('true');
+		expect(c0.querySelectorAll('[data-testid="terminal-panel"]').length).toBe(2);
+		expect(c0.querySelector('[data-testid="terminal-split-container"]')?.getAttribute('data-rows')).toBe('2');
+		expect(h.target.querySelectorAll('[data-testid="terminal-tab-button-1"]').length).toBe(0);
+		// a split-down NEVER re-attaches: the desk minted a fresh session
+		// (two POSTs total: row[0]'s solo self-open + the desk's split-down mint)
+		expect(postOpens).toBe(2);
+		h.cleanup();
+	});
+
+	it('Scenario 1.2 — new-tab: tab[1] selected, tab[0] hidden and alive', async () => {
+		fetchRoute = route();
+		const h = await mountDesk();
+		await tick();
+		deskRef!.applyAction('new-tab');
+		await tick();
+		flushSync();
+		expect(h.target.querySelector('[data-testid="terminal-tab-button-1"]')?.getAttribute('data-selected')).toBe('true');
+		expect(h.target.querySelector('[data-testid="terminal-tab-container-0"]')?.getAttribute('data-visible')).toBe('false');
+		expect(h.target.querySelector('[data-testid="terminal-tab-container-1"]')?.getAttribute('data-visible')).toBe('true');
+		h.cleanup();
+	});
+
+	it('Scenario 1.2.1 — split-down on the 2nd tab: two rows in container[1]', async () => {
+		fetchRoute = route();
+		const h = await mountDesk();
+		await tick();
+		deskRef!.applyAction('new-tab');
+		await tick();
+		deskRef!.applyAction('split-down');
+		await tick();
+		flushSync();
+		const c1 = h.target.querySelector('[data-testid="terminal-tab-container-1"]')!;
+		expect(c1.getAttribute('data-visible')).toBe('true');
+		expect(c1.querySelectorAll('[data-testid="terminal-panel"]').length).toBe(2);
+		const c0 = h.target.querySelector('[data-testid="terminal-tab-container-0"]')!;
+		expect(c0.getAttribute('data-visible')).toBe('false');
+		expect(c0.querySelectorAll('[data-testid="terminal-panel"]').length).toBe(1);
+		h.cleanup();
+	});
+});
+
+describe('TerminalDesk — D5 close cascades', () => {
+	it('tab x ladder-closes its rows and moves selection to the left neighbor', async () => {
+		fetchRoute = route();
+		const h = await mountDesk();
+		await tick();
+		deskRef!.applyAction('new-tab');
+		await tick();
+		flushSync();
+		const before = eventSources.length;
+		expect(before).toBeGreaterThanOrEqual(2);
+		(h.target.querySelector('[data-testid="terminal-tab-close-1"]') as HTMLElement).click();
+		flushSync();
+		expect(closeCalls.filter((c) => c.endsWith('close')).length).toBeGreaterThanOrEqual(1);
+		expect(h.target.querySelector('[data-testid="terminal-tab-button-1"]')).toBeNull();
+		expect(h.target.querySelector('[data-testid="terminal-tab-button-0"]')?.getAttribute('data-selected')).toBe('true');
+		h.cleanup();
+	});
+
+	it('closing the LAST tab removes the desk (onShellExit — the floor unmounts the slot)', async () => {
+		fetchRoute = route();
+		let exited = false;
+		const { default: Host } = await import('./TerminalDeskHost.svelte');
+		const target = document.body.appendChild(document.createElement('div'));
+		const app = mount(Host, { target, props: { register: (d: unknown) => { deskRef = d as never; }, onShellExit: () => { exited = true; } } });
+		flushSync();
+		await tick();
+		(target.querySelector('[data-testid="terminal-tab-close-0"]') as HTMLElement).click();
+		flushSync();
+		await tick();
+		expect(exited).toBe(true);
+		unmount(app);
+		target.remove();
+	});
+});
+
+describe('TerminalDesk — 2.3-T floor pin (one-desk invariant + action forward, source level)', () => {
+	it('the floor keeps the one-desk grammar and forwards the action into the desk', () => {
+		const src = readFileSync('src/routes/+page.svelte', 'utf8');
+		// ONE desk: the open terminal takes the FOCUS; only a miss inserts.
+		expect(src).toContain("panels.find((p) => p.kind === 'terminal')");
+		// the parsed command action reaches the desk's applyAction
+		expect(src).toContain('terminalDeskRef.applyAction(request.action)');
+		// the floor renders the DESK, not a bare panel, in the terminal branch
+		expect(src).toContain('bind:this={terminalDeskRef}');
+		// the rebuild ladder's remembered half rides the entry into the desk
+		expect(src).toContain('restored={panel.desk ?? null}');
+	});
+});
+
+describe('TerminalDesk — 3.2-T reload rebuild ladder (Terminal Desk ADR D3)', () => {
+	function restoreRoute(live: Array<{ id: string; exited: boolean }>): FetchRoute {
+		let n = 0;
+		return (url, init) => {
+			if (url === '/api/terminal' && !init) return Promise.resolve(jsonResponse({ enabled: true, sessions: live }));
+			if (url.endsWith('/reattach')) {
+				const id = String(url).split('/')[3];
+				return Promise.resolve(jsonResponse({ token: 'rt-' + id, fromByte: 4096 }));
+			}
+			if (url === '/api/terminal' && init) {
+				postOpens++;
+				return Promise.resolve(jsonResponse({ sessionId: 'fresh-' + ++n, token: 'ft-' + n, totalBytes: 0 }));
+			}
+			if (url.includes('/send')) {
+				const body = JSON.parse(String(init?.body ?? '{}')) as { token?: string; action?: string };
+				closeCalls.push((body.token ?? '?') + ':' + (body.action ?? '?'));
+				return Promise.resolve(jsonResponse({ ok: true }));
+			}
+			return Promise.resolve(jsonResponse({}));
+		};
+	}
+
+	async function mountRestored(restored: unknown): Promise<{ target: HTMLElement; cleanup: () => void }> {
+		const { default: Host } = await import('./TerminalDeskHost.svelte');
+		const target = document.body.appendChild(document.createElement('div'));
+		const app = mount(Host, {
+			target,
+			props: {
+				register: (d: unknown) => { deskRef = d as never; },
+				restored: restored as never,
+				onShellExit: () => {}
+			}
+		});
+		flushSync();
+		await tick();
+		flushSync();
+		await tick();
+		return { target, cleanup: () => { unmount(app); target.remove(); } };
+	}
+
+	it('survivors re-attach at byte 0; the exited session drops; tab grouping and selection restore', async () => {
+		fetchRoute = restoreRoute([
+			{ id: 'sess-a', exited: false },
+			{ id: 'sess-b', exited: true },
+			{ id: 'sess-c', exited: false }
+		]);
+		const h = await mountRestored({
+			tabs: [{ sessionIds: ['sess-a'] }, { sessionIds: ['sess-b', 'sess-c'] }],
+			selectedTab: 1
+		});
+		// three remembered ids, one exited: two rows survive, grouped as remembered
+		expect(h.target.querySelectorAll('[data-testid="terminal-panel"]').length).toBe(2);
+		const c0 = h.target.querySelector('[data-testid="terminal-tab-container-0"]')!;
+		const c1 = h.target.querySelector('[data-testid="terminal-tab-container-1"]')!;
+		expect(c0.getAttribute('data-visible')).toBe('false');
+		expect(c1.getAttribute('data-visible')).toBe('true'); // selection RESTORED to tab 1
+		expect(c0.querySelectorAll('[data-testid="terminal-panel"]').length).toBe(1);
+		expect(c1.querySelectorAll('[data-testid="terminal-panel"]').length).toBe(1);
+		// survivors RE-ATTACH (never re-opened) and REPLAY from byte 0
+		const urls = eventSources.map((es) => es.url).sort();
+		expect(urls).toEqual(['/api/terminal/sess-a/stream?fromByte=0', '/api/terminal/sess-c/stream?fromByte=0']);
+		expect(postOpens).toBe(0);
+		h.cleanup();
+	});
+
+	it('all remembered sessions dead ⇒ one fresh self-open row (never a dead frame)', async () => {
+		fetchRoute = restoreRoute([{ id: 'sess-a', exited: true }]);
+		const h = await mountRestored({ tabs: [{ sessionIds: ['sess-a'] }], selectedTab: 0 });
+		await tick();
+		expect(h.target.querySelectorAll('[data-testid="terminal-panel"]').length).toBe(1);
+		// the fallback row SELF-OPENS through the mint path (a fresh session)
+		expect(postOpens).toBe(1);
+		h.cleanup();
+	});
+
+	it('the desk PUBLISHES its mirror as the tree settles (task 3.2-T, onMirror)', async () => {
+		fetchRoute = route();
+		const mirrors: unknown[] = [];
+		const { default: Host } = await import('./TerminalDeskHost.svelte');
+		const target = document.body.appendChild(document.createElement('div'));
+		const app = mount(Host, {
+			target,
+			props: {
+				register: (d: unknown) => { deskRef = d as never; },
+				onMirror: (m: unknown) => mirrors.push(m),
+				onShellExit: () => {}
+			}
+		});
+		flushSync();
+		await tick();
+		deskRef!.applyAction('new-tab');
+		await tick();
+		flushSync();
+		const last = mirrors[mirrors.length - 1] as { tabs: Array<{ sessionIds: string[] }>; selectedTab: number };
+		expect(last.tabs.length).toBe(2);
+		expect(last.selectedTab).toBe(1);
+		// every remembered row carries a session id (self-open reported via onAssigned)
+		expect(last.tabs[0].sessionIds.length).toBe(1);
+		expect(last.tabs[1].sessionIds.length).toBe(1);
+		unmount(app);
+		target.remove();
+	});
+});
+
+
+describe('TerminalDesk — 4.1-T full cascade matrix (Terminal Desk ADR D5)', () => {
+	it('exit in the LAST shell cascades: row → tab → desk (onShellExit)', async () => {
+		fetchRoute = route();
+		let exited = false;
+		const { default: Host } = await import('./TerminalDeskHost.svelte');
+		const target = document.body.appendChild(document.createElement('div'));
+		const app = mount(Host, {
+			target,
+			props: { register: (d: unknown) => { deskRef = d as never; }, onShellExit: () => { exited = true; } }
+		});
+		flushSync();
+		await tick();
+		// the shell runs to its end: the row's stream settles with session_exit
+		const es = eventSources[0] as unknown as { emit(kind: string, data?: string): void };
+		es.emit('settled', JSON.stringify({ reason: 'session_exit' }));
+		// the panel holds the badge readable for 1500 ms before auto-closing
+		await new Promise((r2) => setTimeout(r2, 1700));
+		flushSync();
+		expect(exited).toBe(true);
+		expect(target.querySelectorAll('[data-testid="terminal-panel"]').length).toBe(0);
+		unmount(app);
+		target.remove();
+	});
+
+	it('column close (unmount while the page lives) kills every row session', async () => {
+		fetchRoute = route();
+		const h = await mountDesk();
+		await tick();
+		deskRef!.applyAction('split-down');
+		await tick();
+		flushSync();
+		closeCalls.length = 0;
+		h.cleanup(); // the floor unmounted the desk — panel close IS terminal close
+		expect(closeCalls.filter((c) => c.endsWith('close')).length).toBe(2);
+	});
+
+	it('pagehide spares every session (the lease rule, desk-wide)', async () => {
+		fetchRoute = route();
+		const h = await mountDesk();
+		await tick();
+		deskRef!.applyAction('split-down');
+		await tick();
+		flushSync();
+		closeCalls.length = 0;
+		window.dispatchEvent(new Event('pagehide'));
+		h.cleanup();
+		expect(closeCalls.filter((c) => c.endsWith('close')).length).toBe(0);
+	});
+});
+
+describe('TerminalDesk — 4.2-T session cap refusal (Terminal Desk ADR D6)', () => {
+	it('MAX_SESSIONS renders the refusal and opens NO row', async () => {
+		fetchRoute = (url, init) => {
+			if (url === '/api/terminal' && !init) return Promise.resolve(jsonResponse({ enabled: true, sessions: [] }));
+			if (url === '/api/terminal' && init) return Promise.resolve(new Response(JSON.stringify({ error: 'MAX_SESSIONS' }), { status: 429, headers: { 'content-type': 'application/json' } }));
+			return Promise.resolve(jsonResponse({}));
+		};
+		const h = await mountDesk();
+		await tick();
+		deskRef!.applyAction('split-down');
+		await tick();
+		flushSync();
+		expect(h.target.querySelector('[data-testid="terminal-desk-capped"]')).not.toBeNull();
+		expect(h.target.querySelectorAll('[data-testid="terminal-panel"]').length).toBe(1);
+		h.cleanup();
+	});
+});
+

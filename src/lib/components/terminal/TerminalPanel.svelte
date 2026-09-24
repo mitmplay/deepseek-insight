@@ -14,8 +14,21 @@
 		 *  'session_exit'), following a short pause so the badge stays
 		 *  readable. The route maps it to removing the terminal panel —
 		 *  shell exit closes the panel the way the header × would. */
-		onShellExit
-	}: { onShellExit?: () => void } = $props();
+		onShellExit,
+		assigned = null,
+		onAssigned
+	}: {
+		onShellExit?: () => void;
+		/** Row mode (Terminal Desk, Wave 2): the desk opened the session and
+		 *  hands it down — the panel SKIPS the probe/reattach ladder entirely
+		 *  and attaches the given session. Null (default) = solo mode: the
+		 *  panel runs the Surviving-Shell mount ladder itself, byte-identical
+		 *  to pre-desk behavior. */
+		assigned?: { sessionId: string; token: string } | null;
+		/** Fired (both modes) once the panel holds a live session — the desk
+		 *  records it per row (the Wave 3 blob mirror's raw material). */
+		onAssigned?: (sessionId: string, token: string) => void;
+	} = $props();
 
 	let panelState = $state<TerminalPanelState>({ ...initialTerminalPanelState });
 	let disabled = $state(false);
@@ -147,6 +160,16 @@
 
 	onMount(() => {
 		void (async () => {
+			if (assigned) {
+				// ROW MODE: the desk already holds the lease — no probe, no
+				// reattach decision. Replay from 0 like the amended Surviving-
+				// Shell D3 (a fresh surface needs the ring replay).
+				sessionId = assigned.sessionId;
+				token = assigned.token;
+				attachStream(0);
+				onAssigned?.(sessionId, token);
+				return;
+			}
 			const probe = await fetch('/api/terminal');
 			const probeBody = (await probe.json()) as { enabled: boolean; sessions?: Array<{ id: string; exited: boolean }> };
 			if (!probeBody.enabled) {
@@ -188,17 +211,25 @@
 				resumeByte = opened.totalBytes;
 			}
 
-			const es = new EventSource('/api/terminal/' + sessionId + '/stream?fromByte=' + resumeByte);
-			es.onmessage = (e) => applyFrame('data: ' + e.data);
-			for (const kind of ['output', 'settled', 'exit', 'closed', 'error']) {
-				es.addEventListener(kind, (e) => {
-					const data = 'data' in e ? (e as MessageEvent).data : '';
-					applyFrame('event: ' + kind + '\ndata: ' + data);
-					if (kind === 'closed') es.close();
-				});
-			}
+			attachStream(resumeByte);
+			onAssigned?.(sessionId, token);
 		})();
 	});
+
+	/** The SSE subscription, shared by both modes (solo ladder tail and
+	 *  desk row mode): named events forwarded into applyFrame; `closed`
+	 *  ends the source. */
+	function attachStream(resumeByte: number): void {
+		const es = new EventSource('/api/terminal/' + sessionId + '/stream?fromByte=' + resumeByte);
+		es.onmessage = (e) => applyFrame('data: ' + e.data);
+		for (const kind of ['output', 'settled', 'exit', 'closed', 'error']) {
+			es.addEventListener(kind, (e) => {
+				const data = 'data' in e ? (e as MessageEvent).data : '';
+				applyFrame('event: ' + kind + '\n' + 'data: ' + data);
+				if (kind === 'closed') es.close();
+			});
+		}
+	}
 
 	async function sendLine(): Promise<void> {
 		const line = typedLine;

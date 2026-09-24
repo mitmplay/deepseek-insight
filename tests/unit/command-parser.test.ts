@@ -373,3 +373,38 @@ describe('loadinjectedCommand — internal constructor (1.1-T)', () => {
 		expect(loadinjectedCommand('docs/Nested/RULES.md').filename).toBe('docs/Nested/RULES.md');
 	});
 });
+
+describe('parseCommand — /dsi-terminal desk grammar (Terminal Desk ADR D2, 2026-09-24)', () => {
+	it('parses bare /dsi-terminal with no action key', () => {
+		const r = parseCommand('/dsi-terminal');
+		expect(r).toEqual({ type: 'terminal', args: '' });
+		expect('terminalAction' in (r ?? {})).toBe(false);
+	});
+
+	it('parses --new-tab into terminalAction', () => {
+		expect(parseCommand('/dsi-terminal --new-tab')).toEqual({
+			type: 'terminal',
+			args: '',
+			terminalAction: 'new-tab'
+		});
+	});
+
+	it('parses --split-down into terminalAction', () => {
+		expect(parseCommand('/dsi-terminal --split-down')).toEqual({
+			type: 'terminal',
+			args: '',
+			terminalAction: 'split-down'
+		});
+	});
+
+	it('REJECTS both flags together — raw args, no action (usage-error path)', () => {
+		const r = parseCommand('/dsi-terminal --new-tab --split-down');
+		expect(r).toEqual({ type: 'terminal', args: '--new-tab --split-down' });
+		expect('terminalAction' in (r ?? {})).toBe(false);
+	});
+
+	it('keeps any other args raw (the /new leftover rule)', () => {
+		expect(parseCommand('/dsi-terminal --wide')).toEqual({ type: 'terminal', args: '--wide' });
+	});
+});
+

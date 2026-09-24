@@ -78,3 +78,18 @@ describe('readTerminalConfig', () => {
 		expect(readTerminalConfig(path).enabled).toBe(true);
 	});
 });
+
+describe('readTerminalConfig — maxSessions (Terminal Desk ADR D6, Wave 4, task 4.2-T)', () => {
+	it('defaults to 8 and bounds to [1, 32]', () => {
+		expect(DEFAULT_TERMINAL_CONFIG.maxSessions).toBe(8);
+		writeSection('terminal:\n  maxSessions: 0\n');
+		expect(readTerminalConfig(path).maxSessions).toBe(8); // out of range → fallback (intWithin semantics)
+		writeSection('terminal:\n  maxSessions: 99\n');
+		expect(readTerminalConfig(path).maxSessions).toBe(8); // out of range → fallback
+		writeSection('terminal:\n  maxSessions: 3\n');
+		expect(readTerminalConfig(path).maxSessions).toBe(3); // in range → honored
+		writeSection('terminal:\n  maxSessions: \'many\'\n');
+		expect(readTerminalConfig(path).maxSessions).toBe(8); // junk → default
+	});
+});
+

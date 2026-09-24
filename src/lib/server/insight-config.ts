@@ -468,6 +468,11 @@ export interface TerminalConfig {
 	spillMaxBytes: number;
 	graceMs: number;
 	idleMs: number;
+	/** The Terminal Desk (ADR 2026-09-24, D6): the server's resource valve —
+	 *  how many live desk sessions one DSI instance tolerates. The open
+	 *  route refuses past it (MAX_SESSIONS); the bound lives where the
+	 *  PTYs live, never in a client. */
+	maxSessions: number;
 }
 
 export const DEFAULT_TERMINAL_CONFIG: TerminalConfig = {
@@ -475,7 +480,8 @@ export const DEFAULT_TERMINAL_CONFIG: TerminalConfig = {
 	tailBytes: DEFAULT_TERMINAL_TAIL_BYTES,
 	spillMaxBytes: DEFAULT_TERMINAL_SPILL_BYTES,
 	graceMs: DEFAULT_TERMINAL_GRACE_MS,
-	idleMs: DEFAULT_TERMINAL_IDLE_MS
+	idleMs: DEFAULT_TERMINAL_IDLE_MS,
+	maxSessions: 8
 };
 
 function boolOr(v: unknown, fallback: boolean): boolean {
@@ -492,6 +498,7 @@ export function readTerminalConfig(configPath?: string): TerminalConfig {
 		tailBytes: intWithin(section.tailBytes, 4_096, 8_000_000, DEFAULT_TERMINAL_TAIL_BYTES),
 		spillMaxBytes: intWithin(section.spillMaxBytes, 1_000_000, 1_000_000_000, DEFAULT_TERMINAL_SPILL_BYTES),
 		graceMs: intWithin(section.graceMs, 250, 30_000, DEFAULT_TERMINAL_GRACE_MS),
-		idleMs: intWithin(section.idleMs, 100, 60_000, DEFAULT_TERMINAL_IDLE_MS)
+		idleMs: intWithin(section.idleMs, 100, 60_000, DEFAULT_TERMINAL_IDLE_MS),
+		maxSessions: intWithin(section.maxSessions, 1, 32, DEFAULT_TERMINAL_CONFIG.maxSessions)
 	};
 }

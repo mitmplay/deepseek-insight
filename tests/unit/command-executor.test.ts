@@ -843,3 +843,49 @@ describe('executeCommand — /loadinjected (2.1-T, retired typed surface + const
 		});
 	});
 });
+
+describe('/dsi-terminal desk grammar (Terminal Desk ADR D2, 2026-09-24)', () => {
+	function ctx(): ExecutorContext {
+		return { sessionId: SELF, workspace: null, agent: null, panelId: 'p1' };
+	}
+
+	it('bare command requests a terminal with NO action key', async () => {
+		const seen: PanelAddRequest[] = [];
+		registerAddPanel((req) => seen.push(req));
+		vi.stubGlobal('fetch', vi.fn(async () => jsonRes({ enabled: true })));
+		const res = await executeCommand(parseCommand('/dsi-terminal')!, ctx(), undefined);
+		expect(res.ok).toBe(true);
+		expect(seen).toHaveLength(1);
+		expect(seen[0]).toMatchObject({ kind: 'terminal' });
+		expect('action' in seen[0]).toBe(false);
+	});
+
+	it('--new-tab forwards action new-tab on the request', async () => {
+		const seen: PanelAddRequest[] = [];
+		registerAddPanel((req) => seen.push(req));
+		vi.stubGlobal('fetch', vi.fn(async () => jsonRes({ enabled: true })));
+		const res = await executeCommand(parseCommand('/dsi-terminal --new-tab')!, ctx(), undefined);
+		expect(res.ok).toBe(true);
+		expect(seen[0]).toMatchObject({ kind: 'terminal', action: 'new-tab' });
+	});
+
+	it('--split-down forwards action split-down on the request', async () => {
+		const seen: PanelAddRequest[] = [];
+		registerAddPanel((req) => seen.push(req));
+		vi.stubGlobal('fetch', vi.fn(async () => jsonRes({ enabled: true })));
+		const res = await executeCommand(parseCommand('/dsi-terminal --split-down')!, ctx(), undefined);
+		expect(res.ok).toBe(true);
+		expect(seen[0]).toMatchObject({ kind: 'terminal', action: 'split-down' });
+	});
+
+	it('both flags together usage-error and never reach the floor', async () => {
+		const seen: PanelAddRequest[] = [];
+		registerAddPanel((req) => seen.push(req));
+		const onNote = vi.fn();
+		const res = await executeCommand(parseCommand('/dsi-terminal --new-tab --split-down')!, ctx(), onNote);
+		expect(res.ok).toBe(false);
+		expect(onNote).toHaveBeenCalledWith(false, 'usage: /dsi-terminal [--new-tab | --split-down]');
+		expect(seen).toHaveLength(0);
+	});
+});
+

@@ -17,7 +17,7 @@ import type { TerminalSpec } from '$lib/server/terminal/types.js';
 
 export const GET = (): Response => {
 	const cfg = readTerminalConfig();
-	return json({ enabled: cfg.enabled, sessions: terminalRegistry.list() });
+	return json({ enabled: cfg.enabled, maxSessions: cfg.maxSessions, sessions: terminalRegistry.list() });
 };
 
 interface OpenBody {
@@ -50,6 +50,11 @@ function resolveSpec(body: OpenBody, cfg: ReturnType<typeof readTerminalConfig>)
 export const POST = async ({ request }: { request: Request }): Promise<Response> => {
 	const cfg = readTerminalConfig();
 	if (!cfg.enabled) return json({ error: 'NOT_ENABLED' }, { status: 403 });
+	// The Terminal Desk (ADR 2026-09-24, D6): the resource valve lives where
+	// the PTYs live — the desk can only render the refusal, never lift it.
+	if (terminalRegistry.list().filter((s) => !s.exited).length >= cfg.maxSessions) {
+		return json({ error: 'MAX_SESSIONS' }, { status: 429 });
+	}
 	let body: OpenBody = {};
 	try {
 		body = (await request.json()) as OpenBody;

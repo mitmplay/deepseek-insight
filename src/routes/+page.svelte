@@ -48,7 +48,7 @@
 	import AppSidebar from '$lib/components/common/layout/AppSidebar.svelte';
 	import ConversationPanel from '$lib/components/chat/ConversationPanel.svelte';
 	import PromptManagerPanel from '$lib/components/prompt-manager/PromptManagerPanel.svelte';
-	import TerminalPanel from '$lib/components/terminal/TerminalPanel.svelte';
+	import TerminalDesk from '$lib/components/terminal/TerminalDesk.svelte';
 	import SettingsSkillsPanel from '$lib/components/settings-skills/SettingsSkillsPanel.svelte';
 	import SettingsEditorPanel from '$lib/components/panels/SettingsEditorPanel.svelte';
 	import InjectedDocPanel from '$lib/components/panels/InjectedDocPanel.svelte';
@@ -98,7 +98,8 @@
 	DsiWorkspaceFilePanel,
 		DsiPreset,
 		DsiSessionSummary,
-		DsiA2aExchangeView
+		DsiA2aExchangeView,
+		TerminalDeskMirror
 	} from '$lib/types';
 	import type { ReloadFeedback } from '$lib/utils/skill-shelf-reload-machine';
 	import {
@@ -543,6 +544,16 @@ import {
 	// Intentional initial capture: the restored set is an init-time fact.
 	// svelte-ignore state_referenced_locally
 	syncPanelIdSeq(panels);
+	/** The one terminal desk's ref (Terminal Desk ADR D1/D2, Wave 2): the
+	 *  floor forwards the parsed command action (--new-tab / --split-down)
+	 *  into the desk's methods when the desk is already open — repeat bare
+	 *  stays focus-only. */
+	/** The desk's published structure mirror, by panel id (Terminal Desk
+	 *  ADR D3, Wave 3): read at savePanelPrefs time — the $effect that
+	 *  persists the floor serializes each terminal entry's desk field.
+	 *  A copy, never the authority; the probe adjudicates on rebuild. */
+	let terminalDeskMirrors = $state<Record<string, TerminalDeskMirror>>({});
+	let terminalDeskRef: { applyAction: (action: 'new-tab' | 'split-down') => void } | null = $state(null);
 	// svelte-ignore state_referenced_locally
 	let selectedPanelId = $state<string | null>(
 		seededInitially ? panels[0]?.id ?? null : initialPrefs.selectedPanelId
@@ -599,7 +610,20 @@ import {
 
 	// ── Persistence (R2: one effect, every change) ──────────────────────
 	$effect(() => {
-		savePanelPrefs({ panels, selectedPanelId, panelWidth, zoom, treePct }, activeProfile);
+		savePanelPrefs(
+			{
+				panels: panels.map((p) =>
+					// The desk mirror rides the terminal entry (D3): read here so
+					// a mirror change re-runs this effect and persists.
+					 p.kind === 'terminal' && terminalDeskMirrors[p.id] ? { ...p, desk: terminalDeskMirrors[p.id] } : p
+				),
+				selectedPanelId,
+				panelWidth,
+				zoom,
+				treePct
+			},
+			activeProfile
+		);
 	});
 
 	// ── Prompt Sync hygiene (ADR "The Prompt Sync" D1/D6) ───────────────
@@ -978,9 +1002,13 @@ import {
 			return;
 		}
 		if (request.kind === 'terminal') {
-			// One live terminal (the manager-request grammar, spec Wave 5):
-			// the open terminal takes the FOCUS; only a miss inserts.
+			// One live terminal (the manager-request grammar, spec Wave 5; the
+			// Terminal Desk ADR 2026-09-24 D2): the open desk takes the FOCUS;
+			// only a miss inserts. request.action ('new-tab' | 'split-down')
+			// rides the request to Wave 2's desk — with no desk open, all
+			// three command shapes land here and create tab[0]/row[0].
 			const open = panels.find((p) => p.kind === 'terminal');
+			if (request.action && terminalDeskRef) terminalDeskRef.applyAction(request.action);
 			if (open) {
 				selectedPanelId = open.id;
 				return;
@@ -1644,8 +1672,15 @@ import {
 		     the session path: a terminal slot has no session. The content
 		     self-gates on terminal.enabled and owns its whole lifecycle. -->
 		<div class="panel-manager-body" data-testid="panel-terminal">
-			<!-- Shell exit auto-closes the panel (same mutation as the header ×). -->
-			<TerminalPanel onShellExit={() => removePanel(panel.id)} />
+			<!-- The desk (Terminal Desk ADR D1, Wave 2): tabs + rows in the ONE
+			     terminal slot. Shell exit (its LAST shell) auto-closes the panel
+			     the same way the header × did pre-desk. -->
+			<TerminalDesk
+				bind:this={terminalDeskRef}
+				restored={panel.desk ?? null}
+				onMirror={(m) => (terminalDeskMirrors[panel.id] = m)}
+				onShellExit={() => removePanel(panel.id)}
+			/>
 		</div>
 	{:else if panel.kind === 'prompt-manager'}
 		<!-- Manager branch (ADR D6/D8) — KIND SWITCHES BEFORE THE SESSION

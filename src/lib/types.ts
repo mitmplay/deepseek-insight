@@ -595,12 +595,24 @@ export interface DsiConversationPanel {
 /** The terminal branch (Web Terminal spec, 2026-09-24; ADR 2026-09-23) —
  *  hosts TerminalPanel; no session, no preset chip, no cold/spine facts.
  *  The content self-gates on terminal.enabled (its own /api/terminal probe). */
+/** The terminal desk's persisted structure (Terminal Desk ADR D3,
+ *  Wave 3): the tab/row grouping mirrored into the reload blob. A COPY,
+ *  never the authority — the probe's live session list adjudicates on
+ *  rebuild. Tokens never persist (a lease is re-minted by re-attach). */
+export interface TerminalDeskMirror {
+	tabs: Array<{ sessionIds: string[] }>;
+	selectedTab: number;
+}
+
 export interface DsiTerminalPanel {
 	/** Stable panel identity — selection and close target this. */
 	id: string;
 	kind: 'terminal';
 	/** Panel width in px, always within panel-prefs clamp bounds. */
 	width: number;
+	/** The desk's structure mirror (Wave 3); absent on legacy entries and
+	 *  when the desk has nothing to remember. */
+	desk?: TerminalDeskMirror;
 }
 
 /** The prompt-manager branch (ADR D6/D8) — hosts PromptManagerPanel; no

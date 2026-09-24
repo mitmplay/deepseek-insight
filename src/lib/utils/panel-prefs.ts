@@ -14,7 +14,7 @@
  * known keys are defaulted, entries failing the hard shape check are
  * dropped, and a non-array `panels` value means the whole blob is junk.
  */
-import type { DsiPanelEntry } from '$lib/types';
+import type { DsiPanelEntry, TerminalDeskMirror } from '$lib/types';
 import type { ReloadFeedback } from '$lib/utils/skill-shelf-reload-machine';
 import { appConfig } from '$lib/services/config/app-config.svelte';
 import { dsiKey } from '$lib/utils/storage-profile';
@@ -160,6 +160,33 @@ function clampExpanded(value: unknown): string[] {
 		out.push(member);
 	}
 	return out;
+}
+
+/** The terminal desk's structure clamp (Terminal Desk ADR D3, Wave 3):
+ *  sanitize a stored desk mirror into { tabs, selectedTab } or undefined.
+ *  Junk drops FIELD-WISE — non-string sessionIds drop, empty/junk tabs
+ *  drop, selectedTab clamps into range — so a stale blob degrades to
+ *  "fewer rows remembered", never a phantom row. All tabs dropped (or
+ *  junk at the top) ⇒ undefined: the desk falls back to one fresh row. */
+export function clampDeskMirror(value: unknown): TerminalDeskMirror | undefined {
+	if (value === null || typeof value !== 'object') return undefined;
+	const raw = value as Record<string, unknown>;
+	if (!Array.isArray(raw.tabs)) return undefined;
+	const tabs: Array<{ sessionIds: string[] }> = [];
+	for (const tab of raw.tabs) {
+		if (tab === null || typeof tab !== 'object') continue;
+		const ids = (tab as Record<string, unknown>).sessionIds;
+		if (!Array.isArray(ids)) continue;
+		const sessionIds = ids.filter((id): id is string => typeof id === 'string' && id.length > 0);
+		if (sessionIds.length === 0) continue;
+		tabs.push({ sessionIds });
+	}
+	if (tabs.length === 0) return undefined;
+	const selected =
+		typeof raw.selectedTab === 'number' && Number.isFinite(raw.selectedTab)
+			? Math.max(0, Math.min(tabs.length - 1, Math.round(raw.selectedTab)))
+			: 0;
+	return { tabs, selectedTab: selected };
 }
 
 /** Persisted defaults when nothing (usable) is stored. */
@@ -311,7 +338,16 @@ function sanitizePanels(raw: unknown): DsiPanelEntry[] {
 				// survives the reload blob — the mount ladder re-attaches the
 				// live PTY. Sanitizing it away would resurrect a blank desk
 				// while the shell kept running.
-				return { id: entry.id as string, kind: 'terminal', width } as DsiPanelEntry;
+				// The Terminal Desk (ADR D3, Wave 3): the desk's tab/row mirror
+				// rides along (clamped field-wise); tokens NEVER persist — a
+				// lease is re-minted by re-attach on the rebuild ladder.
+				const desk = clampDeskMirror(entry.desk);
+				return {
+					id: entry.id as string,
+					kind: 'terminal',
+					...(desk ? { desk } : {}),
+					width
+				} as DsiPanelEntry;
 			}
 			if (entry.kind === 'settings-editor') {
 				return {

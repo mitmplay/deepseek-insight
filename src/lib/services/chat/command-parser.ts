@@ -113,6 +113,13 @@ export interface ParsedCommand {
 	 *  exact '--reload' flag: force a snapshot rebuild before the shelf
 	 *  panel opens. Absent for the bare command. */
 	reload?: boolean;
+	/** /dsi-terminal only (The Terminal Desk ADR, 2026-09-24, D2) — the
+	 *  ONE admitted flag: 'new-tab' appends a tab, 'split-down' adds a row
+	 *  to the selected tab. The two flags are MUTUALLY EXCLUSIVE: both
+	 *  together (or any other args) keep the raw args so the executor
+	 *  usage-errors them — the '/new leftover' rule. Absent for the bare
+	 *  command. */
+	terminalAction?: 'new-tab' | 'split-down';
 	/** Mention only — the captured session id (the uuid tail, lowercase);
 	 *  the handler canonicalizes it against the spine rows. */
 	sessionId?: string;
@@ -224,8 +231,23 @@ export function parseCommand(text: string): ParsedCommand | null {
 			}
 			return { type: 'workspace', args };
 		}
+		case '/dsi-terminal': {
+			// The Terminal Desk ADR (2026-09-24, D2): exactly three shapes —
+			// bare, '--new-tab', '--split-down'. Both flags together (or any
+			// other args) keep the raw shape so the executor usage-errors
+			// them — the '/new leftover' rule. With no desk on the floor all
+			// three shapes mean the same thing (create tab[0]/row[0]); the
+			// action only discriminates when a desk exists.
+			if (args === '' || args === '--new-tab' || args === '--split-down') {
+				return {
+					type: 'terminal',
+					args: '',
+					...(args !== '' ? { terminalAction: args.slice(2) as 'new-tab' | 'split-down' } : {})
+				} as ParsedCommand;
+			}
+			return { type: 'terminal', args };
+		}
 		case '/dsi-prompts':
-		case '/dsi-terminal':
 		case '/dsi-settings':
 		case '/dsh-settings': {
 			// The Focus Command ADR (2026-09-17, D1/D2): ONE shape — the
@@ -237,7 +259,6 @@ export function parseCommand(text: string): ParsedCommand | null {
 			// token maps explicitly instead of via token.slice(1).
 			const types = {
 				'/dsi-prompts': 'promptmanager',
-				'/dsi-terminal': 'terminal',
 				'/dsi-settings': 'dsisettings',
 				'/dsh-settings': 'dshsettings'
 			} as const;

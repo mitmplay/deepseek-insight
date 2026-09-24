@@ -1,6 +1,6 @@
 <script lang="ts">
 	import TerminalPanel from '$lib/components/terminal/TerminalPanel.svelte';
-	let { onShellExit }: { onShellExit?: () => void } = $props();
+	let { onShellExit, ...rest }: { onShellExit?: () => void } & Record<string, unknown> = $props();
 </script>
 
-<TerminalPanel {onShellExit} />
+<TerminalPanel {onShellExit} {...rest} />

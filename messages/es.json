@@ -379,6 +379,8 @@
 	"skillsVoiceDsiSync": "Espeja DeepSeek Insight a su destino GitHub: resincroniza, hace commit, push y omite limpiamente si no hay cambios.",
 	"skillsVoiceDsiTask": "Ejecuta tareas de implementación desde un contexto Karpathy + documento de tareas: listas visibles, compuertas y disciplina por olas.",
 	"terminalPanelTitle": "Terminal",
+	"terminalTabClose": "Cerrar pestaña",
+	"terminalSessionCap": "Límite de sesiones alcanzado — cierra una terminal para abrir otra.",
 	"terminalDisabled": "Terminal deshabilitado — actívalo en ajustes (terminal.enabled).",
 	"terminalOpening": "Abriendo terminal…",
 	"terminalClosed": "Terminal cerrada",

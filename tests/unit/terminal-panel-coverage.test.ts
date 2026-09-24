@@ -402,3 +402,34 @@ describe('TerminalPanel — enabled lifecycle (coverage)', () => {
 		h.cleanup();
 	});
 });
+
+describe('TerminalPanel — row mode (Terminal Desk Wave 2, task 2.2-T)', () => {
+	it('assigned row SKIPS the probe/reattach ladder entirely — the desk already holds the lease', async () => {
+		let probed = false;
+		fetchRoute = (url) => {
+			if (url === '/api/terminal' && !init0(url)) probed = true;
+			return Promise.resolve(jsonResponse({ enabled: true, sessions: [] }));
+		};
+		function init0(_url: string): boolean { return false; }
+		const onAssigned = vi.fn();
+		const h = await mountPanel({ assigned: { sessionId: 'sess-row', token: 'tok-row' }, onAssigned });
+		await tick();
+		flushSync();
+		expect(probed).toBe(false);
+		expect(onAssigned).toHaveBeenCalledWith('sess-row', 'tok-row');
+		// the stream attaches to the ASSIGNED session, replaying from 0
+		expect(lastES!.url).toBe('/api/terminal/sess-row/stream?fromByte=0');
+		h.cleanup();
+	});
+
+	it('solo mode still fires onAssigned after the ladder (desk records the lease)', async () => {
+		fetchRoute = openRoute([]);
+		const onAssigned = vi.fn();
+		const h = await mountPanel({ onAssigned });
+		await tick();
+		flushSync();
+		expect(onAssigned).toHaveBeenCalledWith('s1', 't1');
+		h.cleanup();
+	});
+});
+

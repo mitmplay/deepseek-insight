@@ -141,6 +141,9 @@ export async function executeCommand(
 		/** /dsi-skills only (The Skill Shelf ADR, 2026-09-20, D3) — the
 		 *  '--reload' flag: rebuild the snapshot before the shelf opens. */
 		reload?: boolean;
+		/** /dsi-terminal only (The Terminal Desk ADR, 2026-09-24, D2) — the
+		 *  parser-admitted desk flag (see ParsedCommand). */
+		terminalAction?: 'new-tab' | 'split-down';
 	},
 	ctx: ExecutorContext,
 	onNote?: NoteSink
@@ -158,7 +161,7 @@ export async function executeCommand(
 		return runPromptManager(command.args, ctx, onNote);
 	}
 	if (command.type === 'terminal') {
-		return runTerminal(command.args, ctx, onNote);
+		return runTerminal(command.args, command.terminalAction, ctx, onNote);
 	}
 	if (command.type === 'skillshelf') {
 		return runSkillShelf(command.args, command.reload === true, ctx, onNote);
@@ -307,18 +310,22 @@ export async function executeCommand(
  * command. No wire call — the manager content talks to /api/prompts itself.
  */
 /**
- * /dsi-terminal (Web Terminal spec Wave 5, 2026-09-24): aim the operator
- * terminal panel — the manager-request grammar. The enabled gate lives
- * HERE (the composer gives honest feedback even before a panel exists):
- * a disabled flag notes the fact and opens nothing.
+ * /dsi-terminal (Web Terminal spec Wave 5, 2026-09-24; widened by The
+ * Terminal Desk ADR 2026-09-24 D2): aim the operator terminal desk — the
+ * manager-request grammar. The enabled gate lives HERE (the composer gives
+ * honest feedback even before a panel exists): a disabled flag notes the
+ * fact and opens nothing. action carries the parser-admitted flag
+ * ('new-tab' | 'split-down') onward — with no desk on the floor all three
+ * shapes create the first tab; the action discriminates only when one exists.
  */
 async function runTerminal(
 	args: string,
+	action: 'new-tab' | 'split-down' | undefined,
 	ctx: ExecutorContext,
 	onNote?: NoteSink
 ): Promise<ExecutorResult> {
 	if (args !== '') {
-		const usage = 'usage: /dsi-terminal';
+		const usage = 'usage: /dsi-terminal [--new-tab | --split-down]';
 		onNote?.(false, usage);
 		return { ok: false, note: usage };
 	}
@@ -340,6 +347,7 @@ async function runTerminal(
 	}
 	const added = addPanelFromSidebar({
 		kind: 'terminal',
+		...(action ? { action } : {}),
 		afterSessionId: ctx.sessionId
 	});
 	if (!added) {

@@ -86,3 +86,38 @@ describe('reload blob sanitize — what survives the whitelist', () => {
 		expect(storedReload({ phase: 'idle', startedAt: T0 })).toBeNull();
 	});
 });
+
+describe('terminal desk mirror sanitize (Terminal Desk ADR D3, Wave 3 — task 3.1-T)', () => {
+	function storedDesk(desk: unknown): unknown {
+		savePanelPrefs({
+			panels: [{ id: 't', kind: 'terminal', width: 460, desk } as never],
+			selectedPanelId: 't',
+			panelWidth: 730,
+			zoom: 1
+		});
+		return (loadPanelPrefs().panels[0] as { desk: unknown }).desk;
+	}
+
+	it('a well-formed mirror survives: tabs, sessionIds, selectedTab', () => {
+		expect(
+			storedDesk({ tabs: [{ sessionIds: ['a', 'b'] }, { sessionIds: ['c'] }], selectedTab: 1 })
+		).toEqual({ tabs: [{ sessionIds: ['a', 'b'] }, { sessionIds: ['c'] }], selectedTab: 1 });
+	});
+
+	it('selectedTab clamps into range; junk sessionIds members drop', () => {
+		expect(
+			storedDesk({ tabs: [{ sessionIds: ['a'] }, { sessionIds: ['b'] }], selectedTab: 9 })
+		).toEqual({ tabs: [{ sessionIds: ['a'] }, { sessionIds: ['b'] }], selectedTab: 1 });
+		expect(
+			storedDesk({ tabs: [{ sessionIds: ['a', 42, null, ''] }], selectedTab: 0 })
+		).toEqual({ tabs: [{ sessionIds: ['a'] }], selectedTab: 0 });
+	});
+
+	it('empty/junk tabs drop; all tabs gone ⇒ the whole mirror drops (fresh-desk fallback)', () => {
+		expect(storedDesk({ tabs: [{ sessionIds: [] }], selectedTab: 0 })).toBeUndefined();
+		expect(storedDesk({ tabs: 'nope', selectedTab: 0 })).toBeUndefined();
+		expect(storedDesk('nope')).toBeUndefined();
+		expect(storedDesk(undefined)).toBeUndefined();
+	});
+});
+

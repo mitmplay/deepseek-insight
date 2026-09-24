@@ -70,6 +70,12 @@ export interface ConversationPanelAddRequest {
  *  so the request carries no flag facts. */
 export interface TerminalPanelAddRequest {
 	kind: 'terminal';
+	/** The Terminal Desk ADR (2026-09-24, D2) — the parser-admitted flag:
+	 *  'new-tab' appends a desk tab, 'split-down' adds a row to the selected
+	 *  tab. Absent for the bare command. With NO desk on the floor all three
+	 *  command shapes mean the same thing (create tab[0]/row[0]) — the floor
+	 *  (and, from Wave 2, the desk) owns that equivalence. */
+	action?: 'new-tab' | 'split-down';
 	afterSessionId?: string;
 }
 
