@@ -32,6 +32,17 @@ afterEach(() => {
 });
 
 describe('reload blob sanitize — what survives the whitelist', () => {
+	it('a terminal slot survives the blob as a terminal (Surviving Shell D3 — the desk re-attaches)', () => {
+		savePanelPrefs({
+			panels: [{ id: 't-slot', kind: 'terminal', width: 460 } as never],
+			selectedPanelId: 't-slot',
+			panelWidth: 730,
+			zoom: 1
+		});
+		const panel = loadPanelPrefs().panels[0] as { kind: string; id: string };
+		expect(panel.kind).toBe('terminal');
+		expect(panel.id).toBe('t-slot');
+	});
 	it('a well-formed loading survives with its startedAt', () => {
 		expect(storedReload({ phase: 'loading', startedAt: T0 - 100 })).toEqual({
 			phase: 'loading',

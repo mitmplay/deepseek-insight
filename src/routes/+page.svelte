@@ -1644,7 +1644,8 @@ import {
 		     the session path: a terminal slot has no session. The content
 		     self-gates on terminal.enabled and owns its whole lifecycle. -->
 		<div class="panel-manager-body" data-testid="panel-terminal">
-			<TerminalPanel />
+			<!-- Shell exit auto-closes the panel (same mutation as the header ×). -->
+			<TerminalPanel onShellExit={() => removePanel(panel.id)} />
 		</div>
 	{:else if panel.kind === 'prompt-manager'}
 		<!-- Manager branch (ADR D6/D8) — KIND SWITCHES BEFORE THE SESSION

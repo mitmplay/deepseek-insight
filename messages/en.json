@@ -381,7 +381,6 @@
 	"terminalPanelTitle": "Terminal",
 	"terminalDisabled": "Terminal is disabled — enable it in settings (terminal.enabled).",
 	"terminalOpening": "Opening terminal…",
-	"terminalClose": "Close",
 	"terminalClosed": "Terminal closed",
 	"terminalSettleStdinRead": "waiting for input",
 	"terminalSettleInferredIdle": "output idle",

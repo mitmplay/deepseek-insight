@@ -381,7 +381,6 @@
 	"terminalPanelTitle": "Terminal",
 	"terminalDisabled": "Terminal deshabilitado — actívalo en ajustes (terminal.enabled).",
 	"terminalOpening": "Abriendo terminal…",
-	"terminalClose": "Cerrar",
 	"terminalClosed": "Terminal cerrada",
 	"terminalSettleStdinRead": "esperando entrada",
 	"terminalSettleInferredIdle": "salida inactiva",

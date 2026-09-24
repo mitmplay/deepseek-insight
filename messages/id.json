@@ -381,7 +381,6 @@
 	"terminalPanelTitle": "Terminal",
 	"terminalDisabled": "Terminal dinonaktifkan — aktifkan di pengaturan (terminal.enabled).",
 	"terminalOpening": "Membuka terminal…",
-	"terminalClose": "Tutup",
 	"terminalClosed": "Terminal ditutup",
 	"terminalSettleStdinRead": "menunggu masukan",
 	"terminalSettleInferredIdle": "keluaran senggang",

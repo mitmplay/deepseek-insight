@@ -6,6 +6,12 @@
  * the stream ends after closed. fromByte resumes a late attacher from the
  * ring tail; a slid-out offset reports lossy and names the spill.
  * X-Accel-Buffering: no keeps reverse proxies from buffering the stream.
+ *
+ * Cancel arm (crash RCA 2026-09-24): a CLIENT going away (reload / tab
+ * close) cancels the ReadableStream while the PTY lives on — without
+ * dropping the session listener there, the next output chunk enqueues
+ * into a dead controller and the ERR_INVALID_STATE throw kills the
+ * server process.
  */
 import { json } from '@sveltejs/kit';
 
@@ -38,18 +44,28 @@ export const GET = (ctx: { params: { id: string }; url: URL }): Response => {
 	if (!session) return json({ error: 'NO_SESSION' }, { status: 404 });
 
 	const encoder = new TextEncoder();
+	const state = { closed: false };
+	let onEvent: (event: TerminalSessionEvent) => void = () => undefined;
+
 	const stream = new ReadableStream<Uint8Array>({
 		start(controller) {
-			let closed = false;
+			// closed is set by BOTH ends: the session's own closed frame, and
+			// the client going away (cancel below).
 			const enqueue = (chunk: string) => {
-				if (!closed) controller.enqueue(encoder.encode(chunk));
+				if (state.closed) return;
+				try {
+					controller.enqueue(encoder.encode(chunk));
+				} catch {
+					// a cancel raced an in-flight enqueue — treat as closed
+					state.closed = true;
+				}
 			};
 
 			// Tail first, then live deltas — one attach, no gap.
 			const read = session.readFrom(fromByte);
 			enqueue(sseFrame('output', { text: read.text, nextOffset: read.nextOffset, lossy: read.lossy, spillPath: read.spillPath }));
 
-			const onEvent = (event: TerminalSessionEvent) => {
+			onEvent = (event: TerminalSessionEvent) => {
 				if (event.type === 'output') {
 					// Live chunks flow through the same ring; the session emits
 					// bytes, we trust the offset it published.
@@ -66,9 +82,13 @@ export const GET = (ctx: { params: { id: string }; url: URL }): Response => {
 				}
 				if (event.type === 'closed') {
 					enqueue(sseFrame('closed', { quiescent: event.quiescent, lingeringPids: event.lingeringPids }));
-					closed = true;
+					state.closed = true;
 					session.off('event', onEvent);
-					controller.close();
+					try {
+						controller.close();
+					} catch {
+						// already cancelled by the client — nothing to close
+					}
 				}
 			};
 			session.on('event', onEvent);
@@ -76,9 +96,17 @@ export const GET = (ctx: { params: { id: string }; url: URL }): Response => {
 			if (session.isExited() && terminalRegistry.exitOutcome(id) !== null && !terminalRegistry.list().some((s) => s.id === id)) {
 				// session vanished between peek and subscribe — end honestly
 				enqueue(sseFrame('error', { error: 'NO_SESSION' }));
-				closed = true;
+				state.closed = true;
+				session.off('event', onEvent);
 				controller.close();
 			}
+		},
+		cancel() {
+			// the CLIENT vanished (reload / tab close cancels the stream):
+			// drop the listener so a live PTY cannot enqueue into a cancelled
+			// controller (crash RCA 2026-09-24)
+			state.closed = true;
+			session.off('event', onEvent);
 		}
 	});
 

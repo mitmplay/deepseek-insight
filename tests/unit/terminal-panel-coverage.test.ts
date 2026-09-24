@@ -1,9 +1,10 @@
 /**
  * TerminalPanel coverage tests — the happy paths the floor test skips:
  * full xterm attach (mocked addons), the SSE frame pump (output / settled /
- * exit / closed / error), serialized keystroke writes, the close button,
- * the xterm-failure fallback surface (pre + input line), and the opening /
- * open-failed postures. xterm + addon-fit + EventSource + ResizeObserver
+ * exit / closed / error), serialized keystroke writes, close-on-unmount
+ * (panel close IS terminal close; no close button), the xterm-failure
+ * fallback surface (pre + input line), and the opening / open-failed
+ * postures. xterm + addon-fit + EventSource + ResizeObserver
  * are all mocked; fetch is routed by URL.
  */
 import { mount, unmount, flushSync } from 'svelte';
@@ -120,10 +121,10 @@ interface Mounted {
 	cleanup: () => void;
 }
 
-async function mountPanel(): Promise<Mounted> {
+async function mountPanel(props: Record<string, unknown> = {}): Promise<Mounted> {
 	const { default: Host } = await import('./TerminalPanelHost.svelte');
 	const target = document.body.appendChild(document.createElement('div'));
-	const app = mount(Host, { target });
+	const app = mount(Host, { target, props });
 	flushSync();
 	await tick();
 	flushSync();
@@ -136,10 +137,11 @@ async function mountPanel(): Promise<Mounted> {
 	};
 }
 
-function openRoute(): FetchRoute {
+function openRoute(sessions: Array<{ id: string; exited: boolean }> = []): FetchRoute {
 	return (url, init) => {
-		if (url === '/api/terminal' && !init) return Promise.resolve(jsonResponse({ enabled: true, sessions: [] }));
+		if (url === '/api/terminal' && !init) return Promise.resolve(jsonResponse({ enabled: true, sessions }));
 		if (url === '/api/terminal' && init) return Promise.resolve(jsonResponse({ sessionId: 's1', token: 't1', totalBytes: 0 }));
+		if (url.endsWith('/reattach')) return Promise.resolve(jsonResponse({ token: 't9', fromByte: 4096 }));
 		if (url.includes('/send')) return Promise.resolve(jsonResponse({ ok: true }));
 		return Promise.resolve(jsonResponse({}));
 	};
@@ -170,6 +172,47 @@ describe('TerminalPanel — enabled lifecycle (coverage)', () => {
 		expect(h.target.querySelector('[data-testid="terminal-disabled"]')).not.toBeNull();
 		expect(lastES).toBeNull(); // never opened a stream
 		h.cleanup();
+	});
+
+	it('mount ladder: a live probe session is RE-ATTACHED, never re-opened (Surviving Shell D3)', async () => {
+		fetchRoute = openRoute([{ id: 's9', exited: false }]);
+		const h = await mountPanel();
+		await tick();
+		flushSync();
+		const calls = vi.mocked(fetch).mock.calls;
+		expect(calls.some((c) => String(c[0]) === '/api/terminal/s9/reattach')).toBe(true);
+		expect(calls.some((c) => String(c[0]) === '/api/terminal' && (c[1] as RequestInit | undefined) !== undefined)).toBe(false);
+		// the stream REPLAYS the retained ring (from 0) into the fresh xterm,
+		// on the SAME session — the old scrollback must survive the reload
+		expect(lastES!.url).toBe('/api/terminal/s9/stream?fromByte=0');
+		h.cleanup();
+	});
+
+	it('mount ladder: only exited sessions → opens a fresh session as today', async () => {
+		fetchRoute = openRoute([{ id: 'dead', exited: true }]);
+		const h = await mountPanel();
+		await tick();
+		flushSync();
+		const calls = vi.mocked(fetch).mock.calls;
+		expect(calls.some((c) => String(c[0]) === '/api/terminal/dead/reattach')).toBe(false);
+		expect(calls.some((c) => String(c[0]) === '/api/terminal' && (c[1] as RequestInit | undefined) !== undefined)).toBe(true);
+		expect(lastES!.url).toBe('/api/terminal/s1/stream?fromByte=0');
+		h.cleanup();
+	});
+
+	it('pagehide before unmount → the close POST is SKIPPED; plain unmount still closes (Surviving Shell D4)', async () => {
+		fetchRoute = openRoute();
+		const h = await mountPanel();
+		await tick();
+		flushSync();
+
+		// the page is going away (reload / tab close)
+		window.dispatchEvent(new Event('pagehide'));
+		h.cleanup();
+		await tick();
+		expect(vi.mocked(fetch).mock.calls.some(
+			(c) => String(c[0]).includes('/send') && (c[1] as RequestInit | undefined)?.body?.toString().includes('"close"')
+		)).toBe(false);
 	});
 
 	it('shows the opening posture while the open POST is pending', async () => {
@@ -235,15 +278,16 @@ describe('TerminalPanel — enabled lifecycle (coverage)', () => {
 		// host click → xterm focus arm
 		(host as HTMLElement).click();
 
-		// close button rendered while the session is open
-		const closeBtn = h.target.querySelector('[data-testid="terminal-close"]') as HTMLButtonElement;
-		expect(closeBtn).not.toBeNull();
-		closeBtn.click();
-		await tick();
-		expect(vi.mocked(fetch).mock.calls.some((c) => String(c[0]) === '/api/terminal/s1/send')).toBe(true);
+		// no terminal-close button — panel close IS terminal close
+		expect(h.target.querySelector('[data-testid="terminal-close"]')).toBeNull();
 
-		// cleanup path: unmount disposes xterm and the observer (covered via teardown below)
+		// unmount fires the close POST (panel close runs the quiescence ladder)
 		h.cleanup();
+		await tick();
+		const closeCalls = vi.mocked(fetch).mock.calls.filter(
+			(c) => String(c[0]) === '/api/terminal/s1/send' && (c[1] as RequestInit | undefined)?.body?.toString().includes('"close"')
+		);
+		expect(closeCalls).toHaveLength(1);
 	});
 
 	it('settle badge cycles through every reason; closed frame renders the closed floor (quiescent true and false)', async () => {
@@ -266,12 +310,37 @@ describe('TerminalPanel — enabled lifecycle (coverage)', () => {
 		flushSync();
 		const closed = h.target.querySelector('[data-testid="terminal-closed"]');
 		expect(closed?.textContent).toContain('(lingering)');
-		// close button gone once closed
+		// no close button — teardown rides the panel unmount
 		expect(h.target.querySelector('[data-testid="terminal-close"]')).toBeNull();
 
 		// late frames after close never unfake the terminal (reducer freeze)
 		lastES!.emit('settled', JSON.stringify({ reason: 'timeout' }));
 		await tick();
+		h.cleanup();
+	});
+
+	it('shell exit (settled session_exit) fires onShellExit once after the pause; other reasons never fire it', async () => {
+		const onShellExit = vi.fn();
+		fetchRoute = openRoute();
+		const h = await mountPanel({ onShellExit });
+		await tick();
+		flushSync();
+
+		// other settle reasons never fire the callback
+		lastES!.emit('settled', JSON.stringify({ reason: 'stdin_read' }));
+		lastES!.emit('settled', JSON.stringify({ reason: 'timeout' }));
+		await new Promise((r) => setTimeout(r, 50));
+		expect(onShellExit).not.toHaveBeenCalled();
+
+		// session_exit schedules the close; the badge stays readable first
+		lastES!.emit('settled', JSON.stringify({ reason: 'session_exit' }));
+		await new Promise((r) => setTimeout(r, 750));
+		expect(onShellExit).not.toHaveBeenCalled();
+		expect(h.target.querySelector('[data-testid="terminal-settle-badge"]')?.textContent).toContain('shell exited');
+		// the pause elapses → one close, and a duplicate frame never re-fires it
+		lastES!.emit('settled', JSON.stringify({ reason: 'session_exit' }));
+		await new Promise((r) => setTimeout(r, 1200));
+		expect(onShellExit).toHaveBeenCalledTimes(1);
 		h.cleanup();
 	});
 

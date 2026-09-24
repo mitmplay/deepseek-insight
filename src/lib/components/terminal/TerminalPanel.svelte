@@ -9,6 +9,14 @@
 		type TerminalPanelState
 	} from '$lib/components/terminal/frame-state.js';
 
+	let {
+		/** Fired once after the shell exits (a settled frame with reason
+		 *  'session_exit'), following a short pause so the badge stays
+		 *  readable. The route maps it to removing the terminal panel —
+		 *  shell exit closes the panel the way the header × would. */
+		onShellExit
+	}: { onShellExit?: () => void } = $props();
+
 	let panelState = $state<TerminalPanelState>({ ...initialTerminalPanelState });
 	let disabled = $state(false);
 	let opening = $state(false);
@@ -25,6 +33,9 @@
 	let resizeObserver: ResizeObserver | null = null;
 
 	let writeChain = Promise.resolve();
+
+	let shellExitTimer: ReturnType<typeof setTimeout> | null = null;
+	let shellExitFired = false;
 
 	/** Serialized keystroke writes: separate fetches race on the server, so
 	 *  the chain is the ordering guarantee for the PTY byte stream. */
@@ -56,6 +67,12 @@
 		}
 		if (ev === 'settled') {
 			panelState = reduceTerminalFrame(panelState, { event: 'settled', reason: data.reason as never });
+			// Shell exit → auto-close the panel after a readable pause
+			// (once; other settle reasons never fire it).
+			if (data.reason === 'session_exit' && !shellExitFired) {
+				shellExitFired = true;
+				shellExitTimer = setTimeout(() => onShellExit?.(), 1500);
+			}
 		}
 		if (ev === 'closed') {
 			panelState = reduceTerminalFrame(panelState, { event: 'closed', quiescent: Boolean(data.quiescent) });
@@ -96,35 +113,82 @@
 		attachXterm();
 	});
 
+	let pageGoingAway = false;
+
 	onMount(() => {
+		// The dying page holds a LEASE, not the life (ADR The Surviving Shell
+		// D4): a reload or tab close must not close the session — only a
+		// deliberate panel close (page alive) does.
+		const markGoingAway = (): void => {
+			pageGoingAway = true;
+		};
+		window.addEventListener('pagehide', markGoingAway);
 		return () => {
+			window.removeEventListener('pagehide', markGoingAway);
+			if (shellExitTimer !== null) clearTimeout(shellExitTimer);
 			resizeObserver?.disconnect();
 			xterm?.dispose();
 			xterm = null;
+			// Panel close IS terminal close: the PTY lives server-side, so an
+			// unmount without a close POST would leak the session until the
+			// orphan scrub. keepalive lets the POST outlive the unmount —
+			// UNLESS the page itself is going away (pagehide): losing the
+			// lease is not closing (D4).
+			if (sessionId && token && !pageGoingAway) {
+				void fetch('/api/terminal/' + sessionId + '/send', {
+					method: 'POST',
+					headers: { 'content-type': 'application/json' },
+					body: JSON.stringify({ token, action: 'close' }),
+					keepalive: true
+				}).catch(() => undefined);
+			}
 		};
 	});
 
 	onMount(() => {
 		void (async () => {
 			const probe = await fetch('/api/terminal');
-			const probeBody = (await probe.json()) as { enabled: boolean };
+			const probeBody = (await probe.json()) as { enabled: boolean; sessions?: Array<{ id: string; exited: boolean }> };
 			if (!probeBody.enabled) {
 				disabled = true;
 				return;
 			}
-			opening = true;
-			const open = await post('/api/terminal', {});
-			if (!open.ok) {
-				disabled = true;
+			// Mount ladder (The Surviving Shell D3): a live session from before
+			// the reload is RE-ATTACHED — same PTY, stream resumed at the byte
+			// tail — never duplicated. Only a fresh floor opens a new session.
+			const live = (probeBody.sessions ?? []).find((s) => !s.exited);
+			let open: Response;
+			let resumeByte = 0;
+			if (live) {
+				open = await post('/api/terminal/' + live.id + '/reattach', {});
+				if (!open.ok) {
+					disabled = true;
+					return;
+				}
+				const re = (await open.json()) as { token: string; fromByte: number };
+				sessionId = live.id;
+				token = re.token;
+				// Replay the retained ring from 0 (NOT the tail): the fresh
+				// xterm surface has no memory, so the old scrollback — the
+				// operator's `ls -a`, the running build's log — must stream
+				// back in or survival would be a blank panel.
+				resumeByte = 0;
+			} else {
+				opening = true;
+				open = await post('/api/terminal', {});
+				if (!open.ok) {
+					disabled = true;
+					opening = false;
+					return;
+				}
+				const opened = (await open.json()) as { sessionId: string; token: string; totalBytes: number };
+				sessionId = opened.sessionId;
+				token = opened.token;
 				opening = false;
-				return;
+				resumeByte = opened.totalBytes;
 			}
-			const opened = (await open.json()) as { sessionId: string; token: string; totalBytes: number };
-			sessionId = opened.sessionId;
-			token = opened.token;
-			opening = false;
 
-			const es = new EventSource('/api/terminal/' + sessionId + '/stream?fromByte=' + opened.totalBytes);
+			const es = new EventSource('/api/terminal/' + sessionId + '/stream?fromByte=' + resumeByte);
 			es.onmessage = (e) => applyFrame('data: ' + e.data);
 			for (const kind of ['output', 'settled', 'exit', 'closed', 'error']) {
 				es.addEventListener(kind, (e) => {
@@ -135,11 +199,6 @@
 			}
 		})();
 	});
-
-	async function closeTerminal(): Promise<void> {
-		if (!sessionId || !token) return;
-		await post('/api/terminal/' + sessionId + '/send', { token, action: 'close' });
-	}
 
 	async function sendLine(): Promise<void> {
 		const line = typedLine;
@@ -173,12 +232,6 @@ input line) appears ONLY when xterm cannot attach.
 			<span data-testid="terminal-settle-badge" class="rounded bg-slate-700 px-1.5 py-0.5">{settleText(panelState.lastSettle)}</span>
 		{/if}
 		<div class="grow"></div>
-		{#if sessionId && !panelState.closed}
-			<button
-				class="rounded bg-slate-700 px-2 py-0.5 hover:bg-slate-600"
-				data-testid="terminal-close"
-				onclick={() => void closeTerminal()}>{t(m.terminalClose)}</button>
-		{/if}
 	</div>
 	{#if disabled}
 		<div class="p-3 text-xs text-slate-500" data-testid="terminal-disabled">{t(m.terminalDisabled)}</div>

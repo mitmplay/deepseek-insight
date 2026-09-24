@@ -196,7 +196,8 @@ export function isPanelEntry(value: unknown): value is DsiPanelEntry {
 		entry.kind !== 'injected-doc' &&
 		entry.kind !== 'skill-shelf' &&
 		entry.kind !== 'workspace-explorer' &&
-		entry.kind !== 'workspace-file'
+		entry.kind !== 'workspace-file' &&
+		entry.kind !== 'terminal'
 	) {
 		return false;
 	}
@@ -246,7 +247,10 @@ export function isPanelEntry(value: unknown): value is DsiPanelEntry {
 		entry.kind !== 'skill-shelf' &&
 		entry.kind !== 'injected-doc' &&
 		entry.kind !== 'workspace-explorer' &&
-		entry.kind !== 'workspace-file'
+		entry.kind !== 'workspace-file' &&
+		// The Surviving Shell (ADR 2026-09-24): a terminal slot has no
+		// session — like the managers, it must not need one to survive.
+		entry.kind !== 'terminal'
 	) {
 		if (typeof entry.sessionId !== 'string' || entry.sessionId.length === 0) return false;
 		if (
@@ -301,6 +305,13 @@ function sanitizePanels(raw: unknown): DsiPanelEntry[] {
 			// (the legacy blob default).
 			if (entry.kind === 'prompt-manager') {
 				return { id: entry.id as string, kind: 'prompt-manager', width } as DsiPanelEntry;
+			}
+			if (entry.kind === 'terminal') {
+				// The Surviving Shell (ADR 2026-09-24 D3): the terminal slot
+				// survives the reload blob — the mount ladder re-attaches the
+				// live PTY. Sanitizing it away would resurrect a blank desk
+				// while the shell kept running.
+				return { id: entry.id as string, kind: 'terminal', width } as DsiPanelEntry;
 			}
 			if (entry.kind === 'settings-editor') {
 				return {
