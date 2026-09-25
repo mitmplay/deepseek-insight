@@ -47,6 +47,14 @@
 
 	let writeChain = Promise.resolve();
 
+	/** Focus the live xterm surface (the desk's ⌥+N tab shortcut,
+	 *  2026-09-25): the real terminal when attached, the fallback
+	 *  input's textarea otherwise. */
+	export function focusTerminal(): void {
+		if (xterm) xterm.focus();
+		else termEl?.querySelector('textarea')?.focus();
+	}
+
 	let shellExitTimer: ReturnType<typeof setTimeout> | null = null;
 	let shellExitFired = false;
 
@@ -258,7 +266,6 @@ input line) appears ONLY when xterm cannot attach.
 
 <div class="terminal-panel flex h-full min-h-80 flex-col rounded-lg bg-slate-900 p-1" data-testid="terminal-panel">
 	<div class="mb-1 flex items-center gap-2 px-1 text-[10px] text-slate-400">
-		<span class="font-medium text-slate-300">{t(m.terminalPanelTitle)}</span>
 		{#if panelState.lastSettle}
 			<span data-testid="terminal-settle-badge" class="rounded bg-slate-700 px-1.5 py-0.5">{settleText(panelState.lastSettle)}</span>
 		{/if}

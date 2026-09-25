@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
+	import CanvasCopyButton from '$lib/components/common/buttons/CanvasCopyButton.svelte';
 	import TerminalPanel from './TerminalPanel.svelte';
 	import TerminalTabHeader from './TerminalTabHeader.svelte';
 	import TerminalTabButton from './TerminalTabButton.svelte';
@@ -42,6 +43,16 @@
 		onMirror?: (mirror: TerminalDeskMirror) => void;
 	} = $props();
 
+	/** The desk's root — the anchor for finding the hosting PanelColumn,
+	 *  the CanvasCopyButton capture target (2026-09-25): the button copies
+	 *  the WHOLE column (the panel floor slot the desk lives in), not just
+	 *  the terminal. Absent column (bare mounts) = null — the button's
+	 *  documented no-op. */
+	let deskEl = $state<HTMLElement | null>(null);
+	const captureEl = $derived(
+		deskEl?.closest<HTMLElement>('[data-testid="panel-column"]') ?? null
+	);
+
 	let nextKey = 1;
 	const mkKey = (): number => nextKey++;
 
@@ -58,6 +69,29 @@
 	let selectedTab = $state(0);
 	let opening = $state(false);
 	let capped = $state(false);
+
+	// ── ⌥+1…9 tab shortcut (2026-09-25) ──────────────────────────────
+	// The desk's row panels by row key — the shortcut focuses the first
+	// row's live terminal after switching the visible tab. Option (⌥)
+	// because Cmd+1…9 is reserved by the browser (tab switching) and
+	// never reaches the page.
+	let panelEls = $state<Record<number, { focusTerminal: () => void }>>({});
+
+	function onTabShortcut(event: KeyboardEvent): void {
+		if (!event.altKey || event.metaKey || event.ctrlKey || event.shiftKey) return;
+		// e.code, not e.key — Option+digit composes special characters
+		// on macOS (⌥+2 → '™'), the physical key stays 'Digit2'.
+		const match = /^Digit([1-9])$/.exec(event.code);
+		if (!match) return;
+		const i = Number(match[1]) - 1;
+		if (i >= tabs.length) return;
+		event.preventDefault();
+		selectedTab = i;
+		void tick().then(() => {
+			const row = tabs[i]?.rows[0];
+			if (row) panelEls[row.key]?.focusTerminal?.();
+		});
+	}
 
 	$effect(() => {
 		if (restoring || tabs.length === 0) return;
@@ -201,7 +235,8 @@ container per tab (hidden tabs keep streaming); a split container stacks
 the rows. Restoring shows a quiet placeholder until the ladder settles.
 -->
 
-<div class="flex h-full min-h-0 flex-col rounded-lg bg-slate-900" data-testid="terminal-desk">
+<svelte:window onkeydown={onTabShortcut} />
+<div bind:this={deskEl} class="flex h-full min-h-0 flex-col rounded-lg bg-slate-900" data-testid="terminal-desk">
 	{#if restoring}
 		<div class="p-3 text-xs text-slate-500" data-testid="terminal-desk-restoring">...</div>
 	{:else}
@@ -215,6 +250,14 @@ the rows. Restoring shows a quiet placeholder until the ladder settles.
 					onClose={() => closeTab(i)}
 				/>
 			{/each}
+			{#snippet actions()}
+				<CanvasCopyButton
+					container={captureEl}
+					mode="visible"
+					title={t(m.copyPanelAsImage)}
+					size={12}
+				/>
+			{/snippet}
 		</TerminalTabHeader>
 		{#each tabs as tab, i (tab.key)}
 			<TerminalTabContainer index={i} visible={i === selectedTab}>
@@ -222,6 +265,7 @@ the rows. Restoring shows a quiet placeholder until the ladder settles.
 					{#each tab.rows as row (row.key)}
 						<div class="min-h-0" style="flex: 1 1 0; min-height: 10rem;">
 							<TerminalPanel
+								bind:this={panelEls[row.key]}
 								assigned={row.assigned}
 								onAssigned={(sessionId, token) => recordAssigned(row, sessionId, token)}
 								onShellExit={() => removeRow(i, row)}

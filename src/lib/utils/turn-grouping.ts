@@ -99,6 +99,10 @@ export function groupTurns(entries: DsiEntry[]): TurnGroup[] {
 			groups.push({ kind: 'prompt', key: entry.id, entry, context: [] });
 			continue;
 		}
+		// Turn End Stamp (ADR 2026-09-25, task 1.3): turn-lifecycle markers are
+		// pipeline-faithful bookkeeping — they must never become TurnMembers,
+		// join a group, split one, or start one. The projection folds them.
+		if (entry.kind === 'turn-lifecycle') continue;
 		const side = entry as AssistantSideEntry;
 		const last = groups[groups.length - 1];
 		if (last?.kind === 'assistant-turn') last.entries.push(side);

@@ -415,3 +415,67 @@ describe('ConversationScrollArea — the outside-in stick mirror', () => {
 		expect(s.host.stickValue()).toBe(true);
 	});
 });
+
+// ── Turn End Stamp (2026-09-25, Wave 2 task 2.1-T): footer branches ──
+// Marker seqs BRACKET the group (start < group < end) — the joiner's contract.
+const marker = (turn: number, phase: 'start' | 'end', seq: number, opts: { reason?: string; abort?: string; time?: number } = {}): DsiEntry =>
+	({
+		kind: 'turn-lifecycle',
+		id: `tl:${turn}:${phase}`,
+		seq,
+		time: opts.time ?? T + seq,
+		turn,
+		phase,
+		...(opts.reason !== undefined ? { reasonKind: opts.reason } : {}),
+		...(opts.abort !== undefined ? { abortKind: opts.abort } : {})
+	} as DsiEntry);
+const seqd = (id: string, seq: number, time = T + seq): DsiEntry => ({ ...assistant(id, `answer ${id}`), seq, time });
+
+describe('ConversationScrollArea — Turn End Stamp footer', () => {
+	it('aborted(user) renders the stopped chip and NO Ran-for prefix', async () => {
+		const entries = [
+			{ ...prompt('u1', 'go'), seq: 1 },
+			marker(1, 'start', 2),
+			seqd('a1', 3),
+			marker(1, 'end', 4, { reason: 'aborted', abort: 'user' })
+		];
+		const { target } = mountArea(entries);
+		await settle();
+		expect(target.querySelector('[data-testid="turn-stopped-chip"]')).not.toBeNull();
+		const bubble = target.querySelector('[data-testid="assistant-turn"]')!;
+		expect(bubble.textContent).not.toContain('Ran for');
+	});
+
+	it('completed uses the WIRE pair for the elapsed stamp', async () => {
+		const entries = [
+			{ ...prompt('u1', 'go'), seq: 1 },
+			marker(1, 'start', 2, { time: T }),
+			seqd('a1', 3, T + 1_000),
+			marker(1, 'end', 4, { reason: 'completed', time: T + 62_000 })
+		];
+		const { target } = mountArea(entries);
+		await settle();
+		const bubble = target.querySelector('[data-testid="assistant-turn"]')!;
+		expect(bubble.textContent).toContain('Ran for');
+		expect(bubble.textContent).toContain('1m 02s');
+		expect(target.querySelector('[data-testid="turn-stopped-chip"]')).toBeNull();
+	});
+
+	it('no lifecycle record (old ledger) keeps the fallback stamp and no chip', async () => {
+		const { target } = mountArea([prompt('u1', 'go'), seqd('a1', 2)]);
+		await settle();
+		expect(target.querySelector('[data-testid="turn-stopped-chip"]')).toBeNull();
+	});
+
+	it('aborted with a non-user kind stays silent (ADR D4)', async () => {
+		const entries = [
+			{ ...prompt('u1', 'go'), seq: 1 },
+			marker(1, 'start', 2),
+			seqd('a1', 3),
+			marker(1, 'end', 4, { reason: 'aborted', abort: 'context-window' })
+		];
+		const { target } = mountArea(entries);
+		await settle();
+		expect(target.querySelector('[data-testid="turn-stopped-chip"]')).toBeNull();
+	});
+});

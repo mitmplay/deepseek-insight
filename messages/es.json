@@ -268,7 +268,6 @@
 	"discardBroadcastTitle": "Descartar la difusión y restaurar el borrador de cada panel",
 	"discardBroadcast": "Descartar la difusión",
 	"sendCheckedPanels": "Enviar a cada panel marcado",
-	"clearSessionNameFilter": "Limpiar filtro de nombre de sesión",
 	"noSessionsMatch": "Ninguna sesión coincide.",
 	"noOtherSessionsMatch": "Ninguna otra sesión coincide.",
 	"rename": "Renombrar",
@@ -306,6 +305,7 @@
 	"thoughtForAWhile": "pensó un rato",
 	"hideTurnWork": "Ocultar el trabajo detrás de este turno",
 	"showTurnWork": "Mostrar el trabajo detrás de este turno",
+	"turnStopped": "detenido",
 	"thinkLabel": "pensar",
 	"thinkingLabel": "pensando",
 	"ctxChipContext": "contexto",
@@ -387,5 +387,14 @@
 	"terminalSettleStdinRead": "esperando entrada",
 	"terminalSettleInferredIdle": "salida inactiva",
 	"terminalSettleTimeout": "tiempo agotado",
-	"terminalSettleSessionExit": "shell terminada"
+	"terminalSettleSessionExit": "shell terminada",
+	"editedFilesChip": "archivos editados",
+	"editedFilesTitle": "Se editaron {count} archivos",
+	"editedFilesTitleOne": "Se editó 1 archivo",
+	"editedFilesAdded": "+{count}",
+	"editedFilesDeleted": "-{count}",
+	"editedFilesBinary": "binario",
+	"editedFilesOversized": "demasiado grande",
+	"editedFilesCapHint": "y {count} más",
+	"editedFilesGone": "Se editaron archivos en este turno — los conteos ya no están disponibles"
 }

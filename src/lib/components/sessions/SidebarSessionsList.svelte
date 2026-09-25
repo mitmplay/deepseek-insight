@@ -21,9 +21,9 @@
 	 * group box (the Panels-group grammar, SidebarOpenPanels — in a
 	 * NEUTRAL surface voice: the accent-blue wash stays the floor's live
 	 * set marker). The header carries, beside the chevron + `Sessions`
-	 * title, the session-name filter input, its [x] clear button
-	 * (rendered only while the input holds text), and the sub-agent
-	 * visibility toggle (Bot / BotOff). All three are VIEW state owned by
+	 * title, the session-name filter input (type="search" — the browser
+	 * owns the clear affordance, the 2026-09-25 button removal), and the
+	 * sub-agent visibility toggle (Bot / BotOff). All three are VIEW state owned by
 	 * SidebarSessions (the owner applies + persists them via
 	 * spine-group-prefs); this component only renders and reports.
 	 * Typing while collapsed auto-expands — a filter that invisibly does
@@ -35,7 +35,7 @@
 	 * (SidebarSessionContainer's .list) still owns the never-grow rule;
 	 * this pane absorbs its height either way.
 	 */
-	import { Bot, BotOff, ChevronDown, ChevronRight, X } from '@lucide/svelte';
+	import { Bot, BotOff, ChevronDown, ChevronRight } from '@lucide/svelte';
 	import RowSessionItem from './RowSessionItem.svelte';
 	import FilterDateButton from '$lib/components/common/buttons/FilterDateButton.svelte';
 	import { defaultSpineGroupPrefs, type SpineGroupPrefs } from '$lib/utils/spine-group-prefs';
@@ -71,8 +71,6 @@
 		onspinechange?: (partial: Partial<SpineGroupPrefs>) => void;
 	} = $props();
 
-	let filterInput = $state<HTMLInputElement | null>(null);
-
 	/** Chevron/title click — the whole rows block folds or unfolds. */
 	function toggle(): void {
 		onspinechange?.({ collapsed: !spine.collapsed });
@@ -85,12 +83,6 @@
 		onspinechange?.(
 			spine.collapsed ? { collapsed: false, nameFilter: value } : { nameFilter: value }
 		);
-	}
-
-	/** [x] — drop the query and keep the operator's hand on the input. */
-	function clearFilter(): void {
-		onspinechange?.({ nameFilter: '' });
-		filterInput?.focus();
 	}
 
 	/** Sub-agent toggle — hide or re-show origin-'subagent' rows. */
@@ -131,29 +123,16 @@
 			<input
 				class="filter-input"
 				data-testid="sidebar-spine-filter"
-				type="text"
+				type="search"
 				placeholder={t(m.filterBySessionName)}
 				aria-label={t(m.filterBySessionNameLabel)}
 				value={spine.nameFilter}
 				oninput={onFilterInput}
-				bind:this={filterInput}
 			/>
 			<!-- Date filter (2026-09-04, the OCI FilterDateButton port): the
 			     badge sits directly AFTER the name-filter input — same pinned
 			     header, same view-state contract (spine.dateFilter). -->
 			<FilterDateButton value={spine.dateFilter} dates={sessionDates} onchange={onDateFilter} />
-			{#if spine.nameFilter !== ''}
-				<button
-					type="button"
-					class="row-btn"
-					data-testid="sidebar-spine-filter-clear"
-					aria-label={t(m.clearSessionNameFilter)}
-					title={t(m.clearFilter)}
-					onclick={clearFilter}
-				>
-					<X size={10} aria-hidden="true" />
-				</button>
-			{/if}
 			<button
 				type="button"
 				class="row-btn"

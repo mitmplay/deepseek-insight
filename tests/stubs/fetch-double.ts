@@ -17,6 +17,15 @@
  * left untouched: no window, no relative fetches.
  */
 if (typeof window !== 'undefined') {
+	// Canvas 2D double for @git-diff-view/svelte's text measurement: the
+	// vendor's useTextWidth effect calls ctx.font = … on a getContext('2d')
+	// result that is null in happy-dom — the thrown TypeError killed the
+	// mounting effect graph (observed 2026-09-25: consecutive-hover test
+	// froze the whole card). A stub context keeps the vendor effect a no-op.
+	const proto = (window as unknown as { HTMLCanvasElement?: { prototype: Record<string, unknown> } }).HTMLCanvasElement?.prototype;
+	if (proto && typeof proto.getContext === 'function') {
+		proto.getContext = (() => ({ font: '', measureText: () => ({ width: 10 }) })) as unknown as typeof proto.getContext;
+	}
 	const realFetch = globalThis.fetch.bind(globalThis);
 	const origin = window.location.origin;
 

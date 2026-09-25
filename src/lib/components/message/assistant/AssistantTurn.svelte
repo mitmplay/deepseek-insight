@@ -30,7 +30,10 @@
 	import RelativeTime from '$lib/components/message/common/RelativeTime.svelte';
 	import TurnUsagePanel from '$lib/components/message/assistant/TurnUsagePanel.svelte';
 	import { formatRunDuration } from '$lib/utils/time';
+	import * as m from '$lib/paraglide/messages';
+	import { t } from '$lib/services/locale/locale-state.svelte';
 	import type { DsiTokenUsage } from '$lib/types';
+	import type { TurnLifecycle } from '$lib/services/conversation/turn-projection';
 
 	let {
 		time,
@@ -38,7 +41,8 @@
 		usage = undefined,
 		text,
 		children,
-		fork = null
+		fork = null,
+		lifecycle = undefined
 	}: {
 		/** Wire: last entry time of the turn (OCI: one stamp per turn). */
 		time?: number;
@@ -61,7 +65,32 @@
 			title?: string | null;
 			agentPreset?: string | null;
 		} | null;
+		/** Turn End Stamp (ADR 2026-09-25): the turn's bracket record joined
+		 *  by the scroll area (lifecycleForGroup) — drives the stopped chip
+		 *  (aborted/user), wire-pair elapsed (completed), or the fallback
+		 *  entry-time stamp. undefined = old ledger / no pair. */
+		lifecycle?: TurnLifecycle | undefined;
 	} = $props();
+
+	/** Operator-stopped turn (ADR D2): chip + duration-prefix suppression. */
+	const stoppedByUser = $derived(
+		lifecycle?.reasonKind === 'aborted' && lifecycle?.abortKind === 'user'
+	);
+	/** Completed turns read elapsed from the WIRE pair (ADR D3); the
+	 *  entry-time reconstruction stays only as fallback. */
+	const ranPrefix = $derived.by(() => {
+		if (stoppedByUser) return undefined;
+		if (
+			lifecycle?.reasonKind === 'completed' &&
+			lifecycle.endMs !== undefined &&
+			lifecycle.endMs >= lifecycle.startMs
+		) {
+			return `Ran for ${formatRunDuration(lifecycle.endMs - lifecycle.startMs)}`;
+		}
+		return start !== undefined && time !== undefined
+			? `Ran for ${formatRunDuration(time - start)}`
+			: undefined;
+	});
 
 	/** Raw ⇄ rendered flip state — owned here, wired to ToolsMessage. */
 	let showRaw = $state(false);
@@ -111,9 +140,20 @@
 			<RelativeTime
 				{time}
 				role="assistant"
-				prefix={start !== undefined ? `Ran for ${formatRunDuration(time - start)}` : undefined}
+				prefix={ranPrefix}
 				class="absolute bottom-0.5 right-3 text-[10px] leading-none text-text-muted/60 group-hover/bubble:text-[#7c3aed]"
 			/>
+		{/if}
+		{#if stoppedByUser}
+			<!-- Turn End Stamp (ADR D2): the honest end-fate chip — the
+			     operator stopped this turn; DSH parity without the banner. -->
+			<span
+				class="absolute bottom-0.5 left-1/2 -translate-x-1/2 rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] leading-none text-amber-600"
+				data-testid="turn-stopped-chip"
+				title={t(m.turnStopped)}
+			>
+				{t(m.turnStopped)}
+			</span>
 		{/if}
 		{#if usage !== undefined}
 			<!-- Bottom-LEFT: the pre-2026-09-09 RelativeTime seat. The pill

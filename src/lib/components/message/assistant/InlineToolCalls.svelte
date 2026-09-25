@@ -31,6 +31,7 @@
 	import GoalCard from '$lib/components/message/cards/GoalCard.svelte';
 	import CodeCard from '$lib/components/message/cards/CodeCard.svelte';
 	import TodoCard from '$lib/components/message/cards/TodoCard.svelte';
+	import FilesEditedCard from '$lib/components/message/cards/FilesEditedCard.svelte';
 	import MarkdownContent from '$lib/components/common/viewers/MarkdownContent.svelte';
 	import ReasoningContentViewer from '$lib/components/common/viewers/ReasoningContentViewer.svelte';
 	import type { TurnMember } from '$lib/utils/turn-grouping';
@@ -137,6 +138,14 @@
 		return t(TOOL_TITLE_MESSAGES[classifyTool(name)]);
 	}
 
+	/** Peek-list membership (2026-09-25 bug fix): every chip EXCEPT the
+	 *  self-rendering kinds — a files-edited entry IS its own card
+	 *  (FilesEditedCard), so counting it as a chip made the peek button
+	 *  claim a tool call the row did not show. */
+	function isPeekMember(entry: TurnMember): boolean {
+		return entry.kind !== 'assistant-message' && entry.kind !== 'files-edited';
+	}
+
 	/** Peek-list row label (ToolPeekButton port): match the chip skins. */
 	function peekLabel(entry: TurnMember): string {
 		if (entry.kind === 'tool-call') return chipToolTitle(entry.toolName);
@@ -191,8 +200,8 @@
 <div class="flex flex-wrap items-center">
 	<!-- ToolPeekButton prefix (OCI port, 2026-08-22): peek-lists the
 	     whole row before the chips — pick by reading, not hunting. -->
-	{#if entries.some((e) => e.kind !== 'assistant-message')}
-		{@const chipCount = entries.filter((e) => e.kind !== 'assistant-message').length}
+	{#if entries.some(isPeekMember)}
+		{@const chipCount = entries.filter(isPeekMember).length}
 		<ToolPeekButton count={chipCount} active={peekOpen} onclick={ontogglePeek} />
 	{/if}
 	{#each entries as entry (entry.id)}
@@ -236,6 +245,11 @@
 				open={openChipId === entry.id}
 				ontoggle={() => ontoggleChip(entry.id)}
 			/>
+		{:else if entry.kind === 'files-edited'}
+			<!-- Edited-Files Card (ADR 2026-09-25, D1): a turn-level
+			     announcement, not a tool call — renders as its own card,
+			     never a chip. sessionId rides session context. -->
+			<FilesEditedCard turn={entry.turn} seq={entry.seq} />
 		{:else if entry.kind === 'unknown-event'}
 			<ToolCallChip
 				kind="unknown"
@@ -271,7 +285,7 @@
 	<ChipPopup>
 		<ul class="py-1" data-testid="tool-peek-list">
 			{#each entries as entry (entry.id)}
-				{#if entry.kind !== 'assistant-message'}
+				{#if isPeekMember(entry)}
 					{@const preview = peekPreview(entry)}
 					<li class="px-3 py-1 text-xs flex items-center gap-2">
 						<span class="w-1.5 h-1.5 rounded-full shrink-0 {peekDotClass(entry)}"></span>

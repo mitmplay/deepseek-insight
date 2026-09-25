@@ -122,7 +122,10 @@ const SILENT_TYPES: ReadonlySet<string> = new Set([
 	// parent run_code tool-call entry at merge (ADR D1/D2) — never standalone.
 	// DSH 0.1.5-alpha.1 renamed the wire spellings from tool/code-dispatch(-start)
 	// (commit bad4254d71); the host migrates old logs, so only the new names match.
-	'turn/start', // a turn began — bookkeeping; what it produced is what you read
+	// NOT silent since 2026-09-25 (Turn End Stamp ADR D1): turn/start maps to
+	// a turn-lifecycle MARKER entry — pipeline-faithful, never rendered; the
+	// projection folds it. What it produced is still what you read.
+	// 'turn/start',
 	'web/deepseek-search-llm-request' // a web-search prompt was sent to the AI — background prep, not chat
 ]);
 
@@ -448,13 +451,28 @@ export function entryForEvent(event: DshRawEvent): DsiEntry | null {
 			// Turn failure (2026-08-22, dead-turn bug): turn/end reason.kind ===
 			// 'error' is the ONLY honest surface of a turn that died without a
 			// reply (e.g. MISSING_CREDENTIAL). Without this, the prompt bubble
-			// sits alone and the failure is invisible. A successful turn/end
-			// stays silent (turn bookkeeping, not transcript). The assistant/chunk
+			// sits alone and the failure is invisible. The assistant/chunk
 			// finish {kind:'error'} duplicate is deliberately NOT mapped: one error
 			// surface per turn, keyed on the terminal event.
+			// Turn End Stamp (2026-09-25, ADR D1): every turn/end still maps to
+			// NO transcript entry — non-error ends become turn-lifecycle MARKER
+			// entries the projection folds (turn bookkeeping, not transcript —
+			// the policy holds for what renders).
 		case 'turn/end': {
-			const reason = data?.reason as { kind?: unknown; error?: { code?: unknown; message?: unknown } } | undefined;
-			if (reason?.kind !== 'error') return null;
+			const reason = data?.reason as { kind?: unknown; reason?: { kind?: unknown }; error?: { code?: unknown; message?: unknown } } | undefined;
+			if (reason?.kind !== 'error') {
+				const turnNum = typeof data?.turn === 'number' ? data.turn : 0;
+				return {
+					kind: 'turn-lifecycle',
+					id: `tl:${turnNum}:end`,
+					seq: event.seq,
+					time: event.time,
+					turn: turnNum,
+					phase: 'end',
+					reasonKind: readStr(reason?.kind),
+					...(reason?.kind === 'aborted' ? { abortKind: readStr(reason.reason?.kind) } : {})
+				};
+			}
 			const message = readStr(reason.error?.message) ?? 'turn ended with an error';
 			return {
 				kind: 'turn-error',
@@ -463,6 +481,20 @@ export function entryForEvent(event: DshRawEvent): DsiEntry | null {
 				time: event.time,
 				message,
 				...(readStr(reason.error?.code) !== undefined ? { code: readStr(reason.error?.code) } : {})
+			};
+		}
+
+		// Turn bracket start (Turn End Stamp ADR D1): same marker family as
+		// turn/end above — un-silenced so the projection sees the pair.
+		case 'turn/start': {
+			const turnNum = typeof data?.turn === 'number' ? data.turn : 0;
+			return {
+				kind: 'turn-lifecycle',
+				id: `tl:${turnNum}:start`,
+				seq: event.seq,
+				time: event.time,
+				turn: turnNum,
+				phase: 'start'
 			};
 		}
 
@@ -614,6 +646,23 @@ export function entryForEvent(event: DshRawEvent): DsiEntry | null {
 			};
 		}
 
+		case 'workspace/changes': {
+			// Edited-Files Card (ADR 2026-09-25, D1): the wire payload is
+			// { turn } — the pointer, not the summary (D2: the summary stays
+			// in Host memory; the card borrows it at render time). Turn is
+			// carried verbatim when numeric; a non-numeric payload still
+			// folds as the fe:unknown pointer — never dropped, never a chip.
+			const turn = (data as { turn?: unknown } | undefined)?.turn;
+			const numeric = typeof turn === 'number' && Number.isFinite(turn);
+			return {
+				kind: 'files-edited',
+				id: numeric ? `fe:${turn}` : 'fe:unknown',
+				seq: event.seq,
+				time: event.time,
+				turn: numeric ? (turn as number) : 0
+			};
+		}
+
 		default:
 			// Unknown type — the harness recorded something this build does not
 			// know. Render it as a chip rather than dropping it (forward-compat).
@@ -750,6 +799,15 @@ export function mergeEntries(existing: DsiEntry[], incoming: DsiEntry[]): DsiEnt
 			}
 			// A streaming entry can no longer arrive through this merge (the
 			// live tail replaces in the store) — same id, streaming → ignore.
+			continue;
+		}
+		// Edited-Files pointer (ADR 2026-09-25, D3): a same-turn
+		// re-announce REPLACES — the newer event is the summary's live
+		// pointer and the older one is stale by the Host's own latest-wins
+		// contract; two cards for one turn would render a multiplicity the
+		// producer retired.
+		if (candidate.kind === 'files-edited' && entry.kind === 'files-edited') {
+			if (entry.seq > candidate.seq) merged[at] = { ...entry };
 			continue;
 		}
 		// same id, non-assistant kinds are content-stable — ignore retransmits

@@ -1,0 +1,97 @@
+/**
+ * changes-route tests (task 2.2-T, spec "2026-09-25 - Edited-Files Card") —
+ * the route-level contract (ADR The Edited-Files Card D2, Transport Probe arm B):
+ *   - happy path forwards the validated ChangesSummary as {ok:true, summary};
+ *   - bad/missing params → 400 bad-params BEFORE any host call;
+ *   - Host 404 (Session disposed / never recorded) → 410 unavailable — the
+ *     card's degraded-strip signal;
+ *   - Host transport throw, non-OK status, invalid JSON, or a failing shape
+ *     → 502 upstream.
+ *
+ * Handlers invoked directly with node-env Request objects; the connection is
+ * mocked (the established goal-route.test.ts pattern).
+ */
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const fetchHostPathSpy = vi.fn();
+
+vi.mock('$lib/server/dsh-connection', () => ({
+	getDshConnection: () => ({ fetchHostPath: fetchHostPathSpy })
+}));
+
+import { GET } from '../../src/routes/api/dsh/session/[sessionId]/changes/+server';
+
+const SUMMARY = {
+	turn: 7,
+	files: [
+		{ path: 'src/a.ts', display: 'src/a.ts', added: 12, deleted: 3 },
+		{ path: 'bin/data.db', display: 'bin/data.db', added: 0, deleted: 0, binary: true }
+	],
+	total: 2,
+	added: 12,
+	deleted: 3
+};
+
+function get(query = 'seq=41&turn=7'): Promise<Response> {
+	return GET({
+		params: { sessionId: 'session-1' },
+		url: new URL(`http://localhost/api/dsh/session/session-1/changes?${query}`)
+	} as never) as Promise<Response>;
+}
+
+beforeEach(() => {
+	fetchHostPathSpy.mockReset();
+});
+
+afterEach(() => {
+	vi.restoreAllMocks();
+});
+
+describe('GET /api/dsh/session/[sessionId]/changes (task 2.2-T)', () => {
+	it('forwards the validated summary as {ok:true, summary} and calls the host path with seq', async () => {
+		fetchHostPathSpy.mockResolvedValueOnce(new Response(JSON.stringify(SUMMARY), { status: 200 }));
+		const res = await get();
+		expect(res.status).toBe(200);
+		const body = (await res.json()) as { ok: boolean; summary: unknown };
+		expect(body.ok).toBe(true);
+		expect(body.summary).toEqual(SUMMARY);
+		expect(fetchHostPathSpy).toHaveBeenCalledWith('/api/changes.summary?sessionId=session-1&seq=41');
+	});
+
+	it('rejects missing/invalid params with 400 before any host call', async () => {
+		await expect(get('turn=7')).resolves.toMatchObject({ status: 400 });
+		await expect(get('seq=0&turn=7')).resolves.toMatchObject({ status: 400 });
+		await expect(get('seq=abc&turn=7')).resolves.toMatchObject({ status: 400 });
+		expect(fetchHostPathSpy).not.toHaveBeenCalled();
+	});
+
+	it('maps Host 404 (Session disposed) to 410 unavailable', async () => {
+		fetchHostPathSpy.mockResolvedValueOnce(new Response('not found', { status: 404 }));
+		const res = await get();
+		expect(res.status).toBe(410);
+		expect(((await res.json()) as { error: { code: string } }).error.code).toBe('unavailable');
+	});
+
+	it('maps transport throw, non-OK status, invalid JSON, and bad shape to 502 upstream', async () => {
+		fetchHostPathSpy.mockRejectedValueOnce(new Error('boom'));
+		await expect(get()).resolves.toMatchObject({ status: 502 });
+
+		fetchHostPathSpy.mockResolvedValueOnce(new Response('gateway exploded', { status: 500 }));
+		await expect(get()).resolves.toMatchObject({ status: 502 });
+
+		fetchHostPathSpy.mockResolvedValueOnce(new Response('<html>', { status: 200 }));
+		await expect(get()).resolves.toMatchObject({ status: 502 });
+
+		fetchHostPathSpy.mockResolvedValueOnce(
+			new Response(JSON.stringify({ turn: 7, files: 'not-an-array', total: 0, added: 0, deleted: 0 }), { status: 200 })
+		);
+		await expect(get()).resolves.toMatchObject({ status: 502 });
+	});
+
+	it('accepts binary/oversized markers and the zero-counts face', async () => {
+		fetchHostPathSpy.mockResolvedValueOnce(new Response(JSON.stringify(SUMMARY), { status: 200 }));
+		const res = await get('seq=9&turn=1');
+		expect(res.status).toBe(200);
+		expect(((await res.json()) as { summary: { files: unknown[] } }).summary.files[1]).toMatchObject({ binary: true });
+	});
+});

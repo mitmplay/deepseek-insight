@@ -1065,10 +1065,9 @@ test('19 Â· spine group: family-aware name filter, [x] clear, sub-agent toggle â
 		'e2e-spine-filter-kid2'
 	]);
 
-	// [x] renders only while the query has text; it restores the full list.
-	const clear = page.getByTestId('sidebar-spine-filter-clear');
-	await expect(clear).toBeVisible();
-	await clear.click();
+	// The filter is type="search" â€” the browser owns clearing; emptying
+	// the query restores the full list (no [x] button since 2026-09-25).
+	await filter.fill('');
 	await expect(filter).toHaveValue('');
 	await expect(page.getByTestId('sidebar-spine-filter-clear')).toHaveCount(0);
 	await expect.poll(() => spineKeys(page)).toEqual([
@@ -1095,7 +1094,7 @@ test('19 Â· spine group: family-aware name filter, [x] clear, sub-agent toggle â
 	await expect.poll(() => spineKeys(page)).toEqual([STUB_SESSION_ID]);
 
 	// Clear + re-show restore everything (kids return under their head).
-	await page.getByTestId('sidebar-spine-filter-clear').click();
+	await filter.fill('');
 	await page.getByTestId('sidebar-spine-subagents').click();
 	await expect.poll(() => spineKeys(page)).toEqual([
 		STUB_SESSION_ID,

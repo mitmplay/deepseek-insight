@@ -518,7 +518,7 @@ export interface StubState {
 	/** Panel Floor W3 (spec-check GAP-5): extra session rows — each id gets
 	 *  its OWN ledger seeded here (a sessions map beside the shared one), so
 	 *  multiple sessions with content coexist for multi-panel specs. */
-	extraSessions: Array<{ sessionId: string; title: string; agentPreset: string | null; cwd: string; ledger: Array<{ event: { type: string; seq: number; time: number; data: Record<string, unknown> } }>; ageMs?: number }>;
+	extraSessions: Array<{ sessionId: string; title: string; agentPreset: string | null; cwd: string; ledger: Array<{ event: { type: string; seq: number; time: number; data: Record<string, unknown> } }>; ageMs?: number; /** Edited-Files Card (2026-09-25): per-event summaries + per-file diffs the GET routes serve, keyed by the announcing event's seq. */ changes?: Array<{ seq: number; summary: Record<string, unknown>; diffs: Record<number, Record<string, unknown>> }> }>;
 	/** Lineage sidebar W5 (task 5.1): spawned-session fixture rows —
 	 *  each maps to a session.list row carrying parentSessionId +
 	 *  origin 'subagent' (superset; default [] is byte-neutral for every
@@ -1034,6 +1034,36 @@ export class DshStubHost {
 		// DSI's DshAuth re-mints once on the 401 and retries).
 		if (!url.pathname.startsWith('/api/')) {
 			json(res, 404, { ok: false, error: `stub: no such path ${url.pathname}` });
+			return;
+		}
+		// Edited-Files Card (2026-09-25): the Host serves the summary and
+		// per-file diffs over authenticated GETs — same cookie fence.
+		if (url.pathname === '/api/changes.summary' && req.method === 'GET') {
+			if (!this.authorized(req)) return this.deny(res);
+			const sid = url.searchParams.get('sessionId');
+			const seq = Number(url.searchParams.get('seq'));
+			const seed = this.state.extraSessions.find((r) => r.sessionId === sid);
+			const announced = seed?.changes?.find((c) => c.seq === seq);
+			if (seed === undefined || announced === undefined) {
+				json(res, 404, 'Change summary unavailable.');
+				return;
+			}
+			json(res, 200, announced.summary);
+			return;
+		}
+		if (url.pathname === '/api/changes.diff' && req.method === 'GET') {
+			if (!this.authorized(req)) return this.deny(res);
+			const sid = url.searchParams.get('sessionId');
+			const seq = Number(url.searchParams.get('seq'));
+			const index = Number(url.searchParams.get('index'));
+			const seed = this.state.extraSessions.find((r) => r.sessionId === sid);
+			const announced = seed?.changes?.find((c) => c.seq === seq);
+			const file = announced?.diffs?.[index];
+			if (seed === undefined || announced === undefined || file === undefined) {
+				json(res, 404, 'Change summary unavailable.');
+				return;
+			}
+			json(res, 200, file);
 			return;
 		}
 		if (req.method !== 'POST' || !this.authorized(req)) {

@@ -268,7 +268,6 @@
 	"discardBroadcastTitle": "Buang broadcast dan pulihkan draf setiap panel",
 	"discardBroadcast": "Buang broadcast",
 	"sendCheckedPanels": "Kirim ke setiap panel tercentang",
-	"clearSessionNameFilter": "Hapus filter nama sesi",
 	"noSessionsMatch": "Tidak ada sesi yang cocok.",
 	"noOtherSessionsMatch": "Tidak ada sesi lain yang cocok.",
 	"rename": "Ganti nama",
@@ -306,6 +305,7 @@
 	"thoughtForAWhile": "berpikir sebentar",
 	"hideTurnWork": "Sembunyikan kerja di balik giliran ini",
 	"showTurnWork": "Tampilkan kerja di balik giliran ini",
+	"turnStopped": "dihentikan",
 	"thinkLabel": "berpikir",
 	"thinkingLabel": "sedang berpikir",
 	"ctxChipContext": "konteks",
@@ -387,5 +387,14 @@
 	"terminalSettleStdinRead": "menunggu masukan",
 	"terminalSettleInferredIdle": "keluaran senggang",
 	"terminalSettleTimeout": "habis waktu",
-	"terminalSettleSessionExit": "shell keluar"
+	"terminalSettleSessionExit": "shell keluar",
+	"editedFilesChip": "berkas diedit",
+	"editedFilesTitle": "Mengedit {count} berkas",
+	"editedFilesTitleOne": "Mengedit 1 berkas",
+	"editedFilesAdded": "+{count}",
+	"editedFilesDeleted": "-{count}",
+	"editedFilesBinary": "biner",
+	"editedFilesOversized": "terlalu besar",
+	"editedFilesCapHint": "dan {count} lagi",
+	"editedFilesGone": "Berkas diedit giliran ini — hitungan sudah tidak tersedia"
 }

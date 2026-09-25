@@ -268,7 +268,6 @@
 	"discardBroadcastTitle": "Discard the broadcast and restore every panel's draft",
 	"discardBroadcast": "Discard the broadcast",
 	"sendCheckedPanels": "Send to every checked panel",
-	"clearSessionNameFilter": "Clear session name filter",
 	"noSessionsMatch": "No sessions match.",
 	"noOtherSessionsMatch": "No other sessions match.",
 	"rename": "Rename",
@@ -306,6 +305,7 @@
 	"thoughtForAWhile": "thought for a while",
 	"hideTurnWork": "Hide the work behind this turn",
 	"showTurnWork": "Show the work behind this turn",
+	"turnStopped": "stopped",
 	"thinkLabel": "think",
 	"thinkingLabel": "thinking",
 	"ctxChipContext": "context",
@@ -387,5 +387,14 @@
 	"terminalSettleStdinRead": "waiting for input",
 	"terminalSettleInferredIdle": "output idle",
 	"terminalSettleTimeout": "timed out",
-	"terminalSettleSessionExit": "shell exited"
+	"terminalSettleSessionExit": "shell exited",
+	"editedFilesChip": "edited files",
+	"editedFilesTitle": "Edited {count} files",
+	"editedFilesTitleOne": "Edited 1 file",
+	"editedFilesAdded": "+{count}",
+	"editedFilesDeleted": "-{count}",
+	"editedFilesBinary": "binary",
+	"editedFilesOversized": "too large",
+	"editedFilesCapHint": "and {count} more",
+	"editedFilesGone": "Files were edited this turn — counts are no longer available"
 }

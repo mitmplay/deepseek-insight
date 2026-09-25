@@ -149,7 +149,10 @@ describe('load — cold load reads the LEDGER (BC-4)', () => {
 			subscribe: () => {}
 		});
 		const data = await load({ url: seedUrl('s1') });
-		expect((data.entries ?? []).map((e) => e.kind)).toEqual(['user-message']);
+		// Turn End Stamp ADR D1 (2026-09-25): turn/start no longer vanishes —
+		// it maps to an unrendered turn-lifecycle MARKER; groupTurns skips it
+		// (task 1.3 guard), so the transcript still renders only the bubble.
+		expect((data.entries ?? []).map((e) => e.kind)).toEqual(['turn-lifecycle', 'user-message']);
 	});
 
 	it('throws SvelteKit 404 when the host says session/not-found', async () => {

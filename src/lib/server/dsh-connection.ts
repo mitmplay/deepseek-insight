@@ -1947,6 +1947,29 @@ export class DshConnection {
 		return { accepted: true };
 	}
 
+	/**
+	 * Authenticated GET of one Host path (Edited-Files Card transport,
+	 * 2026-09-25 — the changes.summary route's arm; Transport Probe note).
+	 * Same cookie ladder as rpc(): mint-or-reuse, ONE 401 re-mint retry,
+	 * then the response object as-is — the caller owns status mapping.
+	 */
+	async fetchHostPath(path: string, signal?: AbortSignal): Promise<Response> {
+		const attempt = async (): Promise<Response> => {
+			const cookie = await this.auth.ensureCookie();
+			return this.fetchFn(`${this.baseUrl}${path}`, {
+				method: 'GET',
+				headers: cookie === null ? {} : { cookie },
+				...(signal !== undefined ? { signal } : {})
+			});
+		};
+		let response = await attempt();
+		if (response.status === 401) {
+			this.auth.invalidate();
+			response = await attempt();
+		}
+		return response;
+	}
+
 	/** One $events/result answer under the CURRENT generation's clientId. */
 	private sendEventResult(rpcId: string, value: unknown): Promise<void> {
 		return this.rpc(

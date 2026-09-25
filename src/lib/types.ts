@@ -253,6 +253,44 @@ export type DsiEntry =
 			message: string;
 	  }
 	| {
+			/** Turn End Stamp (ADR 2026-09-25, D1): a turn bracket marker —
+			 *  pipeline-faithful but never rendered; turn-projection.ts folds
+			 *  the markers into per-turn lifecycle records the footer reads. */
+			kind: 'turn-lifecycle';
+			/** `tl:<turn>:<phase>` — merge-stable per bracket event. */
+			id: string;
+			seq: number;
+			/** Wire: event.time of the turn/start or turn/end. */
+			time: number;
+			/** Wire: data.turn — the harness's own turn number. */
+			turn: number;
+			phase: 'start' | 'end';
+			/** Wire: turn/end reason.kind ('completed' | 'aborted' | 'error');
+			 *  absent on phase 'start'. */
+			reasonKind?: string;
+			/** Wire: reason.reason.kind when reasonKind is 'aborted' (e.g. 'user'). */
+			abortKind?: string;
+	  }
+	| {
+			/** Edited-Files Card (ADR 2026-09-25, D1): a completed turn's
+			 *  changed-files announcement. The wire payload is { turn } only —
+			 *  the summary lives in Host memory and the card borrows it at
+			 *  render time through the proxy route (D2); this entry is the
+			 *  transcript's pointer, nothing more. */
+			kind: 'files-edited';
+			/** `fe:<turn>` — merge-stable per turn; a re-announce for the
+			 *  same turn REPLACES at merge (D3, mirroring the Host's own
+			 *  latest-wins rule). */
+			id: string;
+			seq: number;
+			/** Wire: event.time of the workspace/changes event. */
+			time: number;
+			/** Wire: data.turn — the summarized turn. Non-numeric wire
+			 *  payload folds as 0 with id `fe:unknown` (the honest pointer
+			 *  degrades; never dropped). */
+			turn: number;
+	  }
+	| {
 			kind: 'workflow-run';
 			/** `wf:<runId>` — ONE entry per orchestration run; the four
 			 *  tool-workflow/* wire events (run/agent start+end) FOLD into it

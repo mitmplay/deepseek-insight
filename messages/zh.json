@@ -268,7 +268,6 @@
 	"discardBroadcastTitle": "丢弃广播并恢复每个面板的草稿",
 	"discardBroadcast": "丢弃广播",
 	"sendCheckedPanels": "发送到每个已勾选的面板",
-	"clearSessionNameFilter": "清除会话名筛选",
 	"noSessionsMatch": "没有匹配的会话。",
 	"noOtherSessionsMatch": "没有其他匹配的会话。",
 	"rename": "重命名",
@@ -306,6 +305,7 @@
 	"thoughtForAWhile": "思考了一会儿",
 	"hideTurnWork": "隐藏这一轮背后的工作",
 	"showTurnWork": "展开这一轮背后的工作",
+	"turnStopped": "已停止",
 	"thinkLabel": "思考",
 	"thinkingLabel": "思考中",
 	"ctxChipContext": "上下文",
@@ -387,5 +387,14 @@
 	"terminalSettleStdinRead": "等待输入",
 	"terminalSettleInferredIdle": "输出空闲",
 	"terminalSettleTimeout": "已超时",
-	"terminalSettleSessionExit": "shell 已退出"
+	"terminalSettleSessionExit": "shell 已退出",
+	"editedFilesChip": "已编辑文件",
+	"editedFilesTitle": "编辑了 {count} 个文件",
+	"editedFilesTitleOne": "编辑了 1 个文件",
+	"editedFilesAdded": "+{count}",
+	"editedFilesDeleted": "-{count}",
+	"editedFilesBinary": "二进制",
+	"editedFilesOversized": "文件过大",
+	"editedFilesCapHint": "还有 {count} 个",
+	"editedFilesGone": "本轮编辑了文件 — 计数已不可用"
 }

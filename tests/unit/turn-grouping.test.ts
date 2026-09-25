@@ -431,3 +431,45 @@ describe('turnProcess — the fold summary (ADR-0010, The Fold Gate)', () => {
 		expect(JSON.stringify(entries)).toBe(before);
 	});
 });
+
+// ── Turn End Stamp (2026-09-25, task 1.3-T): markers never group ──
+const marker = (turn: number, phase: 'start' | 'end', seq: number): DsiEntry => ({
+	kind: 'turn-lifecycle', id: `tl:${turn}:${phase}`, seq, time: 900 + seq, turn, phase,
+	...(phase === 'end' ? { reasonKind: 'completed' } : {})
+} as DsiEntry);
+
+describe('groupTurns — turn-lifecycle markers (Turn End Stamp task 1.3)', () => {
+	it('markers interleaved INSIDE an assistant run do not join or split the group', () => {
+		const groups = groupTurns([
+			user('u1', 1),
+			marker(1, 'start', 2),
+			assistant('a1', 3),
+			marker(1, 'end', 4),
+			assistant('a2', 5)
+		]);
+		expect(groups.map((g) => g.kind)).toEqual(['prompt', 'assistant-turn']);
+		const turn = groups.find((g) => g.kind === 'assistant-turn')!;
+		if (turn.kind === 'assistant-turn') {
+			expect(turn.entries.map((e) => (e as { id: string }).id)).toEqual(['a1', 'a2']);
+		}
+	});
+
+	it('a marker where a turn would START does not start a group', () => {
+		const groups = groupTurns([marker(1, 'start', 1), user('u1', 2), assistant('a1', 3)]);
+		expect(groups.map((g) => g.kind)).toEqual(['prompt', 'assistant-turn']);
+	});
+
+	it('an assistant run of ONLY markers produces no group at all', () => {
+		const groups = groupTurns([user('u1', 1), marker(1, 'start', 2), marker(1, 'end', 3)]);
+		expect(groups.map((g) => g.kind)).toEqual(['prompt']);
+	});
+
+	it('group counts and turnProcess are unchanged by markers (Fold Gate regression)', () => {
+		const withMarkers = groupTurns([user('u1', 1), marker(1, 'start', 2), call('c1', 3, 'k1'), assistant('a1', 4), marker(1, 'end', 5)]);
+		const without = groupTurns([user('u1', 1), call('c1', 3, 'k1'), assistant('a1', 4)]);
+		const summarize = (gs: ReturnType<typeof groupTurns>) =>
+			gs.filter((g) => g.kind === 'assistant-turn').map((g) => (g.kind === 'assistant-turn' ? g.entries.map((e) => (e as { id: string }).id) : []));
+		expect(summarize(withMarkers)).toEqual(summarize(without));
+	});
+});
+

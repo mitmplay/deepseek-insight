@@ -40,6 +40,7 @@
 	import { deriveSessionStats, statsFromLedger } from '$lib/services/conversation/session-stats';
 import { appConfig } from '$lib/services/config/app-config.svelte';
 	import { setPanelMode } from '$lib/services/conversation/panel-context.svelte';
+	import { setConversationSession } from '$lib/services/conversation/session-context.svelte';
 	import { getCurrentModel } from '$lib/services/conversation/current-model';
 	import { parseCommand } from '$lib/services/chat/command-parser';
 	import {
@@ -183,6 +184,9 @@ import { appConfig } from '$lib/services/config/app-config.svelte';
 	// absolutely to this component's `relative` root instead of piling
 	// onto the viewport's right-middle when N panels coexist.
 	setPanelMode(true);
+	// Transcript descendants (FilesEditedCard) derive their fetch target
+	// from this — the panel is the sessionId authority (2026-09-25).
+	setConversationSession(sessionId);
 
 	// Intentional initial capture: the store is bound to THIS session for
 	// its lifetime; the conversation layout keys the page by sessionId

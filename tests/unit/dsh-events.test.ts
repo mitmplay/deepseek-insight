@@ -467,9 +467,9 @@ describe('entryForEvent — turn failure (2026-08-22 dead-turn bug)', () => {
 			});
 		});
 
-		it('a SUCCESSFUL turn/end stays silent (turn bookkeeping, not transcript)', () => {
-			expect(entryForEvent({ type: 'turn/end', seq: 9, time: 1, data: { turn: 1, reason: { kind: 'stop' } } })).toBeNull();
-			expect(entryForEvent({ type: 'turn/end', seq: 10, time: 1, data: { turn: 1 } })).toBeNull();
+		it('a SUCCESSFUL turn/end maps to a turn-lifecycle MARKER (Turn End Stamp ADR D1, 2026-09-25 — superseded the silence policy; still renders nothing)', () => {
+			expect(entryForEvent({ type: 'turn/end', seq: 9, time: 1, data: { turn: 1, reason: { kind: 'stop' } } })).toMatchObject({ kind: 'turn-lifecycle', turn: 1, phase: 'end', reasonKind: 'stop' });
+			expect(entryForEvent({ type: 'turn/end', seq: 10, time: 1, data: { turn: 1 } })).toMatchObject({ kind: 'turn-lifecycle', turn: 1, phase: 'end' });
 		});
 
 		it('an error turn/end without error.message still renders (fallback message, no code)', () => {
@@ -587,12 +587,17 @@ describe('entryForEvent — silence and passthrough', () => {
 	it('internal harness markers render nothing', () => {
 		for (const type of [
 			'permission/preset', 'sandbox/mode', 'approval/policy', 'agent/inbox/spliced',
-			'turn/start', 'turn/end', 'step/start', 'step/end', 'session/title',
-			'request/header', 'request/context', 'session/title-llm-request',
+			'step/start', 'step/end', 'session/title',
+			'request/context', 'session/title-llm-request',
 			'agent-preset/selected', 'todo/write'
 		]) {
 			expect(entryForEvent({ type, seq: 1, time: 1, data: {} })).toBeNull();
 		}
+		// Turn End Stamp ADR D1 (2026-09-25): turn/start + turn/end left the
+		// silent set — they map to turn-lifecycle MARKERS (never rendered);
+		// request/header maps to the system-prompt entry (2026-09-01).
+		expect(entryForEvent({ type: 'turn/start', seq: 1, time: 1, data: { turn: 1 } })).toMatchObject({ kind: 'turn-lifecycle', phase: 'start' });
+		expect(entryForEvent({ type: 'turn/end', seq: 2, time: 1, data: { turn: 1, reason: { kind: 'completed' } } })).toMatchObject({ kind: 'turn-lifecycle', phase: 'end' });
 	});
 
 	it('an event with no data and no mapped type stays a passthrough unknown-event (with time)', () => {
@@ -813,7 +818,12 @@ describe('eventsToEntries — ledger cold load (BC-4 shape)', () => {
 			{ type: 'turn/start', seq: 4, time: 1, data: { turn: 1 } },
 			{ type: 'plugin/frobnicated', seq: 5, time: 1, data: { x: 1 } }
 		]);
-		expect(entries).toEqual([{ kind: 'unknown-event', id: 'ev:5', seq: 5, time: 1, eventType: 'plugin/frobnicated', payload: { x: 1 } }]);
+		// Turn End Stamp ADR D1 (2026-09-25): the turn/start no longer
+		// vanishes — it maps to an unrendered turn-lifecycle marker.
+		expect(entries).toEqual([
+			{ kind: 'turn-lifecycle', id: 'tl:1:start', seq: 4, time: 1, turn: 1, phase: 'start' },
+			{ kind: 'unknown-event', id: 'ev:5', seq: 5, time: 1, eventType: 'plugin/frobnicated', payload: { x: 1 } }
+		]);
 	});
 
 	it("the ledger's session header line stays silent (The Turn Kept Whole, D5 — was an ev:undefined chip)", () => {
@@ -1349,3 +1359,45 @@ describe('system/message — surface node zero (2026-09-10 Empty Prompt Popup AD
 		expect(entries.filter((e) => e.kind === 'system-prompt').map((e) => (e as { text: string }).text)).toEqual(['S', 'T']);
 	});
 });
+
+// ── Turn End Stamp (2026-09-25, ADR D1): turn bracket markers ──
+// Wire shapes live-captured from session-47a4c492 (session.v4.jsonl.zstd,
+// decompressed 2026-09-25): seq 442 start, seq 473 end aborted(user),
+// seqs 367/440 end completed.
+
+describe('entryForEvent — turn lifecycle markers (Turn End Stamp)', () => {
+	const startEvent: DshRawEvent = { type: 'turn/start', seq: 442, time: 1790274054570, data: { turn: 9 } };
+	const endAborted: DshRawEvent = {
+		type: 'turn/end',
+		seq: 473,
+		time: 1790274196764,
+		data: { turn: 9, reason: { kind: 'aborted', reason: { kind: 'user' } } }
+	};
+	const endCompleted: DshRawEvent = { type: 'turn/end', seq: 367, time: 1790273609904, data: { turn: 7, reason: { kind: 'completed' } } };
+	const endError: DshRawEvent = { type: 'turn/end', seq: 500, time: 1790275000000, data: { turn: 11, reason: { kind: 'error', error: { code: 'MISSING_CREDENTIAL', message: 'no creds' } } } };
+
+	it('turn/start maps to a start marker carrying the wire triple', () => {
+		const e = entryForEvent(startEvent);
+		expect(e).toMatchObject({ kind: 'turn-lifecycle', id: 'tl:9:start', turn: 9, phase: 'start', seq: 442, time: 1790274054570 });
+		expect((e as { reasonKind?: string }).reasonKind).toBeUndefined();
+	});
+
+	it('turn/end aborted(user) maps to an end marker with reasonKind + abortKind', () => {
+		expect(entryForEvent(endAborted)).toMatchObject({
+			kind: 'turn-lifecycle', id: 'tl:9:end', turn: 9, phase: 'end', seq: 473, time: 1790274196764,
+			reasonKind: 'aborted', abortKind: 'user'
+		});
+	});
+
+	it('turn/end completed maps to an end marker without abortKind', () => {
+		const e = entryForEvent(endCompleted);
+		expect(e).toMatchObject({ kind: 'turn-lifecycle', id: 'tl:7:end', turn: 7, phase: 'end', reasonKind: 'completed' });
+		expect((e as { abortKind?: string }).abortKind).toBeUndefined();
+	});
+
+	it('turn/end error still maps to turn-error (dead-turn surface unchanged)', () => {
+		const e = entryForEvent(endError);
+		expect(e).toMatchObject({ kind: 'turn-error', code: 'MISSING_CREDENTIAL', message: 'no creds' });
+	});
+});
+

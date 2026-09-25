@@ -32,6 +32,7 @@
 	import ApprovalCard from '$lib/components/card/ApprovalCard.svelte';
 	import QuestionCard from '$lib/components/card/QuestionCard.svelte';
 	import { turnLastTime, turnStartTime, turnUsage, turnText, splitRuns, groupTurns, turnAnchorSeq, turnProcess, type TurnMember, type TurnRun } from '$lib/utils/turn-grouping';
+	import { projectTurnLifecycle, lifecycleForGroup } from '$lib/services/conversation/turn-projection';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { appConfig } from '$lib/services/config/app-config.svelte';
 	import { chipNameOf, subagentOpenOf } from '$lib/utils/context-chip';
@@ -320,6 +321,11 @@
 					start={turnStartTime(group.entries)}
 					usage={turnUsage(group.entries)}
 					text={turnText(group.entries)}
+					lifecycle={lifecycleForGroup(
+						projectTurnLifecycle(entries),
+						group.entries[0].seq,
+						group.entries[group.entries.length - 1].seq
+					)}
 					fork={subagent
 						? null
 						: { sessionId, atSeq: turnAnchorSeq(group.entries), title, agentPreset }}

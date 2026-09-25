@@ -1747,22 +1747,16 @@ describe('SidebarSessionsList — spine group header', () => {
 		unmount(folded.instance);
 	});
 
-	it('[x] appears only with text, clears the query, and refocuses the input', () => {
-		const onspinechange = vi.fn<(partial: Partial<SpineGroupPrefs>) => void>();
+	it('the filter input is type="search" — clearing is native to the search type (no [x] button)', () => {
 		const { target, instance } = mountSpine({
 			visible: [],
-			onspinechange,
 			spine: { ...defaultSpineGroupPrefs(), nameFilter: 'refactor' }
 		});
-		const clear = target.querySelector<HTMLButtonElement>('[data-testid="sidebar-spine-filter-clear"]');
-		expect(clear).not.toBeNull();
-		clear!.click();
-		flushSync();
-		expect(onspinechange).toHaveBeenLastCalledWith({ nameFilter: '' });
-		// Captured once — happy-dom's activeElement getter is unreliable
-		// across repeated evaluations inside an assertion.
-		const active = document.activeElement;
-		expect(active).toBe(target.querySelector('[data-testid="sidebar-spine-filter"]'));
+		const input = target.querySelector<HTMLInputElement>('[data-testid="sidebar-spine-filter"]');
+		expect(input?.type).toBe('search');
+		expect(
+			target.querySelector('[data-testid="sidebar-spine-filter-clear"]')
+		).toBeNull();
 		unmount(instance);
 
 		const empty = mountSpine({ visible: [] });

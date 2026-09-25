@@ -603,14 +603,16 @@ describe('SidebarSessions — spine view state (2026-09-01)', () => {
 		unmount(view.instance);
 	});
 
-	it('[x] clears the query and restores the full list', async () => {
+	it('emptying the query via the search input restores the full list', async () => {
 		stubViewFeed();
 		const view = mountView();
 		await settled();
 		typeQuery(view.target, 'session head');
-		(
-			view.target.querySelector('[data-testid="sidebar-spine-filter-clear"]') as HTMLButtonElement
-		).click();
+		const input = view.target.querySelector(
+			'[data-testid="sidebar-spine-filter"]'
+		) as HTMLInputElement;
+		input.value = '';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
 		flushSync();
 		expect(spineIds(view.target)).toEqual(['plain', 'head', 'kid', 'grand', 'fork']);
 		unmount(view.instance);
