@@ -30,6 +30,9 @@
 		changedPaths,
 		changedDirs,
 		onOpenFile,
+		/** File Link Intent (2026-09-25): the open file's rel path — threaded
+		 *  to the tree so its row highlights. */
+		activeFile = null,
 		changesRepos,
 		changesStatuses,
 		collapsedRepos,
@@ -61,6 +64,7 @@
 		changedDirs: ReadonlySet<string>;
 		/** File click intent — the owner dedupes and slots the file panel. */
 		onOpenFile: (path: string) => void;
+		activeFile?: string | null;
 		/** Repos under the workspace root, as rel paths ('' first when the root is one). */
 		changesRepos: readonly string[];
 		/** Per-repo git status, keyed by repo rel path. */
@@ -112,6 +116,7 @@
 				{changedDirs}
 				{onToggle}
 				{onOpenFile}
+				{activeFile}
 			/>
 		</div>
 	{/if}

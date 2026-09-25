@@ -354,7 +354,12 @@ function emphasis(text: string): string {
 		.replace(/~~(.+?)~~/g, '<del>$1</del>');
 }
 
-/** [label](href) — only http(s) hrefs become anchors; everything else is text. */
+/**
+ * [label](href) — http(s) hrefs become hardened external anchors; SCHEME-FREE
+ * relative hrefs (assistant file links like [card](src/lib/…)) become same-
+ * origin anchors; anything carrying a scheme (javascript:, data:, mailto:,
+ * //evil.com protocol-relative, …) stays inert text (BC-12).
+ */
 function links(text: string): string {
 	return text.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (whole, label: string, href: string) => {
 		const unescaped = href
@@ -363,7 +368,13 @@ function links(text: string): string {
 			.replaceAll('&gt;', '>')
 			.replaceAll('&quot;', '"')
 			.replaceAll('&#39;', "'");
-		if (!/^https?:\/\//i.test(unescaped)) return whole; // javascript:, data:, relative — inert text
-		return `<a href="${href}" rel="noopener noreferrer" target="_blank">${label}</a>`;
+		if (/^https?:\/\//i.test(unescaped)) {
+			return `<a href="${href}" rel="noopener noreferrer" target="_blank">${label}</a>`;
+		}
+		// Relative is only safe when NO scheme is present — a single colon
+		// before any slash is exactly how javascript:/data: smuggle in, and
+		// a leading // is a protocol-relative off-origin navigation.
+		if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(unescaped) || unescaped.startsWith('//')) return whole;
+		return `<a href="${href}">${label}</a>`;
 	});
 }

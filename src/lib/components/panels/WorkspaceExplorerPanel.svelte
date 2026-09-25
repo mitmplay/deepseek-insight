@@ -479,6 +479,17 @@
 	$effect(() => {
 		if (pendingOpenFile !== null && pendingOpenFile.nonce !== consumedNonce) {
 			consumedNonce = pendingOpenFile.nonce;
+			// Reveal the file in the tree FIRST: a published intent (File Link
+			// Intent, 2026-09-25) arrives with the tree fully collapsed — the
+			// tab opens, but nothing shows WHERE it lives. Expand every
+			// ancestor folder (owner applies via onToggle, which fetches the
+			// level); shallow-to-deep so each level lists before its child.
+			const dirs = pendingOpenFile.path.split('/').slice(0, -1);
+			let acc = '';
+			for (const dir of dirs) {
+				acc = acc ? acc + '/' + dir : dir;
+				if (!expanded.includes(acc)) onToggle(acc);
+			}
 			handleFileClick(pendingOpenFile.path);
 			onPendingOpenConsumed?.(pendingOpenFile.nonce);
 		}
@@ -528,6 +539,7 @@
 	     between them and the drag reads on the seam. Sizing rides the CSS
 	     custom properties set above (inherited by the component roots). -->
 	<WorkspaceExplorer
+		activeFile={activeFile}
 		{root}
 		{activeTab}
 		onTabChange={(t) => {

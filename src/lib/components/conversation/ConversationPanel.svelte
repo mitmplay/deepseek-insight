@@ -89,7 +89,10 @@ import { appConfig } from '$lib/services/config/app-config.svelte';
 		focusComposer = false,
 		oncomposerfocus = undefined,
 		focused = false,
-		onOpenExplorer = undefined
+		onOpenExplorer = undefined,
+		/** File Link Intent (ADR 2026-09-25 D1/D2): transcript file links become
+		 *  explorer intents — the route supplies the gated handler. */
+		onFileLink = undefined
 	}: {
 		/** Owning floor panel's id (the /new successor swap targets it; null
 		 * outside a floor — /new then reports it cannot run here). */
@@ -176,6 +179,7 @@ import { appConfig } from '$lib/services/config/app-config.svelte';
 		/** Workspace-chip click intent (Workspace Explorer W3 task 3.2,
 		 *  ADR D4) — pass-through to the header's identity cluster. */
 		onOpenExplorer?: (sessionId: string, workspace: string) => void;
+		onFileLink?: (href: string) => void;
 	} = $props();
 
 	// Embedded mode (OCI panel-context port, 2026-08-24 — the per-panel
@@ -928,7 +932,8 @@ import { appConfig } from '$lib/services/config/app-config.svelte';
 		{pendingCards}
 		{settledCards}
 		onanswer={(rpcId, payload) => void onanswer(rpcId, payload)}
-		sessionId={store.sessionId}
+		onFileLink={onFileLink}
+			sessionId={store.sessionId}
 		{title}
 		agentPreset={agent}
 		{subagent}

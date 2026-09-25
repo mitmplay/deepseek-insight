@@ -61,6 +61,9 @@
 		pendingCards,
 		settledCards,
 		onanswer,
+		/** File Link Intent (ADR 2026-09-25 D2): forwarded to assistant markdown
+		 *  anchors — the route supplies the gated explorer opener. */
+		onFileLink = undefined,
 		sessionId,
 		title = null,
 		agentPreset = null,
@@ -97,6 +100,7 @@
 		pendingCards: AnswerView[];
 		settledCards: AnswerView[];
 		onanswer: (rpcId: string, payload: Record<string, unknown>) => void;
+		onFileLink?: (href: string) => void;
 		sessionId: string;
 		/** Live title — the fork-here child's best-effort " (fork)" rename
 		 *  seed (the header fork button reads the same value). */
@@ -365,7 +369,7 @@
 						{#if openTurns.has(group.key)}
 							{#each fold.folded as run (run.key)}
 								{#if run.kind === 'text'}
-									<MarkdownContent content={run.entry.text} hideToggle />
+									<MarkdownContent content={run.entry.text} hideToggle {onFileLink} />
 								{:else}
 									<InlineToolCalls
 										entries={run.entries}
@@ -383,7 +387,7 @@
 						{/if}
 						{#each fold.trailingTextRuns as run (run.key)}
 							{#if run.kind === 'text'}
-								<MarkdownContent content={run.entry.text} hideToggle />
+								<MarkdownContent content={run.entry.text} hideToggle {onFileLink} />
 							{:else}
 								<InlineToolCalls
 									entries={run.entries}
@@ -406,7 +410,7 @@
 								     assistant bullets flat under Tailwind preflight.
 								     Streaming dots moved to PromptInput (OCI placement,
 								     2026-08-24) — one indicator, in the input. -->
-								<MarkdownContent content={run.entry.text} hideToggle />
+								<MarkdownContent content={run.entry.text} hideToggle {onFileLink} />
 							{:else}
 								<InlineToolCalls
 									entries={run.entries}

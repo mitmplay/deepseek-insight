@@ -87,6 +87,7 @@
 	} from '$lib/utils/panel-prefs';
 	import { sanitizeWorkspaceProfile } from '$lib/utils/storage-profile';
 	import { conversationSeedUrl } from '$lib/utils/seed-url';
+	import { normalizeFileLinkPath, workspaceFileExists } from '$lib/utils/file-link';
 	import { clampSidebarWidth, loadSidebarPrefs, saveSidebarPrefs } from '$lib/utils/sidebar-prefs';
 	import type {
 		DsiConversationPanel,
@@ -470,6 +471,29 @@ import {
 	function openWorkspaceFile(sessionId: string, path: string): void {
 		const host = sessionWorkspaceExplorer(sessionId); // Shared Tree D1: the root key
 		if (host) publishFileIntent(host.id, path);
+	}
+
+	/** File Link Intent (ADR 2026-09-25 D3): a transcript file link publishes
+	 *  ONLY after the tree route proves the file exists inside the session's
+	 *  workspace — the gate lives in the shared util; anything else drops the
+	 *  click. No navigation ever happens. */
+	async function openFileLinkFromMarkdown(sessionId: string, rawHref: string): Promise<void> {
+		const path = normalizeFileLinkPath(rawHref);
+		console.log('[FLINK] click', sessionId, rawHref, '->', path);
+		if (path === null) return;
+		const exists = await workspaceFileExists(sessionId, path);
+		console.log('[FLINK] exists:', exists);
+		if (!exists) return;
+		// No explorer yet ⇒ OPEN ONE (the operator's contract: the link itself
+		// opens the panel — the old silent-drop made the feature dead on the
+		// common path; amended 2026-09-25). The workspace root comes from the
+		// same resolver the chip uses; without a root there is nothing to open.
+		if (!sessionWorkspaceExplorer(sessionId)) {
+			const root = panelWorkspaceFor(sessionId);
+			if (!root) return;
+			openWorkspaceExplorer(sessionId, root);
+		}
+		openWorkspaceFile(sessionId, path);
 	}
 
 
@@ -1803,6 +1827,7 @@ import {
 			<ConversationPanel
 				panelId={floorPanelId}
 				sessionId={p.sessionId}
+				onFileLink={(href) => void openFileLinkFromMarkdown(p.sessionId, href)}
 				title={panelTitleFor(p.sessionId)}
 				workspace={panelWorkspaceFor(p.sessionId)}
 				workspaces={spineWorkspaces}
@@ -1833,6 +1858,7 @@ import {
 				<ConversationPanel
 					panelId={floorPanelId}
 					sessionId={p.sessionId}
+					onFileLink={(href) => void openFileLinkFromMarkdown(p.sessionId, href)}
 					title={panelTitleFor(p.sessionId)}
 					workspace={panelWorkspaceFor(p.sessionId)}
 					workspaces={spineWorkspaces}

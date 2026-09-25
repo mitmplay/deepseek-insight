@@ -284,6 +284,18 @@ describe('renderMarkdown — CommonMark subset the transcripts use', () => {
 		assertOnlyAllowedTags(html);
 		expect(html).toContain('<a href="https://example.com/x" rel="noopener noreferrer" target="_blank">docs</a>');
 	});
+
+	it('[label](relative/path) renders a same-origin anchor — assistant file links (2026-09-25)', () => {
+		const html = renderMarkdown('[FilesEditedCard.svelte:153](deepseek-insight/src/lib/components/message/cards/FilesEditedCard.svelte#L153)');
+		assertOnlyAllowedTags(html);
+		expect(html).toContain('<a href="deepseek-insight/src/lib/components/message/cards/FilesEditedCard.svelte#L153">FilesEditedCard.svelte:153</a>');
+		// root-relative works too
+		expect(renderMarkdown('[route](/api/dsh/sessions)')).toContain('<a href="/api/dsh/sessions">route</a>');
+	});
+
+	it('protocol-relative // links stay text — off-origin navigation refused', () => {
+		expect(renderMarkdown('[x](//evil.example/x)')).not.toContain('<a ');
+	});
 });
 
 describe('renderMarkdown — BC-12 XSS battery (nothing raw survives as markup)', () => {

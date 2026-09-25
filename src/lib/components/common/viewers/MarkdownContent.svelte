@@ -30,6 +30,7 @@
 	import { browser } from '$app/environment';
 	import { mount, unmount } from 'svelte';
 	import { renderMarkdown } from '$lib/utils/markdown';
+	import { isFileLinkHref, normalizeFileLinkPath } from '$lib/utils/file-link';
 	import CanvasCopyButton from '$lib/components/common/buttons/CanvasCopyButton.svelte';
 	import CopyButton from '$lib/components/common/buttons/CopyButton.svelte';
 	import RawPreviewToggle from '$lib/components/common/viewers/RawPreviewToggle.svelte';
@@ -38,8 +39,18 @@
 		content,
 		small = false,
 		hideToggle = false,
-		searchTerm = ''
-	}: { content: string; small?: boolean; hideToggle?: boolean; searchTerm?: string } = $props();
+		searchTerm = '',
+		onFileLink = undefined
+	}: {
+		content: string;
+		small?: boolean;
+		hideToggle?: boolean;
+		searchTerm?: string;
+		/** File Link Intent (ADR 2026-09-25 D2): when set, clicks on scheme-free
+		 *  relative anchors are intercepted (preventDefault) and forwarded as
+		 *  workspace-relative paths. Absent = anchors navigate as today. */
+		onFileLink?: (path: string) => void;
+	} = $props();
 
 	let showRaw = $state(false);
 	let containerEl: HTMLDivElement | null = $state(null);
@@ -194,6 +205,28 @@
 			host.remove();
 			mdEl.classList.remove('relative', 'group/featurespec');
 		};
+	});
+
+	/** File Link Intent (ADR 2026-09-25 D2): delegated capture-phase click
+	 *  listener. Without the prop this component changes NOTHING — anchors
+	 *  keep native navigation. With it, scheme-free relative anchors
+	 *  preventDefault and forward the normalized path; everything else
+	 *  (external, /api/, '..', escaped) keeps native behavior. */
+	$effect(() => {
+		const el = containerEl;
+		if (!el || !onFileLink) return;
+		const onClick = (event: MouseEvent) => {
+			const anchor = (event.target as HTMLElement | null)?.closest('a');
+			if (!anchor) return;
+			const href = anchor.getAttribute('href');
+			if (!href || !isFileLinkHref(href)) return;
+			const path = normalizeFileLinkPath(href);
+			if (path === null) return;
+			event.preventDefault();
+			onFileLink(path);
+		};
+		el.addEventListener('click', onClick, true);
+		return () => el.removeEventListener('click', onClick, true);
 	});
 
 	/** Render every unprocessed placeholder in this container (OCI pass). */
