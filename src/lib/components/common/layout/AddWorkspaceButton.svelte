@@ -36,9 +36,15 @@
 
 	let {
 		/** Fresh session created in the adopted workspace — parent navigates. */
-		oncreated
+		oncreated,
+		/** Selected agent preset (SessionFilterRow pill) — rides the create
+		 *  so the fresh session runs THAT agent (2026-09-15 bug: the create
+		 *  always landed on the host default). Null falls back to the host
+		 *  default, as before. */
+		agent = null
 	}: {
 		oncreated: (sessionId: string, agentPreset: string | null, path: string) => void;
+		agent?: string | null;
 	} = $props();
 
 	type Step = 'idle' | 'browse' | 'native' | 'done';
@@ -211,10 +217,12 @@
 			// waiting for its cadence tick (2026-09-11 bug: the new workspace's
 			// pill lagged the adoption by up to one refreshMs cycle).
 			window.dispatchEvent(new Event('dsi:workspaces-changed'));
+			// NewChatButton parity: the armed agent pill rides the create —
+			// an unselected pill still lands on the host default agent.
 			const createRes = await fetch('/api/dsh/sessions', {
 				method: 'POST',
 				headers: { 'content-type': 'application/json' },
-				body: JSON.stringify({ cwd: target })
+				body: JSON.stringify(agent ? { cwd: target, agentPreset: agent } : { cwd: target })
 			});
 			const createBody = (await createRes.json()) as {
 				ok: boolean;
@@ -226,12 +234,21 @@
 				errorMessage = createBody.error?.message ?? `create failed (${createRes.status})`;
 				return;
 			}
-			step = 'done';
+			// Full success dismisses the panel — a lingering dialog with a
+			// disabled confirm over the fresh session read as a stuck flow
+			// (2026-09-15 bug: the 'done' step kept the panel rendered after a
+			// native pick, where listing is null so confirm could never enable).
+			requestSeq += 1;
+			step = 'idle';
+			listing = null;
 			try {
 				oncreated(createBody.sessionId, createBody.agentPreset ?? null, target);
 			} catch (err) {
 				// The adopt+create SUCCEEDED — a broken navigation callback must not
-				// swallow the outcome into silence (2026-09-11 bug).
+				// swallow the outcome into silence (2026-09-11 bug). Reopen the panel
+				// ('done' renders no picker rows, only the error + Cancel) so the
+				// failure is visible and the panel stays dismissible.
+				step = 'done';
 				errorMessage = err instanceof Error ? err.message : String(err);
 			}
 		} catch (err) {

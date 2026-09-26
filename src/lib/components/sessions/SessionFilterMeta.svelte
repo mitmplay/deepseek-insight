@@ -67,8 +67,10 @@
 	<SessionFilterClear {filter} onclear={clearAll} />
 	<SessionFilterToggle mode={filter.blankMode} onchange={pickMode} />
 	<!-- Postfix (2026-09-12): the workspace adoption control joins the
-	     meta verbs — the last control on the header line. -->
-	<AddWorkspaceButton {oncreated} />
+	     meta verbs — the last control on the header line. The armed
+	     agent pill rides along: the fresh session runs THAT agent
+	     (2026-09-15 bug: it always landed on the host default). -->
+	<AddWorkspaceButton {oncreated} agent={filter.preset} />
 </div>
 
 <style>

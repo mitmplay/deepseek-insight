@@ -52,7 +52,10 @@ interface Harness {
 }
 
 /** Mount the button with a recording oncreated + recording fetch. */
-function render(fetchImpl?: (url: string, init?: RequestInit) => Promise<Response>): Harness {
+function render(
+	fetchImpl?: (url: string, init?: RequestInit) => Promise<Response>,
+	agent?: string | null
+): Harness {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
 	const created: Harness['created'] = [];
@@ -76,7 +79,8 @@ function render(fetchImpl?: (url: string, init?: RequestInit) => Promise<Respons
 		props: {
 			oncreated: (sessionId: string, agentPreset: string | null, path: string) => {
 				created.push({ sessionId, agentPreset, path });
-			}
+			},
+			...(agent === undefined ? {} : { agent })
 		}
 	});
 	return { target, created, calls, fetchMock, unmount: () => unmount(comp) };
@@ -253,6 +257,15 @@ describe('AddWorkspaceButton — native picker flow (directory-picker/unavailabl
 		expect(h.created).toEqual([{ sessionId: 's-native', agentPreset: null, path: '/picked/folder' }]);
 	});
 
+
+	it('a successful native pick dismisses the panel (no stuck dialog)', async () => {
+		await openPanel(h);
+		await settle();
+		expect(h.created).toEqual([{ sessionId: 's-native', agentPreset: null, path: '/picked/folder' }]);
+		// 2026-09-15 bug: the 'done' step left the panel rendered with a
+		// disabled confirm button (listing is null in the native flow).
+		expect(h.target.querySelector('[data-testid="add-workspace-panel"]')).toBeNull();
+	});
 	it('a null pick (operator cancelled the OS dialog) closes the panel quietly', async () => {
 		h.fetchMock.mockImplementation(async (url: string) => {
 			if (url === '/api/dsh/directory') return nativeUnavailable();
@@ -307,6 +320,42 @@ describe('AddWorkspaceButton — native picker flow (directory-picker/unavailabl
 		retry.click();
 		await settle();
 		expect(h.calls.filter((c) => c.url === '/api/dsh/pick-directory')).toHaveLength(2);
+	});
+});
+
+describe('AddWorkspaceButton — native flow with an armed agent pill', () => {
+	const nativeUnavailable = (): Response =>
+			jsonResponse(
+						{
+								ok: false,
+								error: { code: 'directory-picker/unavailable', message: 'native only', details: { capability: 'native' } }
+						},
+						501
+			);
+
+	let h: Harness;
+	beforeEach(() => {
+		h = render(async (url: string) => {
+			if (url === '/api/dsh/directory') return nativeUnavailable();
+			if (url === '/api/dsh/pick-directory') return jsonResponse({ ok: true, path: '/picked/folder' });
+			if (url === '/api/dsh/sessions')
+				return jsonResponse({ ok: true, sessionId: 's-native', agentPreset: 'deep-agent' });
+			return jsonResponse({ ok: true });
+		}, 'deep-agent');
+	});
+	afterEach(() => {
+		h.unmount();
+		vi.unstubAllGlobals();
+	});
+
+	it('the armed agent rides the create — no silent default (2026-09-15)', async () => {
+		await openPanel(h);
+		await settle();
+		expect(h.calls.find((c) => c.url === '/api/dsh/sessions')?.body).toEqual({
+			cwd: '/picked/folder',
+			agentPreset: 'deep-agent'
+		});
+		expect(h.created).toEqual([{ sessionId: 's-native', agentPreset: 'deep-agent', path: '/picked/folder' }]);
 	});
 });
 
