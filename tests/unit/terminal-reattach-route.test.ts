@@ -56,7 +56,7 @@ describe('POST /api/terminal/[id]/reattach', () => {
 	it('refuses a foreign token with 403 FOREIGN_SESSION', async () => {
 		const { TerminalRegistryRefusal } = await import('$lib/server/terminal/registry.js');
 		reattachSpy.mockImplementationOnce(() => {
-			throw new (TerminalRegistryRefusal as new (c: 'FOREIGN_SESSION') => Error)('FOREIGN_SESSION');
+			throw new TerminalRegistryRefusal('FOREIGN_SESSION', 'FOREIGN_SESSION');
 		});
 		const res = post('s1');
 		expect(res.status).toBe(403);
@@ -73,7 +73,7 @@ describe('POST /api/terminal/[id]/reattach', () => {
 	it('refuses an unknown session with 404 NO_SESSION', async () => {
 		const { TerminalRegistryRefusal } = await import('$lib/server/terminal/registry.js');
 		reattachSpy.mockImplementationOnce(() => {
-			throw new (TerminalRegistryRefusal as new (c: 'NO_SESSION') => Error)('NO_SESSION');
+			throw new TerminalRegistryRefusal('NO_SESSION', 'NO_SESSION');
 		});
 		const res = post('ghost');
 		expect(res.status).toBe(404);

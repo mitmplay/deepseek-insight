@@ -30,10 +30,11 @@
 	import { browser } from '$app/environment';
 	import { mount, unmount } from 'svelte';
 	import { renderMarkdown } from '$lib/utils/markdown';
-	import { isFileLinkHref, normalizeFileLinkPath } from '$lib/utils/file-link';
+	import { isFileLinkHref, normalizeFileLinkPath, parseFileLinkHref } from '$lib/utils/file-link';
 	import CanvasCopyButton from '$lib/components/common/buttons/CanvasCopyButton.svelte';
 	import CopyButton from '$lib/components/common/buttons/CopyButton.svelte';
 	import RawPreviewToggle from '$lib/components/common/viewers/RawPreviewToggle.svelte';
+import FileTypeIcon from '$lib/components/panels/FileTypeIcon.svelte';
 
 	let {
 		content,
@@ -228,6 +229,43 @@
 		};
 		el.addEventListener('click', onClick, true);
 		return () => el.removeEventListener('click', onClick, true);
+	});
+
+	/** Fullpath Bow ADR 2026-09-26 D2: decorate each file-link anchor with
+	 *  the extension glyph — the SAME FileTypeIcon the explorer tree rows
+	 *  render (WorkspaceExplorerTree.svelte), imported, never duplicated.
+	 *  Idempotent over a WeakSet (the mermaid pass's discipline); re-runs
+	 *  when the rendered HTML changes; markdown.ts stays pure — this is a
+	 *  DOM post-pass, never renderer output. */
+	const iconDecorated = new WeakSet<HTMLAnchorElement>();
+	let iconInstances: Record<string, unknown>[] = [];
+	$effect(() => {
+		void highlightedHtml;
+		const el = containerEl;
+		if (!el || !onFileLink) return;
+		const created: Record<string, unknown>[] = [];
+		for (const anchor of Array.from(el.querySelectorAll<HTMLAnchorElement>('a[href]'))) {
+			const href = anchor.getAttribute('href') ?? '';
+			if (!isFileLinkHref(href) || iconDecorated.has(anchor)) continue;
+			const path = parseFileLinkHref(href).path;
+			const name = path.split('/').pop() ?? '';
+			if (name === '') continue;
+			const iconHost = document.createElement('span');
+			iconHost.className = 'flink-icon';
+			iconHost.setAttribute('aria-hidden', 'true');
+			// inline with the link text — a bare span/svg box wraps the anchor
+			iconHost.style.cssText = 'display:inline-flex;align-items:center;vertical-align:-2px;margin-right:4px';
+			anchor.style.display = 'inline-flex';
+			anchor.style.alignItems = 'center';
+			created.push(mount(FileTypeIcon, { target: iconHost, props: { name, size: 14 } }));
+			anchor.prepend(iconHost);
+			iconDecorated.add(anchor);
+		}
+		iconInstances = created;
+		return () => {
+			for (const instance of iconInstances) unmount(instance);
+			iconInstances = [];
+		};
 	});
 
 	/** Render every unprocessed placeholder in this container (OCI pass). */

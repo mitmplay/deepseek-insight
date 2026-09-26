@@ -58,6 +58,7 @@ interface FakeES {
 	listeners: Map<string, Array<(e: MessageEvent) => void>>;
 	close(): void;
 	addEventListener(kind: string, fn: (e: MessageEvent) => void): void;
+	emit(kind: string, data?: string): void;
 }
 
 let lastES: FakeES | null = null;

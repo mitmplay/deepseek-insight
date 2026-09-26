@@ -1,23 +1,16 @@
 /**
- * workspace-file-bytes route tests (2026-09-10) — GET
- * /api/dsh/workspace-file-bytes, the binary preview seam
- * (workspaceFiles/readBytes, image extensions only):
- *   - happy path joins the byte windows and answers the image mime;
- *   - missing sessionId/path reject 400; unknown extension rejects 415;
- *   - not-found maps 404; unknown host rejection → 502.
+ * workspace-file-bytes route tests (2026-09-10; direct-fs 2026-09-28) — GET
+ * /api/dsh/workspace-file-bytes, the binary preview seam (plain filesystem
+ * read, contained to the workspace root — no RPC):
+ *   - happy path answers the image mime with the file's bytes;
+ *   - missing root/path reject 400; unknown extension rejects 415;
+ *   - a ".." walk outside the root rejects 403; missing file rejects 404;
+ *   - a directory rejects 415.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DshRpcError } from '$lib/server/dsh-rpc';
-
-const readWorkspaceFileBytesSpy = vi.fn();
-const workspaceOwnerSessionIdSpy = vi.fn();
-vi.mock('$lib/server/dsh-connection', () => ({
-	getDshConnection: () => ({
-		readWorkspaceFileBytes: readWorkspaceFileBytesSpy,
-		// identity root-owner resolution (a root resolves to itself)
-		workspaceOwnerSessionId: workspaceOwnerSessionIdSpy
-	})
-}));
+import { afterEach, describe, expect, it } from 'vitest';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 
 import { GET } from '../../src/routes/api/dsh/workspace-file-bytes/+server';
 
@@ -25,56 +18,72 @@ function get(query: string): Promise<Response> {
 	return GET({ url: new URL('http://localhost/api/dsh/workspace-file-bytes' + query) } as never) as Promise<Response>;
 }
 
-// a 4-byte "png" split across two windows of 3
-const B64 = (bytes: number[]) => Buffer.from(bytes).toString('base64');
-
-beforeEach(() => {
-	readWorkspaceFileBytesSpy.mockReset();
-	workspaceOwnerSessionIdSpy.mockReset();
-	workspaceOwnerSessionIdSpy.mockImplementation(async (sid: string) => sid);
-});
-
+let repo: string | null = null;
 afterEach(() => {
-	vi.restoreAllMocks();
+	if (repo !== null) {
+		rmSync(repo, { recursive: true, force: true });
+		repo = null;
+	}
 });
+
+function workspace(): string {
+	repo = mkdtempSync(path.join(tmpdir(), 'dsi-bytes-'));
+	return repo;
+}
 
 describe('GET /api/dsh/workspace-file-bytes', () => {
-	it('joins the windows and answers the image mime', async () => {
-		readWorkspaceFileBytesSpy
-			.mockResolvedValueOnce({ offset: 0, data: B64([1, 2, 3]), eof: false, absolutePath: '/w/a.png', version: 'v' })
-			.mockResolvedValueOnce({ offset: 3, data: B64([4]), eof: true, absolutePath: '/w/a.png', version: 'v' });
-		const res = await get('?sessionId=s1&path=%2Fw%2Fa.png');
+	it('answers the image mime with the file bytes', async () => {
+		const root = workspace();
+		writeFileSync(path.join(root, 'a.png'), Buffer.from([1, 2, 3, 4]));
+		const res = await get('?root=' + encodeURIComponent(root) + '&path=a.png');
 		expect(res.status).toBe(200);
 		expect(res.headers.get('content-type')).toBe('image/png');
 		expect(Buffer.from(await res.arrayBuffer())).toEqual(Buffer.from([1, 2, 3, 4]));
-		expect(readWorkspaceFileBytesSpy).toHaveBeenNthCalledWith(1, 's1', '/w/a.png', { offset: 0, length: 512 * 1024 });
-		expect(readWorkspaceFileBytesSpy).toHaveBeenNthCalledWith(2, 's1', '/w/a.png', { offset: 3, length: 512 * 1024 });
 	});
 
-	it('rejects a missing sessionId with 400 before any rpc', async () => {
-		const res = await get('?path=%2Fw%2Fa.png');
+	it('reads a nested root-relative path', async () => {
+		const root = workspace();
+		mkdirSync(path.join(root, 'assets'));
+		writeFileSync(path.join(root, 'assets', 'b.svg'), '<svg/>');
+		const res = await get('?root=' + encodeURIComponent(root) + '&path=assets%2Fb.svg');
+		expect(res.status).toBe(200);
+		expect(res.headers.get('content-type')).toBe('image/svg+xml');
+	});
+
+	it('rejects a missing root with 400', async () => {
+		const res = await get('?path=a.png');
 		expect(res.status).toBe(400);
-		expect(readWorkspaceFileBytesSpy).not.toHaveBeenCalled();
+	});
+
+	it('rejects a missing path with 400', async () => {
+		const res = await get('?root=' + encodeURIComponent(tmpdir()));
+		expect(res.status).toBe(400);
 	});
 
 	it('rejects an unknown image extension with 415', async () => {
-		const res = await get('?sessionId=s1&path=%2Fw%2Fa.exe');
+		const root = workspace();
+		writeFileSync(path.join(root, 'a.exe'), 'bin');
+		const res = await get('?root=' + encodeURIComponent(root) + '&path=a.exe');
 		expect(res.status).toBe(415);
-		expect(readWorkspaceFileBytesSpy).not.toHaveBeenCalled();
 	});
 
-	it('maps workspace-file/not-found to HTTP 404 with the host message verbatim', async () => {
-		readWorkspaceFileBytesSpy.mockRejectedValueOnce(
-			new DshRpcError('workspace-file/not-found', 'host said why')
-		);
-		const res = await get('?sessionId=s1&path=%2Fw%2Fa.png');
+	it('rejects a ".." walk outside the root with 403', async () => {
+		const root = workspace();
+		const res = await get('?root=' + encodeURIComponent(root) + '&path=' + encodeURIComponent('../x.png'));
+		expect(res.status).toBe(403);
+	});
+
+	it('maps a missing file to 404', async () => {
+		const root = workspace();
+		const res = await get('?root=' + encodeURIComponent(root) + '&path=nope.png');
 		expect(res.status).toBe(404);
-		expect((await res.json()).error.message).toContain('host said why');
+		expect((await res.json()).error.code).toBe('workspace-file/not-found');
 	});
 
-	it('maps an unknown host rejection to 502', async () => {
-		readWorkspaceFileBytesSpy.mockRejectedValueOnce(new DshRpcError('session/not-found', 'nope'));
-		const res = await get('?sessionId=s1&path=%2Fw%2Fa.png');
-		expect(res.status).toBe(502);
+	it('rejects a directory with 415', async () => {
+		const root = workspace();
+		mkdirSync(path.join(root, 'dir.png'));
+		const res = await get('?root=' + encodeURIComponent(root) + '&path=dir.png');
+		expect(res.status).toBe(415);
 	});
 });

@@ -9,8 +9,9 @@ import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import FilesEditedDiff from '$lib/components/message/cards/FilesEditedDiff.svelte';
+import type { TextFileDiff } from '$lib/components/message/cards/FilesEditedDiff.svelte';
 
-function mountDiff(diff: unknown): { box: () => HTMLElement; cleanup: () => void } {
+function mountDiff(diff: TextFileDiff): { box: () => HTMLElement; cleanup: () => void } {
 	const target = document.body.appendChild(document.createElement('div'));
 	const instance = mount(FilesEditedDiff, { target, props: { diff } });
 	flushSync();

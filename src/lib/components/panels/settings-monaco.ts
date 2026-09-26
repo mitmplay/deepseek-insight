@@ -16,7 +16,7 @@ import TsWorker from './settings-ts-worker?worker';
 import CssWorker from './settings-css-worker?worker';
 import HtmlWorker from './settings-html-worker?worker';
 import JsonWorker from './settings-json-worker?worker';
-import YamlWorker from 'monaco-yaml/yaml.worker?worker';
+import YamlWorker from './yaml-worker-entry?worker';
 import { configureMonacoYaml } from 'monaco-yaml';
 
 // One worker set per app: Monaco's editor worker (diff/completion
@@ -36,23 +36,55 @@ declare global {
 		};
 	}
 }
-if (typeof window !== 'undefined' && window.MonacoEnvironment === undefined) {
-	window.MonacoEnvironment = {
-		getWorker(_workerId: string, label: string): Worker {
-			if (label === 'yaml') return new YamlWorker();
-			if (label === 'typescript' || label === 'javascript') return new TsWorker();
-			if (label === 'css' || label === 'scss' || label === 'less') return new CssWorker();
-			if (label === 'html') return new HtmlWorker();
-			if (label === 'json') return new JsonWorker();
-			return new EditorWorker();
-		}
-	};
-}
+
+// ALWAYS install the router (RCA 2026-09-26): monaco seeds an empty
+// MonacoEnvironment object on import, so a "=== undefined" guard never
+// passed and yaml requests fell back to the main thread, rejecting
+// "Missing requestHandler or method: ..." on every worker call.
+window.MonacoEnvironment = {
+	getWorker(_workerId: string, label: string): Worker {
+		if (label === 'yaml') return new YamlWorker();
+		if (label === 'typescript' || label === 'javascript') return new TsWorker();
+		if (label === 'css' || label === 'scss' || label === 'less') return new CssWorker();
+		if (label === 'html') return new HtmlWorker();
+		if (label === 'json') return new JsonWorker();
+		return new EditorWorker();
+	}
+};
+
+// monaco 0.56+ base features (folding / document symbols / links / code
+// actions) fall back to a worker RPC for languages without providers — for
+// 'yaml' that call raced the monaco-yaml worker boot and threw UNCAUGHT
+// (RCA 2026-09-26). Register no-op providers so monaco never issues those
+// doomed calls; yaml's real validation/hover/completion still ride
+// monaco-yaml's own providers + the guarded worker entry.
+monaco.languages.registerFoldingRangeProvider('yaml', { provideFoldingRanges: () => [] });
+monaco.languages.registerDocumentSymbolProvider('yaml', { provideDocumentSymbols: () => [] });
+monaco.languages.registerLinkProvider('yaml', { provideLinks: () => ({ links: [] }) });
+monaco.languages.registerCodeActionProvider('yaml', {
+	provideCodeActions: () => ({ actions: [], dispose() {} })
+});
 
 // YAML language service (hover, validation, symbols) on the shared
 // monaco instance — the document authority stays the server's parse gate
 // (ADR D5); this is editor-side affordance only.
-configureMonacoYaml(monaco, {});
+// validate: false — monaco-yaml's marker provider fires doValidation/
+// resetSchema before the yaml worker finishes booting; the rejections are
+// the remaining console-noise source (RCA 2026-09-26). Hover/completion/
+// definition/format stay active.
+configureMonacoYaml(monaco, { validate: false });
+
+// Pre-warm the yaml worker (Fullpath Bow RCA follow-up): the worker bundle
+// carries the whole yaml-language-server and takes seconds to boot; a yaml
+// model opened before that raced the boot and rejected uncaught. Warming
+// with a throwaway model at module load moves the race to app startup —
+// by the time the operator opens real yaml tabs the worker is live.
+const warmupModel = monaco.editor.createModel(
+	'prewarm: true',
+	'yaml',
+	monaco.Uri.parse('inmemory://dsi-yaml-prewarm/boot.yaml')
+);
+setTimeout(() => warmupModel.dispose(), 5000);
 
 /** The editor handle SettingsEditorPanel keeps. */
 export interface YamlEditorHandle {

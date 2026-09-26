@@ -214,11 +214,12 @@ describe('+page.svelte mop2 — removal family closure edges', () => {
 			treePct: 40
 		});
 		await mountPage(stageBare);
-		startPanelResize(0, 100, { widths: [480] } as never);
+		// signature is (event: MouseEvent, index) — drag from x=100 on panel 0
+		startPanelResize(new MouseEvent('mousedown', { clientX: 100 }), 0);
 		window.dispatchEvent(new MouseEvent('mouseup'));
 		await settle();
 		// second drag inside the afterglow window — the timer-clear arm runs
-		startPanelResize(0, 100, { widths: [480] } as never);
+		startPanelResize(new MouseEvent('mousedown', { clientX: 100 }), 0);
 		window.dispatchEvent(new MouseEvent('mouseup'));
 		await settle();
 		expect(true).toBe(true);

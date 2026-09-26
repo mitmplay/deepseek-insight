@@ -86,3 +86,47 @@ describe('MarkdownContent onFileLink (File Link Intent W1.2)', () => {
 		cleanup();
 	});
 });
+
+// ── Fullpath Bow ADR 2026-09-26 D2 — the extension-icon post-pass ──
+
+describe('file-link anchor icons (Fullpath Bow D2)', () => {
+	it('decorates each file anchor with exactly one extension glyph', () => {
+		const { target, cleanup } = mountContent(
+			'[a](src/lib/components/cards/Card.svelte) and [b](README.md)',
+			vi.fn()
+		);
+		const icons = target.querySelectorAll('a .flink-icon');
+		expect(icons.length).toBe(2);
+		for (const icon of icons) expect(icon.querySelector('svg')).not.toBeNull();
+		cleanup();
+	});
+
+	it('a line-anchor href derives the icon from the basename', () => {
+		const { target, cleanup } = mountContent('[c](deep/nested/Composer.svelte#L12)', vi.fn());
+		expect(target.querySelectorAll('a .flink-icon').length).toBe(1);
+		cleanup();
+	});
+
+	it('external and api anchors get NO icon', () => {
+		const { target, cleanup } = mountContent(
+			'[d](https://example.com/x.ts) [e](/api/dsh/session)',
+			vi.fn()
+		);
+		expect(target.querySelectorAll('a .flink-icon').length).toBe(0);
+		cleanup();
+	});
+
+	it('a re-run of the render pass does not duplicate icons', () => {
+		const { target, cleanup } = mountContent('[f](src/a.ts)', vi.fn());
+		flushSync();
+		flushSync();
+		expect(target.querySelectorAll('a .flink-icon').length).toBe(1);
+		cleanup();
+	});
+
+	it('without onFileLink the anchors stay undecorated (change-nothing contract)', () => {
+		const { target, cleanup } = mountContent('[g](src/a.ts)');
+		expect(target.querySelectorAll('a .flink-icon').length).toBe(0);
+		cleanup();
+	});
+});

@@ -57,6 +57,9 @@ interface WatcherEntry {
 	rootEventPending: boolean;
 	/** Trailing debounce timer, shared by every event in one burst. */
 	timer: NodeJS.Timeout | null;
+	/** Promise for the currently executing ring body (verify + gate), so
+	 *  tests can await the FULL ring instead of guessing a sleep. */
+	ringInFlight: Promise<void> | null;
 }
 
 interface WorkspaceEntry {
@@ -117,8 +120,9 @@ function indexPath(repo: string): string {
 
 function scheduleRing(workspaceKey: string, entry: WatcherEntry): void {
 	if (entry.timer !== null) clearTimeout(entry.timer);
-	entry.timer = setTimeout(async () => {
+	entry.timer = setTimeout(() => {
 		entry.timer = null;
+		const ring = (async () => {
 		// Verify-by-status-diff: ghost FSEvents events must not ring, and pure
 		// working-tree changes (untracked files, deep paths) MUST. The event is
 		// only a hint; a read-only git status is the judge — bump when the
@@ -134,9 +138,26 @@ function scheduleRing(workspaceKey: string, entry: WatcherEntry): void {
 		// verdict — never ring on it. The panel's own fetch would fail just
 		// as honestly, so silence here matches the surface's contract.
 		if (snapshot === null || snapshot === entry.lastStatus) return;
+		// Stability confirmation (RCA 2026-09-27, /tmp/dsi-rca3.log): one git op
+		// can split across TWO debounce windows — FSEvents delivers the root
+		// "created" event promptly but .git index events land >DEBOUNCE_MS late,
+		// so window 1 sees "??" (untracked) and window 2 "A " (staged). Each
+		// window's diff legitimately passes -> TWO bumps for ONE op. On a diff
+		// pass, wait one settle beat and re-read: if the snapshot is STILL
+		// evolving, re-arm the debounce instead of bumping; bump only a stable
+		// snapshot, collapsing the ?? -> A transition into ONE ring.
+		await new Promise((r) => setTimeout(r, DEBOUNCE_MS / 2));
+		try {
+			const status2 = await gitStatus(entry.repo);
+			if (JSON.stringify(status2.files) !== snapshot) {
+				scheduleRing(workspaceKey, entry); // still evolving: ring again
+				return;
+			}
+		} catch {
+			return; // a failed re-check is no verdict — stay silent
+		}
 		entry.lastStatus = snapshot;
 		entry.rootEventPending = false;
-	// placeholder-marker
 		// Per-ring gate re-check (ADR D5): a mode switch mid-stream silences
 		// the watcher — a closed gate never bumps.
 		let open = false;
@@ -154,6 +175,11 @@ function scheduleRing(workspaceKey: string, entry: WatcherEntry): void {
 				// a broken notifier never breaks the watcher
 			}
 		}
+		})();
+		entry.ringInFlight = ring;
+		void ring.finally(() => {
+			if (entry.ringInFlight === ring) entry.ringInFlight = null;
+		});
 	}, DEBOUNCE_MS);
 }
 
@@ -191,7 +217,7 @@ export function acquireWatch(opts: {
 				rootWatcher: null,
 				refcount: 0, repo: opts.repo, gateCheck: opts.gateCheck,
 				onGateClosed: opts.onGateClosed ?? (() => undefined), timer: null, lastStatus: null,
-				rootEventPending: false
+				rootEventPending: false, ringInFlight: null
 			};
 			entry = dead;
 			ws.watchers.set(opts.repo, entry);
@@ -205,7 +231,7 @@ export function acquireWatch(opts: {
 				}
 			};
 		}
-		const fresh: WatcherEntry = { watcher, rootWatcher: null, refcount: 0, repo: opts.repo, gateCheck: opts.gateCheck, onGateClosed: opts.onGateClosed ?? (() => undefined), timer: null, lastStatus: statusSnapshotSync(opts.repo), rootEventPending: false };
+		const fresh: WatcherEntry = { watcher, rootWatcher: null, refcount: 0, repo: opts.repo, gateCheck: opts.gateCheck, onGateClosed: opts.onGateClosed ?? (() => undefined), timer: null, lastStatus: statusSnapshotSync(opts.repo), rootEventPending: false, ringInFlight: null };
 		entry = fresh;
 		watcher.on('error', () => {
 			void releaseWatcher(opts.workspaceKey, fresh);
@@ -317,6 +343,30 @@ export async function closeAllForTests(): Promise<void> {
 /** Test hook: inspect refcounts without reaching into the registry shape. */
 export function watcherRefCount(workspaceKey: string, repo: string): number | null {
 	return registry.get(workspaceKey)?.watchers.get(repo)?.refcount ?? null;
+}
+
+/** Test hook: await FULL settlement of any pending or in-flight ring for
+ *  this watcher (debounce fire + status verify + gate re-check + bump).
+ *  Resolves immediately when nothing is pending — deterministic instead
+ *  of DEBOUNCE_WAIT sleeps. */
+export async function settleRingsForTests(workspaceKey: string, repo: string): Promise<void> {
+	const entry = registry.get(workspaceKey)?.watchers.get(repo);
+	if (!entry) return;
+	while (entry.timer !== null || entry.ringInFlight !== null) {
+		if (entry.ringInFlight !== null) {
+			await entry.ringInFlight;
+		} else {
+			await new Promise((r) => setTimeout(r, 5)); // debounce still armed
+		}
+	}
+}
+
+/** Test hook: is a debounced ring armed or executing for this watcher?
+ *  Lets tests PROVE quietness before changing observable state (e.g.
+ *  flipping a gate) instead of hoping a sleep outran event delivery. */
+export function ringPendingForTests(workspaceKey: string, repo: string): boolean {
+	const entry = registry.get(workspaceKey)?.watchers.get(repo);
+	return entry !== undefined && (entry.timer !== null || entry.ringInFlight !== null);
 }
 
 /** Test hook: fire the ring path directly (debounced) — lets the SSE route

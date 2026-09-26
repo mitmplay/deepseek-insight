@@ -9,7 +9,7 @@
 		newLines: number;
 		lines: string[];
 	}
-	interface TextFileDiff {
+	export interface TextFileDiff {
 		kind: 'text';
 		path?: string;
 		display?: string;

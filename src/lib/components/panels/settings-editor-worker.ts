@@ -5,4 +5,4 @@
  * Bundled as the editor's web worker at build time. The specifier rides
  * monaco's exports map (`./X` → `./esm/vs/X.js`).
  */
-import 'monaco-editor/editor/editor.worker.js';
+import 'monaco-editor/esm/vs/editor/editor.worker.js';

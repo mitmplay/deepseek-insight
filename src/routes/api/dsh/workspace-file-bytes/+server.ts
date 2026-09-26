@@ -1,18 +1,24 @@
 /**
- * api-dsh — GET /api/dsh/workspace-file-bytes?sessionId=…&path=…
+ * api-dsh — GET /api/dsh/workspace-file-bytes?root=…&path=…
  *
- * Binary workspace file read (2026-09-10): images and other non-text
- * files refused by workspaceFiles/read (workspace-file/not-text) read
- * through workspaceFiles/readBytes — base64 byte windows on the wire,
- * paged here until eof and re-joined into one binary Response the
- * browser renders with an <img> element. Refusal mapping follows the
- * workspace-file route: not-found → 404, outside-workspace → 403,
- * not-regular-file → 415, other DshRpcError → 502, transport → 503.
+ * Binary workspace file read for previews (2026-09-10): images are refused
+ * by workspaceFiles/read (workspace-file/not-text), so the <img> element
+ * loads this route directly.
+ *
+ * 2026-09-28 — the read is a PLAIN FILESYSTEM read. A DSI workspace is a
+ * path into the same filesystem this process already sees; a read-only GET
+ * gained nothing from the DSH RPC hop (readBytes) it used before, and it
+ * coupled the preview to the host's wire contract (which changed under it:
+ * range → options + multipart receipts, 0.1.7-rc.2 — the tab went broken
+ * without a single DSI commit). Containment is enforced locally: the
+ * resolved target must stay inside the workspace root. Refusals:
+ * bad-root/bad-path → 400, outside-workspace → 403, not-found → 404,
+ * bad-ext/not-regular-file → 415, over-ceiling → 413.
  */
 
 import { json } from '@sveltejs/kit';
-import { getDshConnection } from '$lib/server/dsh-connection';
-import { DshRpcError, mapRpcFailure, statusFor } from '$lib/server/dsh-rpc';
+import { readFile, stat } from 'node:fs/promises';
+import path from 'node:path';
 
 import type { RequestHandler } from './$types';
 
@@ -29,78 +35,59 @@ const IMAGE_MIME: Record<string, string> = {
 	avif: 'image/avif'
 };
 
-/** Byte window per readBytes call — bounded so one huge file cannot
- *  balloon the response; the window count cap below is the real bound. */
-const WINDOW_BYTES = 512 * 1024;
-/** 64 windows × 512 KiB = the 32 MiB per-request ceiling. */
-const MAX_WINDOWS = 64;
+/** Per-request ceiling (the old 64×512 KiB readBytes window bound). */
+const MAX_BYTES = 32 * 1024 * 1024;
 
-const MIME_BY_EXT = (path: string): string | null => {
-	const ext = path.split('.').pop()?.toLowerCase() ?? '';
+const MIME_BY_EXT = (p: string): string | null => {
+	const ext = p.split('.').pop()?.toLowerCase() ?? '';
 	return IMAGE_MIME[ext] ?? null;
 };
 
-/** Refusal code → HTTP status, identical to the workspace-file route. */
-const REFUSAL_STATUS: Record<string, number> = {
-	'workspace-file/not-found': 404,
-	'workspace-file/outside-workspace': 403,
-	'workspace-file/not-regular-file': 415
-};
+const refuse = (status: number, code: string, message: string): Response =>
+	json({ ok: false, error: { code, message } }, { status });
 
 export const GET: RequestHandler = async ({ url }) => {
-	const sessionId = url.searchParams.get('sessionId');
-	if (sessionId === null || sessionId.trim().length === 0) {
-		return json(
-			{ ok: false, error: { code: 'bad-session', message: 'sessionId is required' } },
-			{ status: 400 }
-		);
+	const root = url.searchParams.get('root');
+	if (root === null || root.trim().length === 0) {
+		return refuse(400, 'bad-root', 'root is required');
 	}
-	const path = url.searchParams.get('path');
-	if (path === null || path.trim().length === 0) {
-		return json(
-			{ ok: false, error: { code: 'bad-path', message: 'path is required' } },
-			{ status: 400 }
-		);
+	const rel = url.searchParams.get('path');
+	if (rel === null || rel.trim().length === 0) {
+		return refuse(400, 'bad-path', 'path is required');
 	}
-	const mime = MIME_BY_EXT(path);
+	const mime = MIME_BY_EXT(rel);
 	if (mime === null) {
-		return json(
-			{ ok: false, error: { code: 'bad-ext', message: 'not a previewable image extension' } },
-			{ status: 415 }
-		);
+		return refuse(415, 'bad-ext', 'not a previewable image extension');
+	}
+
+	// Containment is the whole security contract: the resolved target must
+	// stay inside the workspace root — a ".." walk is refused 403, exactly
+	// like the settings-home file read.
+	const rootAbs = path.resolve(root);
+	const target = path.resolve(rootAbs, rel);
+	if (target !== rootAbs && !target.startsWith(rootAbs + path.sep)) {
+		return refuse(403, 'outside-workspace', 'path escapes the workspace root');
+	}
+
+	let info;
+	try {
+		info = await stat(target);
+	} catch {
+		return refuse(404, 'workspace-file/not-found', 'no entry at "' + rel + '"');
+	}
+	if (!info.isFile()) {
+		return refuse(415, 'workspace-file/not-regular-file', 'not a regular file');
+	}
+	if (info.size > MAX_BYTES) {
+		return refuse(413, 'too-large', 'file exceeds the preview ceiling');
 	}
 
 	try {
-		const conn = getDshConnection();
-		// Address the workspace RPC at the session's ROOT owner — sub-agent
-		// session ids are refused by the host (2026-09-10 fix).
-		const owner = await conn.workspaceOwnerSessionId(sessionId);
-		const chunks: Buffer[] = [];
-		let offset = 0;
-		for (let window = 0; window < MAX_WINDOWS; window++) {
-			const page = await conn.readWorkspaceFileBytes(owner, path, {
-				offset,
-				length: WINDOW_BYTES
-			});
-			const buf = Buffer.from(page.data, 'base64');
-			if (buf.length > 0) chunks.push(buf);
-			if (page.eof) {
-				const body = Buffer.concat(chunks);
-				return new Response(new Uint8Array(body), {
-					headers: { 'content-type': mime, 'cache-control': 'no-store' }
-				});
-			}
-			offset += buf.length; // decoded bytes, never the base64 length
-		}
-		return json(
-			{ ok: false, error: { code: 'too-many-windows', message: 'file exceeds the preview ceiling' } },
-			{ status: 413 }
-		);
-	} catch (err) {
-		if (err instanceof DshRpcError) {
-			const mapped = REFUSAL_STATUS[err.code];
-			if (mapped !== undefined) return json(mapRpcFailure(err), { status: mapped });
-		}
-		return json(mapRpcFailure(err), { status: statusFor(err) });
+		const body = await readFile(target);
+		return new Response(new Uint8Array(body), {
+			headers: { 'content-type': mime, 'cache-control': 'no-store' }
+		});
+	} catch {
+		return refuse(404, 'workspace-file/not-found', 'no entry at "' + rel + '"');
 	}
 };

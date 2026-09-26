@@ -1,6 +1,6 @@
 {
 	"name": "@deepseek-insight/dsi",
-	"version": "0.5.37",
+	"version": "0.5.38",
 	"description": "See your multiple agents run on the floor (agent, sub-agent, etc), each conversation on the floor are updated instantly.",
 	"keywords": [
 		"Deepseek",
@@ -82,9 +82,14 @@
 		"highlight.js": "^11.12.0",
 		"html-to-image": "^1.11.13",
 		"mermaid": "^11.17.0",
-		"monaco-editor": "^0.56.0",
+		"monaco-editor": "^0.57.0",
 		"monaco-yaml": "^5.5.1",
 		"node-pty": "1.2.0-beta.15",
 		"yaml": "^2.9.0"
+	},
+	"pnpm": {
+		"overrides": {
+			"monaco-editor": "0.57.0"
+		}
 	}
 }

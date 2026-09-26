@@ -3,9 +3,9 @@
 import { flushSync, mount, unmount } from 'svelte';
 import { describe, expect, it } from 'vitest';
 
-import WorkspaceExplorerTree from '../../src/lib/components/panels/WorkspaceExplorerTree.svelte';
+import WorkspaceExplorerTree, { type Level } from '../../src/lib/components/panels/WorkspaceExplorerTree.svelte';
 
-const LEVELS = {
+const LEVELS: Record<string, Level> = {
 	'': { kind: 'ready', entries: [{ name: 'src', type: 'directory' }], truncated: false },
 	'src': { kind: 'ready', entries: [{ name: 'app.css', type: 'file' }], truncated: false }
 };
@@ -19,8 +19,8 @@ function mountTree(activeFile: string | null): { target: HTMLElement; cleanup: (
 			levels: LEVELS,
 			expanded: ['src', 'deepseek-insight', 'deepseek-insight/src'],
 			repoMaps: {},
-			changedPaths: new Set(),
-			changedDirs: new Set(),
+			changedPaths: new Set<string>(),
+			changedDirs: new Set<string>(),
 			onToggle: () => {},
 			onOpenFile: () => {},
 			activeFile

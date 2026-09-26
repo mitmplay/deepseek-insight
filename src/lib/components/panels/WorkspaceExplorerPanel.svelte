@@ -506,6 +506,32 @@
 		}
 	});
 
+	// Fullpath Bow D3 AS AMENDED 2026-09-26 (operator decision): reveal is
+	// bound to the ACTIVE FILE, not to the intent — navigating WorkspaceFileTabs
+	// tabs also expands the file's ancestors and scrolls its row into view.
+	// One reveal per active-file value; the scroll fires only once the row
+	// actually renders (levels land asynchronously via the owner's onToggle).
+	let revealedFile: string | null = null;
+	$effect(() => {
+		const file = activeFile;
+		if (file === null || file === revealedFile) return;
+		const dirs = file.split('/').slice(0, -1);
+		let acc = '';
+		for (const dir of dirs) {
+			acc = acc ? acc + '/' + dir : dir;
+			if (!expanded.includes(acc)) onToggle(acc);
+		}
+		const deepest = dirs.length === 0 ? '' : dirs.join('/');
+		if (deepest !== '' && levels[deepest]?.kind !== 'ready') return;
+		requestAnimationFrame(() => {
+			const row = splitRoot?.querySelector('[data-active-file] li.active');
+			if (row && typeof (row as HTMLElement).scrollIntoView === 'function') {
+				(row as HTMLElement).scrollIntoView({ block: 'nearest' });
+				revealedFile = file;
+			}
+		});
+	});
+
 	// ADR D4: the PANEL is the drag owner; dragPct bridges the live
 	// mousemove and dissolves once the owner prop catches up. The split
 	// ROOT is the measure (no wrapper regions — the components sit as

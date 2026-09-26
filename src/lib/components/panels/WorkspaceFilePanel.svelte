@@ -139,12 +139,13 @@
 	const isHtml = $derived(/\.html?$/.test(path.toLowerCase()));
 	const hasTabs = $derived(isMarkdown || isHtml);
 	/** Image extensions preview through /api/dsh/workspace-file-bytes with
-	 *  an <img> element — READ-ONLY by nature (no tabs, no edit buffer);
-	 *  `read` refuses binaries workspace-file/not-text (2026-09-10). */
+	 *  an <img> element — READ-ONLY by nature (no tabs, no edit buffer). The
+	 *  route reads the workspace filesystem directly, contained to `root` —
+	 *  no RPC hop; a local read never needed one (2026-09-28). */
 	const IMAGE_EXT = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico', 'avif'];
 	const isImage = $derived(IMAGE_EXT.includes(path.split('.').pop()?.toLowerCase() ?? ''));
 	const bytesSrc = $derived(
-		'/api/dsh/workspace-file-bytes?sessionId=' + encodeURIComponent(sessionId) + '&path=' + encodeURIComponent(path)
+		'/api/dsh/workspace-file-bytes?root=' + encodeURIComponent(root) + '&path=' + encodeURIComponent(path)
 	);
 	/** Extension → Monaco language id for the edit surface's tokenizer
 	 *  highlighting. The grammars are already inside the lazy Monaco chunk
@@ -167,7 +168,15 @@
 		tsx: 'typescript', vue: 'html', wgsl: 'wgsl', xml: 'xml', yaml: 'yaml',
 		yml: 'yaml', zig: 'zig'
 	};
-	const monacoLang = $derived(MONACO_LANG[path.split('.').pop()?.toLowerCase() ?? ''] ?? 'plaintext');
+	// yaml/yml render as PLAIN TEXT (RCA 2026-09-26): monaco-yaml 5.5.1's
+	// worker is protocol-incompatible with both installed monaco majors —
+	// opening a yaml model fired doValidation/getFoldingRanges/... against a
+	// handler-less worker and spammed uncaught errors on every tab switch.
+	const monacoLang = $derived.by(() => {
+		const ext = path.split('.').pop()?.toLowerCase() ?? '';
+		if (ext === 'yaml' || ext === 'yml') return 'plaintext';
+		return MONACO_LANG[ext] ?? 'plaintext';
+	});
 	const title = $derived(path.split('/').filter((p) => p.length > 0).pop() ?? path);
 	/** The FULL display path (root + relative path) — the toolbar's
 	 *  left-side readout (the SettingsHomeToolbar pattern), with the

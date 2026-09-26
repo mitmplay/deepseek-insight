@@ -341,6 +341,7 @@ describe('workspace-explorer persisted shape restore (Shared Tree D4)', () => {
 		const onOpenFile = vi.fn();
 		const onTreePctChange = vi.fn();
 		const onPendingOpenConsumed = vi.fn();
+		const onCollapseAll = vi.fn();
 		const target = document.createElement('div');
 		document.body.appendChild(target);
 		const instance = mount(WorkspaceExplorerPanel, {
@@ -442,5 +443,120 @@ describe('workspace-explorer persisted shape restore (Shared Tree D4)', () => {
 			expect(split2?.getAttribute('style')).toContain('--tree-basis: 70%');
 			junked.cleanup();
 		});
+	});
+});
+// ── Fullpath Bow ADR 2026-09-26 D3 — the reveal: expand THEN scroll ──
+
+describe('intent reveal — deep row scrolls into view (Fullpath Bow D3)', () => {
+	function scrollStub() {
+		const stub = vi.fn();
+		const original = Element.prototype.scrollIntoView;
+		Element.prototype.scrollIntoView = stub as unknown as typeof Element.prototype.scrollIntoView;
+		return { stub, restore: () => { Element.prototype.scrollIntoView = original; } };
+	}
+
+	function deepListing(dir: string) {
+		const tree: Record<string, Array<{ name: string; type: string }>> = {
+			'': [{ name: 'a', type: 'directory' }],
+			a: [{ name: 'b', type: 'directory' }],
+			'a/b': [{ name: 'c.ts', type: 'file' }, { name: 'c2.ts', type: 'file' }]
+		};
+		return tree[dir] ?? [];
+	}
+
+	function mountForReveal(props: Record<string, unknown>) {
+		const onToggle = vi.fn();
+		const onOpenFile = vi.fn();
+		const onOpenTab = vi.fn();
+		const onPendingOpenConsumed = vi.fn();
+		const onCollapseAll = vi.fn();
+		const target = document.createElement('div');
+		document.body.appendChild(target);
+		const instance = mount(WorkspaceExplorerPanel, {
+			target,
+			props: {
+				sessionId: 's1',
+				root: '/repo',
+				expanded: [],
+				onToggle,
+				onOpenFile,
+				onOpenTab,
+				onPendingOpenConsumed,
+				onCollapseAll,
+				...props
+			}
+		});
+		flushSync();
+		return { target, onToggle, cleanup: () => { unmount(instance); target.remove(); } };
+	}
+
+	beforeEach(() => {
+		vi.stubGlobal('fetch', (input: RequestInfo | URL) => {
+			const url = String(input);
+			if (url.includes('git-map') || url.includes('git-status')) {
+				return Promise.resolve(new Response(JSON.stringify({ ok: true, enabled: false }), { status: 200 }));
+			}
+			// the host route takes PATH (absolute under the root) — strip the
+			// root prefix to key the fixture tree by root-relative dir
+			const rawPath = decodeURIComponent(new URL(url, 'http://x').searchParams.get('path') ?? '');
+			const dir = rawPath.replace(/^\/repo\/?/, '');
+			return Promise.resolve(new Response(JSON.stringify({
+				ok: true,
+				listing: { path: dir, entries: deepListing(dir), truncated: false }
+			}), { status: 200 }));
+		});
+	});
+
+	afterEach(() => vi.unstubAllGlobals());
+
+	it('a deep intent expands ancestors AND scrolls the active row into view', async () => {
+		const { stub, restore } = scrollStub();
+		const view = mountForReveal({ pendingOpenFile: { path: 'a/b/c.ts', nonce: 1 }, activeFile: 'a/b/c.ts', expanded: ['a', 'a/b'] });
+		try {
+			// the owner PRE-applied the ancestor expansion via props (expanded) —
+			// in production the consumption effect's onToggle intents land first
+			expect(view.onToggle).not.toHaveBeenCalled();
+			// reveal fires once the deepest level's listing has landed
+			await vi.waitFor(() => {
+				const rows = view.target.querySelectorAll('li.active');
+				if (rows.length === 0) throw new Error('no active row | li: ' + [...view.target.querySelectorAll('li')].map((l) => l.textContent?.trim().slice(0, 12)).join('|'));
+				expect(stub).toHaveBeenCalled();
+			}, { timeout: 3000, interval: 50 });
+			// eslint-disable-next-line no-console
+			console.log('ACTIVE ROWS:', view.target.querySelectorAll('li.active').length, 'SCROLL CALLS:', stub.mock.calls.length);
+			expect(stub).toHaveBeenCalledWith(expect.objectContaining({ block: 'nearest' }));
+		} finally {
+			restore();
+			view.cleanup();
+		}
+	});
+
+	it('TAB NAVIGATION reveals too (D3 as amended): switching activeFile scrolls the new row', async () => {
+		const { stub, restore } = scrollStub();
+		const hTarget = document.createElement('div');
+		document.body.appendChild(hTarget);
+		const { mount } = await import('svelte');
+		const Host = (await import('./RevealHost.svelte')).default;
+		const host = mount(Host, { target: hTarget });
+		const api = host as unknown as { setActive: (p: string | null) => void };
+		try {
+			api.setActive('a/b/c.ts');
+			await vi.waitFor(() => expect(stub).toHaveBeenCalledTimes(1));
+			stub.mockClear();
+			// navigate the tabs: a different deep file in a different subtree
+			api.setActive('a/b/c2.ts');
+			await vi.waitFor(() => expect(stub).toHaveBeenCalledTimes(1));
+			// switching BACK to c.ts is a navigation too — it re-reveals
+			stub.mockClear();
+			api.setActive('a/b/c.ts');
+			await vi.waitFor(() => expect(stub).toHaveBeenCalledTimes(1));
+			// idling on the SAME active file never re-yanks
+			stub.mockClear();
+			await new Promise((r) => setTimeout(r, 50));
+			expect(stub).not.toHaveBeenCalled();
+		} finally {
+			restore();
+			hTarget.remove();
+		}
 	});
 });

@@ -30,11 +30,11 @@ importers:
         specifier: ^11.17.0
         version: 11.17.2
       monaco-editor:
-        specifier: ^0.56.0
-        version: 0.56.0
+        specifier: ^0.57.0
+        version: 0.57.0
       monaco-yaml:
         specifier: ^5.5.1
-        version: 5.5.1(monaco-editor@0.56.0)
+        version: 5.5.1(monaco-editor@0.57.0)
       node-pty:
         specifier: 1.2.0-beta.15
         version: 1.2.0-beta.15
@@ -1242,8 +1242,8 @@ packages:
   dompurify@3.4.14:
     resolution: {integrity: sha512-dVoH9z+MY+C9IilgGCk3YfFqjLi3fChm2OiKJMzh6axrJ5qwxqWaZamgmHrpv22CN/KdbZJuGEGgfQoL00LTdg==}
 
-  dompurify@3.4.8:
-    resolution: {integrity: sha512-yb1cEmaOum7wFvOCSQxyfgVlv5D47Rc30iZWoMpbDIWTnJ6grDDQyu2KFJzB2k7u0pMuJcQ1zphH//fFnw2tjQ==}
+  dompurify@3.4.15:
+    resolution: {integrity: sha512-EUBjM+B+lkDE41iE82DDSCfkoPGfXx8IxFxPMjNzm/Uk4xDet77rTN9wqlxlVg71kK7XGuUMv6wUxJUwwv+Xyw==}
 
   enhanced-resolve@5.24.5:
     resolution: {integrity: sha512-L1l8TNvomm6UVW5B253AGxQagSQr+vGwhMlrrfRS2qmhx46AMpMVJKQYLvWYbysTMY8VoicOvzHzoHMbyzB+4A==}
@@ -1615,8 +1615,8 @@ packages:
   mermaid@11.17.2:
     resolution: {integrity: sha512-V6K3C8EBdEsPFZXSKMJe6ppQOENxuHARr9GvHX4hh47lAbhMRD9qf4oEK7LoaRQxULMa80/qt5gHO73aCleBBg==}
 
-  monaco-editor@0.56.0:
-    resolution: {integrity: sha512-sXboRm3BeBeLm938eaiyLMe0OxzfXIlZvbv4ir/jVgQy1zDhWjgmny0WoN45fuDKhCCQsYMbBJrv/A6jd8aCUg==}
+  monaco-editor@0.57.0:
+    resolution: {integrity: sha512-5BkI9KGoqrNvBGUe15/QlZq3OooZ8WLg1AxTpaqHRCP3HNpzPPZKE2EDz8M7c+VRmCeUw1Brp4cx/PWm3kI/5A==}
 
   monaco-languageserver-types@0.4.1:
     resolution: {integrity: sha512-uLiYM6K6jPqAa1ni9lRBoj8ZJAErOcegBrfEpurIUUO8cBhlhrGYjWbjhl4OPcxUNoj1JvqSETjwCTyhGgwymQ==}
@@ -2975,7 +2975,7 @@ snapshots:
     optionalDependencies:
       '@types/trusted-types': 2.0.7
 
-  dompurify@3.4.8:
+  dompurify@3.4.15:
     optionalDependencies:
       '@types/trusted-types': 2.0.7
 
@@ -3303,9 +3303,9 @@ snapshots:
       ts-dedent: 2.3.0
       uuid: 14.0.2
 
-  monaco-editor@0.56.0:
+  monaco-editor@0.57.0:
     dependencies:
-      dompurify: 3.4.8
+      dompurify: 3.4.15
       marked: 14.0.0
 
   monaco-languageserver-types@0.4.1:
@@ -3320,19 +3320,19 @@ snapshots:
 
   monaco-types@0.1.2: {}
 
-  monaco-worker-manager@2.0.1(monaco-editor@0.56.0):
+  monaco-worker-manager@2.0.1(monaco-editor@0.57.0):
     dependencies:
-      monaco-editor: 0.56.0
+      monaco-editor: 0.57.0
 
-  monaco-yaml@5.5.1(monaco-editor@0.56.0):
+  monaco-yaml@5.5.1(monaco-editor@0.57.0):
     dependencies:
       '@vscode/l10n': 0.0.18
       jsonc-parser: 3.3.1
-      monaco-editor: 0.56.0
+      monaco-editor: 0.57.0
       monaco-languageserver-types: 0.4.1
       monaco-marker-data-provider: 1.2.5
       monaco-types: 0.1.2
-      monaco-worker-manager: 2.0.1(monaco-editor@0.56.0)
+      monaco-worker-manager: 2.0.1(monaco-editor@0.57.0)
       path-browserify: 1.0.1
       prettier: 3.9.6
       proxy-disposable: 1.0.0

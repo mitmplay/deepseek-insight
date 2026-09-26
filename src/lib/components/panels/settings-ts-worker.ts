@@ -4,4 +4,4 @@
  * a relative `?worker` asset (Vite's reliably-resolvable form). Rides
  * the vite.config alias for the monaco-editor esm deep path.
  */
-import 'monaco-editor/language/typescript/ts.worker.js';
+import 'monaco-editor/esm/vs/language/typescript/ts.worker.js';

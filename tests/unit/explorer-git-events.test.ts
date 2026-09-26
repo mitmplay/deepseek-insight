@@ -28,7 +28,8 @@ function tmpRepo(): string {
 	return dir;
 }
 
-const DEBOUNCE_WAIT = DEBOUNCE_MS + 200;
+// stability confirmation (RCA 2026-09-27) settles a ring one extra half-window
+const DEBOUNCE_WAIT = DEBOUNCE_MS * 2 + 200;
 
 function makeRequest(): Request {
 	return new Request('http://localhost/', { signal: new AbortController().signal });

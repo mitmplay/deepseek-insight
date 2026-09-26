@@ -83,6 +83,49 @@ export function normalizeFileLinkPath(href: string): string | null {
 }
 
 /**
+ * Resolve a file-link path AGAINST the workspace root (Fullpath Bow ADR
+ * 2026-09-26 D1): the assistant speaks in its own cwd's paths, which sit
+ * one level ABOVE the workspace root, so real links carry the root path or
+ * the root's basename folder as a prefix. Order is fixed: (a) absolute-root
+ * prefix, (b) basename prefix, (c) as-is. A blank root resolves as-is. The
+ * HOST stays the existence/confinement authority — this is resolution, not
+ * validation.
+ */
+export function resolveFileLinkPath(path: string, root: string | null | undefined): string {
+	const collapse = (s: string) => s.split('/').filter((seg) => seg !== '').join('/');
+	const value = collapse(path);
+	// A workspace root may be stored unexpanded (~/owner/repo) while link
+	// paths are fully expanded (/home/owner/repo/...). BROWSER-SAFE: no
+	// process.env here (RCA 2026-09-26 — process is undefined in the client
+	// and the whole click handler died on it); the tilde is simply stripped
+	// and the segment-boundary last resort bridges any remaining form gap.
+	const rawRoot = (root ?? '').trim();
+	const candidates = new Set([
+		collapse(rawRoot),
+		collapse(rawRoot === '~' ? '' : rawRoot.startsWith('~/') ? rawRoot.slice(2) : rawRoot)
+	]);
+	candidates.delete('');
+	if (value === '' || candidates.size === 0) return value;
+	for (const rootVal of candidates) {
+		if (value === rootVal) return path;
+		if (value.startsWith(rootVal + '/')) return value.slice(rootVal.length + 1);
+	}
+	const firstBase = [...candidates][0]?.split('/').pop() ?? '';
+	if (firstBase !== '' && firstBase !== '.' && firstBase !== '..' && value.startsWith(firstBase + '/')) {
+		return value.slice(firstBase.length + 1);
+	}
+	// LAST resort for expanded absolute links vs an unexpanded root:
+	// segment-boundary marker only — "/agentic-ai/" can never hit
+	// 'agentic-ai-notes/'
+	for (const rootVal of candidates) {
+		const base = rootVal.split('/').pop() ?? '';
+		if (base === '' || base === '.' || base === '..') continue;
+		const marker = '/' + base + '/';
+		const idx = value.indexOf(marker);
+		if (idx > 0) return value.slice(idx + marker.length);
+	}
+	return value;
+}/**
  * The existence gate (ADR D3): probe the dirname via the confined tree
  * route and require the basename in the listing. Any refusal (404
  * missing/outside, 415, 502, transport) resolves false — the click
@@ -112,4 +155,31 @@ export async function workspaceFileExists(
 	} catch {
 		return false;
 	}
+}
+/**
+ * The floor's probe order (Fullpath Bow ADR 2026-09-26 D1): resolve against
+ * the root, probe the resolved candidate, then ONE as-is retry when the
+ * resolution changed — a root-basename collision must not silently win.
+ * Returns the workspace-relative path to publish, or null when both
+ * candidates refuse (the click drops).
+ */
+export async function resolveFileLinkTarget(
+	sessionId: string,
+	path: string,
+	root: string | null | undefined,
+	exists: (sessionId: string, path: string) => Promise<boolean> = workspaceFileExists
+): Promise<string | null> {
+	const resolved = resolveFileLinkPath(path, root);
+	// The spine workspace can sit ABOVE the session's real DSH workspace
+	// (harness root vs repo root) — so the candidate list also tries the
+	// path minus its first segment. Bounded: at most 3 probes, then the
+	// honest drop. The HOST stays the existence/confinement authority.
+	const candidates: string[] = [resolved];
+	const slash = resolved.indexOf('/');
+	if (slash !== -1 && resolved !== path) candidates.push(resolved.slice(slash + 1));
+	if (!candidates.includes(path)) candidates.push(path);
+	for (const candidate of candidates) {
+		if (await exists(sessionId, candidate)) return candidate;
+	}
+	return null;
 }

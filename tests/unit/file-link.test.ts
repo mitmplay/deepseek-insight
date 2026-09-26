@@ -1,6 +1,6 @@
 /** File Link Intent W1.1-T — pins for the shared predicates (PRD Task 1.1). */
 import { describe, expect, it } from 'vitest';
-import { isFileLinkHref, normalizeFileLinkPath, parseFileLinkHref } from '../../src/lib/utils/file-link';
+import { isFileLinkHref, normalizeFileLinkPath, parseFileLinkHref, resolveFileLinkPath } from '../../src/lib/utils/file-link';
 
 describe('isFileLinkHref', () => {
 	it('accepts scheme-free relative paths', () => {
@@ -60,5 +60,58 @@ describe('normalizeFileLinkPath', () => {
 		it('normalizes the path part', () => {
 			expect(parseFileLinkHref('./src//a.ts#L3').path).toBe('src/a.ts');
 		});
+	});
+});
+
+describe('resolveFileLinkPath (Fullpath Bow ADR 2026-09-26 D1)', () => {
+	it('strips the absolute workspace-root prefix', () => {
+		expect(
+			resolveFileLinkPath('/Users/op/agentic-ai/deepseek-insight/src/lib/app.ts', '/Users/op/agentic-ai/deepseek-insight')
+		).toBe('src/lib/app.ts');
+	});
+	it('strips the root basename folder prefix', () => {
+		expect(resolveFileLinkPath('deepseek-insight/src/lib/app.ts', '/Users/op/agentic-ai/deepseek-insight')).toBe(
+			'src/lib/app.ts'
+		);
+	});
+	it('keeps an already workspace-relative path as-is', () => {
+		expect(resolveFileLinkPath('src/lib/app.ts', '/Users/op/agentic-ai/deepseek-insight')).toBe('src/lib/app.ts');
+	});
+	it('resolves as-is on a blank root', () => {
+		expect(resolveFileLinkPath('deepseek-insight/src/a.ts', null)).toBe('deepseek-insight/src/a.ts');
+		expect(resolveFileLinkPath('deepseek-insight/src/a.ts', '')).toBe('deepseek-insight/src/a.ts');
+	});
+	it('tolerates a trailing slash on the root', () => {
+		expect(resolveFileLinkPath('/ws/deepseek-insight/src/a.ts', '/ws/deepseek-insight/')).toBe('src/a.ts');
+	});
+	it('never returns an empty string — equal to root falls back to the input', () => {
+		expect(resolveFileLinkPath('/ws/dsi', '/ws/dsi')).toBe('/ws/dsi');
+	});
+	it('does not let a basename prefix eat a dot-segment lookalike', () => {
+		// a folder literally named 'deepseek-insight.something' is NOT the root basename
+		expect(resolveFileLinkPath('deepseek-insight.old/src/a.ts', '/ws/deepseek-insight')).toBe(
+			'deepseek-insight.old/src/a.ts'
+		);
+	});
+});
+
+describe('resolveFileLinkPath — the operator regression (2026-09-26 RCA)', () => {
+	it('an expanded absolute link resolves against an UNEXPANDED tilde root', () => {
+		expect(
+			resolveFileLinkPath(
+				'/Users/wharsojo/agentic-ai/deepseek-insight/dev/rename-audit-2026-09-26.md',
+				'~/agentic-ai'
+			)
+		).toBe('deepseek-insight/dev/rename-audit-2026-09-26.md');
+	});
+	it('an absolute link resolves against the expanded root', () => {
+		expect(
+			resolveFileLinkPath('/Users/wharsojo/agentic-ai/dev/notes.md', '/Users/wharsojo/agentic-ai')
+		).toBe('dev/notes.md');
+	});
+	it('segment boundary holds — agentic-ai-notes never matches root basename', () => {
+		expect(
+			resolveFileLinkPath('/Users/x/agentic-ai-notes/a.md', '~/agentic-ai')
+		).toBe('Users/x/agentic-ai-notes/a.md');
 	});
 });

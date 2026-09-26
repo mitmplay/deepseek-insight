@@ -9,7 +9,7 @@
  */
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
-const monacoState = {
+const monacoState = vi.hoisted(() => ({
 	createCalls: [] as Array<{ container: HTMLElement; options: Record<string, unknown> }>,
 	editors: [] as Array<{
 		value: string;
@@ -21,9 +21,16 @@ const monacoState = {
 	ranges: [] as Array<{ start: number; end: number }>,
 	diffs: [] as Array<{ model: { original: unknown; modified: unknown } | null; disposed: boolean }>,
 	diffCalls: [] as Array<{ container: HTMLElement; options: Record<string, unknown> }>,
-};
+}));
 
 vi.mock('monaco-editor', () => ({
+	Uri: { parse: (v: string) => ({ toString: () => v }) },
+	languages: {
+		registerFoldingRangeProvider: vi.fn(),
+		registerDocumentSymbolProvider: vi.fn(),
+		registerLinkProvider: vi.fn(),
+		registerCodeActionProvider: vi.fn()
+	},
 	Range: class {
 		constructor(start: number, _a: number, end: number, _b: number) {
 			monacoState.ranges.push({ start, end });
@@ -31,11 +38,32 @@ vi.mock('monaco-editor', () => ({
 	},
 	editor: {
 		create: (container: HTMLElement, options: Record<string, unknown>) => {
-			const editor = {
+			// Explicit interface breaks the self-referential inference inside the
+			// literal below (editor.* used in its own methods).
+			interface MockEditor {
+				value: string;
+				onChange: () => void;
+				contentSubDisposed: boolean;
+				disposed: boolean;
+				model: { getLineCount: () => number } | null;
+				decorations: { init: unknown[]; setCalls: unknown[][] } | null;
+				revealed: Array<[number, number]>;
+				onDidChangeModelContent(cb: () => void): { dispose(): void };
+				getValue(): string;
+				setValue(text: string): void;
+				getModel(): MockEditor['model'];
+				createDecorationsCollection(init: unknown[]): { init: unknown[]; setCalls: unknown[][] };
+				revealLinesInCenter(start: number, end: number): void;
+				dispose(): void;
+			}
+			const editor: MockEditor = {
 				value: options.value as string,
 				onChange: () => {},
 				contentSubDisposed: false,
 				disposed: false,
+				model: null,
+				decorations: null,
+				revealed: [],
 				onDidChangeModelContent(cb: () => void) {
 					editor.onChange = cb;
 					return { dispose: () => (editor.contentSubDisposed = true) };
@@ -51,9 +79,6 @@ vi.mock('monaco-editor', () => ({
 				revealLinesInCenter: (s: number, e: number) => editor.revealed.push([s, e]),
 				dispose: () => (editor.disposed = true)
 			};
-			editor.model = null as { getLineCount: () => number } | null;
-			editor.decorations = null as { init: unknown[]; setCalls: unknown[][] } | null;
-			editor.revealed = [] as Array<[number, number]>;
 			monacoState.createCalls.push({ container, options });
 			monacoState.editors.push(editor);
 			return editor;
@@ -98,7 +123,7 @@ vi.mock('$lib/components/panels/settings-ts-worker?worker', () => ({ default: ma
 vi.mock('$lib/components/panels/settings-css-worker?worker', () => ({ default: makeWorker('css') }));
 vi.mock('$lib/components/panels/settings-html-worker?worker', () => ({ default: makeWorker('html') }));
 vi.mock('$lib/components/panels/settings-json-worker?worker', () => ({ default: makeWorker('json') }));
-vi.mock('monaco-yaml/yaml.worker?worker', () => ({ default: makeWorker('yaml') }));
+vi.mock('$lib/components/panels/yaml-worker-entry?worker', () => ({ default: makeWorker('yaml') }));
 
 import { createYamlEditor, createTextEditor, createDiffEditor } from '$lib/components/panels/settings-monaco';
 import { configureMonacoYaml } from 'monaco-yaml';
@@ -128,12 +153,15 @@ describe('settings-monaco glue', () => {
 		expect(typeof env.getWorker).toBe('function');
 		expect(env.getWorker()).toBeTruthy(); // default label -> editor worker
 		expect(workerTags).toContain('editor');
-		// An environment already present is left alone (the guard's other arm).
-		const sentinel = { getWorker: () => ({} as Worker) };
-		(window as { MonacoEnvironment?: unknown }).MonacoEnvironment = sentinel;
+		// An environment already present is OVERWRITTEN (RCA 2026-09-26: the
+		// old "=== undefined" guard let an empty/broken environment win, so no
+		// worker router was ever installed). The glue always installs its own
+		// deterministic router.
+		(window as { MonacoEnvironment?: unknown }).MonacoEnvironment = { getWorker: () => ({} as Worker) };
 		vi.resetModules(); // force the glue's module body to re-run
 		await import('$lib/components/panels/settings-monaco');
-		expect((window as { MonacoEnvironment?: unknown }).MonacoEnvironment).toBe(sentinel);
+		expect(typeof ((window as { MonacoEnvironment?: { getWorker: unknown } }).MonacoEnvironment!).getWorker).toBe('function');
+		expect(getWorker('yaml').tag).toBe('yaml');
 	});
 
 	it('routes workers by language label (yaml / ts+js / css+scss+less / html / json / fallback)', async () => {

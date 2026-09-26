@@ -5,6 +5,7 @@
  * card positions from pos with the viewport-center fallback.
  */
 import { flushSync, mount, unmount } from 'svelte';
+import type { ComponentProps } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import AccessModeConfirm from '$lib/components/composer/access-mode/AccessModeConfirm.svelte';
@@ -19,8 +20,14 @@ afterEach(() => {
 	document.body.innerHTML = '';
 });
 
-function mountGate(props: Record<string, unknown> = {}): { instance: ReturnType<typeof mount> } {
-	const instance = mount(AccessModeConfirm, { target: host, props });
+// Tests only supply a subset of the gate's props (the callbacks stay
+// undefined when unobserved); the cast supplies the required shape.
+type GateProps = Partial<ComponentProps<typeof AccessModeConfirm>>;
+function mountGate(props: GateProps = {}): { instance: ReturnType<typeof mount> } {
+	const instance = mount(AccessModeConfirm, {
+		target: host,
+		props: props as ComponentProps<typeof AccessModeConfirm>
+	});
 	flushSync();
 	return { instance };
 }

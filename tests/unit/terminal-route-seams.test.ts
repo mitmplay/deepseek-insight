@@ -61,7 +61,9 @@ function fakeSession(overrides: Partial<{ readFrom: () => unknown; isExited: () 
 	const handlers = new Map<string, (e: unknown) => void>();
 	return {
 		on: (ev: string, fn: (e: unknown) => void) => handlers.set(ev, fn),
-		off: (ev: string) => handlers.delete(ev),
+		off: (ev: string): void => {
+			handlers.delete(ev);
+		},
 		emit: (event: unknown) => handlers.get('event')?.(event),
 		readFrom: overrides.readFrom ?? vi.fn(() => ({ text: 'tail', nextOffset: 4, lossy: false, spillPath: null })),
 		isExited: overrides.isExited ?? (() => false)
@@ -172,7 +174,7 @@ describe('POST /api/terminal/[id]/send — forwarding and refusal mapping', () =
 		expect(registrySpies.write).toHaveBeenCalledExactlyOnceWith('t1', '', 'x');
 	});
 
-	it.each([
+	it.each<[code: 'NO_SESSION' | 'FOREIGN_SESSION', status: number]>([
 		['NO_SESSION', 404],
 		['FOREIGN_SESSION', 403]
 	])('registry refusal %s maps to HTTP %i', async (code, status) => {
@@ -186,7 +188,7 @@ describe('POST /api/terminal/[id]/send — forwarding and refusal mapping', () =
 
 	it('a send-lock refusal maps to 409 SEND_ACTIVE', async () => {
 		registrySpies.write.mockImplementationOnce(() => {
-			throw new TerminalSendRefusal('write in flight');
+			throw new TerminalSendRefusal();
 		});
 		const res = await send({ token: 'tok', action: 'write', data: 'x' });
 		expect(res.status).toBe(409);
@@ -220,7 +222,7 @@ describe('GET /api/terminal/[id]/output — the retained tail as JSON', () => {
 		expect(registrySpies.readFrom).toHaveBeenCalledExactlyOnceWith('t1', 0);
 	});
 
-	it.each([
+	it.each<[code: 'NO_SESSION' | 'FOREIGN_SESSION', status: number]>([
 		['NO_SESSION', 404],
 		['FOREIGN_SESSION', 403]
 	])('registry refusal %s maps to HTTP %i', async (code, status) => {
@@ -241,7 +243,7 @@ describe('GET /api/terminal/[id]/output — the retained tail as JSON', () => {
 });
 
 describe('GET /api/terminal/[id]/stream — the SSE downstream', () => {
-	it.each([
+	it.each<[code: 'NO_SESSION' | 'FOREIGN_SESSION', status: number]>([
 		['NO_SESSION', 404],
 		['FOREIGN_SESSION', 403]
 	])('peek refusal %s maps to HTTP %i', async (code, status) => {

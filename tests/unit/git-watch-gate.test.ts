@@ -14,10 +14,37 @@ import {
 	getGeneration,
 	closeAllForTests,
 	watcherRefCount,
-	DEBOUNCE_MS
+	DEBOUNCE_MS,
+	settleRingsForTests,
+	ringPendingForTests
 } from '$lib/server/git-watch';
 
 const DEBOUNCE_WAIT = DEBOUNCE_MS + 400;
+
+/** Deterministic ring flush: give fs events a moment to land, then await
+ *  the FULL ring (debounce + status verify + gate check + bump) instead of
+ *  guessing a sleep. Second settle catches an event that chained another
+ *  debounce while the first was settling. */
+async function flushRing(workspaceKey: string, repo: string): Promise<void> {
+	await new Promise((r) => setTimeout(r, DEBOUNCE_MS + 50));
+	await settleRingsForTests(workspaceKey, repo);
+	await settleRingsForTests(workspaceKey, repo);
+}
+
+/** Provable quietness: flush whatever is pending, then hold a straggler
+ *  window long enough for ANY late-delivered fs event to arm a ring, and
+ *  only accept the baseline when nothing is pending. Retry until quiet —
+ *  a straggler ring is drained HERE, while the gate state that must not
+ *  see it still holds, never after the gate flips. */
+async function quietBaseline(workspaceKey: string, repo: string, tries = 8): Promise<void> {
+	for (let i = 0; i < tries; i++) {
+		await flushRing(workspaceKey, repo);
+		await new Promise((r) => setTimeout(r, DEBOUNCE_WAIT)); // straggler window
+		await settleRingsForTests(workspaceKey, repo);
+		if (!ringPendingForTests(workspaceKey, repo)) return;
+	}
+	throw new Error('watcher never went quiet: straggler rings keep arming');
+}
 
 /** A REAL repo: git init + one commit-less tracked file staged baseline. */
 function tmpRepo(): string {
@@ -36,18 +63,21 @@ afterEach(async () => {
 });
 
 describe('git-watch gate and lifecycle', () => {
-	it('a closed gate swallows the ring: generation unchanged; opening the gate lets the NEXT ring through', async () => {
+	it('a closed gate swallows the ring: generation unchanged; opening the gate lets the NEXT ring through', { timeout: 30_000 }, async () => {
 		const repo = tmpRepo();
 		try {
 			let gate = false;
 			const lease = acquireWatch({ workspaceKey: 'ws-closed', repo, gateCheck: async () => gate });
-			await new Promise((r) => setTimeout(r, DEBOUNCE_WAIT));
+			await quietBaseline('ws-closed', repo);
 			stage(repo, 'a.txt', 'one\n');
-			await new Promise((r) => setTimeout(r, DEBOUNCE_WAIT));
+			await flushRing('ws-closed', repo);
 			expect(getGeneration('ws-closed')).toBe(0);
+			// Drain stragglers BEFORE flipping: a late stage-a event must not
+			// see the open gate.
+			await quietBaseline('ws-closed', repo);
 			gate = true;
 			stage(repo, 'b.txt', 'two\n'); // a NEW file: the row list visibly changes
-			await new Promise((r) => setTimeout(r, DEBOUNCE_WAIT));
+			await flushRing('ws-closed', repo);
 			expect(getGeneration('ws-closed')).toBe(1);
 			await lease.release();
 		} finally {
@@ -55,7 +85,7 @@ describe('git-watch gate and lifecycle', () => {
 		}
 	});
 
-	it('a throwing gateCheck is a closed gate', async () => {
+	it('a throwing gateCheck is a closed gate', { timeout: 30_000 }, async () => {
 		const repo = tmpRepo();
 		try {
 			const lease = acquireWatch({
@@ -75,7 +105,7 @@ describe('git-watch gate and lifecycle', () => {
 		}
 	});
 
-	it('refcount: two acquires share one watcher; last release closes it; re-acquire rebuilds', async () => {
+	it('refcount: two acquires share one watcher; last release closes it; re-acquire rebuilds', { timeout: 30_000 }, async () => {
 		const repo = tmpRepo();
 		try {
 			const a = acquireWatch({ workspaceKey: 'ws-ref', repo, gateCheck: async () => true });
@@ -97,18 +127,19 @@ describe('git-watch gate and lifecycle', () => {
 		}
 	});
 
-	it('a root-event ring still respects the gate (untracked file, closed gate)', async () => {
+	it('a root-event ring still respects the gate (untracked file, closed gate)', { timeout: 30_000 }, async () => {
 		const repo = tmpRepo();
 		try {
 			let gate = false;
 			const lease = acquireWatch({ workspaceKey: 'ws-rootgate', repo, gateCheck: async () => gate });
-			await new Promise((r) => setTimeout(r, DEBOUNCE_WAIT));
+			await quietBaseline('ws-rootgate', repo);
 			writeFileSync(join(repo, 'untracked.txt'), 'x\n');
-			await new Promise((r) => setTimeout(r, DEBOUNCE_WAIT));
+			await flushRing('ws-rootgate', repo);
 			expect(getGeneration('ws-rootgate')).toBe(0);
+			await quietBaseline('ws-rootgate', repo);
 			gate = true;
 			writeFileSync(join(repo, 'untracked2.txt'), 'y\n');
-			await new Promise((r) => setTimeout(r, DEBOUNCE_WAIT));
+			await flushRing('ws-rootgate', repo);
 			expect(getGeneration('ws-rootgate')).toBe(1);
 			await lease.release();
 		} finally {
@@ -116,7 +147,7 @@ describe('git-watch gate and lifecycle', () => {
 		}
 	});
 
-	it('deleting the repo closes the watcher quietly; re-acquire re-creates', async () => {
+	it('deleting the repo closes the watcher quietly; re-acquire re-creates', { timeout: 30_000 }, async () => {
 		const repo = tmpRepo();
 		try {
 			const lease = acquireWatch({ workspaceKey: 'ws-gone', repo, gateCheck: async () => true });

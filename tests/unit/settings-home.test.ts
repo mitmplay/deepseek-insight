@@ -65,7 +65,7 @@ describe('settings-home (The Settings Tree ADR 2026-09-18)', () => {
 	it('reads a text file back whole; a `..` walk refuses', async () => {
 		const file = await readSettingsHomeFile('dsi', 'settings.yaml');
 		expect(file.content).toContain('maxRows: 40');
-		expect(() => readSettingsHomeFile('dsi', '../x')).rejects.toBeInstanceOf(SettingsHomeRefusal);
+		await expect(readSettingsHomeFile('dsi', '../x')).rejects.toBeInstanceOf(SettingsHomeRefusal);
 	});
 
 	it('writes and reads back; junk content refuses', async () => {

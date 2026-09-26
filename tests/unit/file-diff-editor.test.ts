@@ -6,9 +6,12 @@
  */
 import { describe, expect, it, vi } from 'vitest';
 
-const calls: Array<{ kind: string; args: unknown[] }> = [];
-const disposed: string[] = [];
-const sequence: string[] = [];
+const state = vi.hoisted(() => ({
+	calls: [] as Array<{ kind: string; args: unknown[] }>,
+	disposed: [] as string[],
+	sequence: [] as string[]
+}));
+const { calls, disposed, sequence } = state;
 
 vi.mock('./settings-editor-worker?worker', () => ({ default: class {} }));
 vi.mock('./settings-ts-worker?worker', () => ({ default: class {} }));
@@ -19,20 +22,27 @@ vi.mock('monaco-yaml/yaml.worker?worker', () => ({ default: class {} }));
 vi.mock('monaco-yaml', () => ({ configureMonacoYaml: vi.fn() }));
 
 vi.mock('monaco-editor', () => ({
+	Uri: { parse: (v: string) => ({ toString: () => v }) },
+	languages: {
+		registerFoldingRangeProvider: vi.fn(),
+		registerDocumentSymbolProvider: vi.fn(),
+		registerLinkProvider: vi.fn(),
+		registerCodeActionProvider: vi.fn()
+	},
 	editor: {
 		createDiffEditor: (_c: HTMLElement, opts: { readOnly?: boolean; renderSideBySide?: boolean }) => {
-			calls.push({ kind: 'createDiffEditor', args: [opts] });
+			state.calls.push({ kind: 'createDiffEditor', args: [opts] });
 			return {
 				setModel: vi.fn((m: { original: object; modified: object } | null) => {
-					calls.push({ kind: 'setModel', args: [m] });
-					if (m === null) sequence.push('widget-released');
+					state.calls.push({ kind: 'setModel', args: [m] });
+					if (m === null) state.sequence.push('widget-released');
 				}),
-				dispose: () => { disposed.push('editor'); sequence.push('editor'); }
+				dispose: () => { state.disposed.push('editor'); state.sequence.push('editor'); }
 			};
 		},
 		createModel: (text: string, language?: string) => {
-			calls.push({ kind: 'createModel', args: [text, language] });
-			return { text, language, dispose: () => { disposed.push('model:' + text); sequence.push('model:' + text); } };
+			state.calls.push({ kind: 'createModel', args: [text, language] });
+			return { text, language, dispose: () => { state.disposed.push('model:' + text); state.sequence.push('model:' + text); } };
 		}
 	}
 }));
