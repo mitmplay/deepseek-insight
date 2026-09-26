@@ -1552,7 +1552,7 @@ describe('+page.svelte — lineage pin under floor operations (task 3.2-T)', () 
 // ── Swap-focus (2026-08-29): the /new successor takes the caret ───────
 // The FULL client chain through the real page: composer submit →
 // executeCommand swap (PanelAddRequest.focus) → doSwapInto's one-shot
-// focusComposerId → keyed remount → PromptInput's mount focus. The
+// focusComposerId → keyed remount → Composer's mount focus. The
 // happy-dom stand-in for e2e slash-commands 03 (whose DSH stub host is
 // still on the pre-0.1.2 wire).
 describe('+page.svelte — swap-focus (the /new successor takes the caret)', () => {

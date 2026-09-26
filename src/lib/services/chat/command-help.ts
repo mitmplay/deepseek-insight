@@ -6,8 +6,8 @@
  *   /new ?            /permission ?            @<session-id> ?
  *
  * Pure detection + the per-command help copy; the popup is
- * CommandHelpCard.svelte, hosted by PromptInput beside the Suggest Strip.
- * Submit is guarded upstream (PromptInput): a `?` help line never reaches
+ * CommandHelpCard.svelte, hosted by Composer beside the Suggest Strip.
+ * Submit is guarded upstream (Composer): a `?` help line never reaches
  * parseCommand's execute path, so `/permission ?` can never hit the host
  * wire as a bogus preset and `/new foo` keeps its existing usage error.
  *

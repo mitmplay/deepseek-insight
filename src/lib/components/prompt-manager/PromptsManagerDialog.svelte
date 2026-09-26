@@ -13,7 +13,7 @@
 	 * the next trigger).
 	 *
 	 * Portal contract (BC-7): the whole modal mounts in a host div that
-	 * PromptInput portals to document.body — the panel floor's CSS zoom
+	 * Composer portals to document.body — the panel floor's CSS zoom
 	 * becomes the containing block for position:fixed, so any fixed UI
 	 * rendered inside the scaled panel canvas is trapped (ADR: "fixed UI
 	 * escapes the zoom trap"). The host renders this component inside a

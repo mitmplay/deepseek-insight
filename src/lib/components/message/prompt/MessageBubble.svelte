@@ -24,7 +24,8 @@
 		text,
 		time,
 		showSave = true,
-		children
+		children,
+		onFileLink
 	}: {
 		/** Which side of the conversation the bubble speaks for — picks
 		 *  the square tail corner, data-role, and the stamp's edge. */
@@ -38,6 +39,10 @@
 		/** Save-prompt button on the action row — prompt bubbles only. */
 		showSave?: boolean;
 		children?: import('svelte').Snippet;
+		/** File Link Intent: forward the transcript click so a file link in
+		 *  a USER bubble opens the workspace file too (parity with the
+		 *  assistant turn) — without it the anchor natively navigates. */
+		onFileLink?: (path: string) => void;
 	} = $props();
 
 	/** Raw ⇄ rendered flip state — owned here, wired to ToolsMessage. */
@@ -66,7 +71,7 @@
 				data-testid="message-raw"
 			>{text}</pre>
 		{:else}
-			<MarkdownContent content={text} hideToggle />
+			<MarkdownContent content={text} hideToggle {onFileLink} />
 		{/if}
 	{/if}
 	{#if children}

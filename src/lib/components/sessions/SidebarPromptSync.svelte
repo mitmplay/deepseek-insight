@@ -1,9 +1,9 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages';
 	import { t } from '$lib/services/locale/locale-state.svelte';
-	import PromptInputText from '$lib/components/chat/PromptInputText.svelte';
-	import SlashMenu, { slashMenuMatches } from '$lib/components/chat/SlashMenu.svelte';
-	import SuggestStrip from '$lib/components/chat/suggest-strip/SuggestStrip.svelte';
+	import PromptInputText from '$lib/components/composer/sibling/PromptInputText.svelte';
+	import SlashMenu, { slashMenuMatches } from '$lib/components/composer/menu/SlashMenu.svelte';
+	import SuggestStrip from '$lib/components/composer/menu/suggest-strip/SuggestStrip.svelte';
 	import { ArrowUp, X } from '@lucide/svelte';
 	import {
 		acceptSyncSlashExecute,
@@ -110,7 +110,7 @@
 		pushSharedText(text);
 	}
 
-	// Auto-grow clamp — the PromptInput measure, verbatim, at the box's
+	// Auto-grow clamp — the Composer measure, verbatim, at the box's
 	// own row cap (the px() guard: unresolved styles yield NaN, and both
 	// browsers and happy-dom reject "NaNpx" without error).
 	$effect(() => {
@@ -402,7 +402,7 @@
 {/if}
 
 <style>
-	/* Control-owned icon color (the PromptInput app.css exception): the
+	/* Control-owned icon color (the Composer app.css exception): the
 	   submit surface is saturated blue with a white glyph — the global
 	   purple icon default must not paint the icon into its own surface. */
 	button :global(svg) {

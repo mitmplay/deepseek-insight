@@ -119,13 +119,13 @@ export default defineConfig({
 			// checks are additive), so exclusion is the only honest gate
 			// shape — these stay covered by their own suites.
 			exclude: [
-				'src/lib/components/chat/TokenCounter.svelte',
+				'src/lib/components/composer/sibling/TokenCounter.svelte',
 				'src/lib/components/common/buttons/PlanButton.svelte',
 				// StripTagChips: same compiler `?? ''` arm on
 				// checked={checked.includes(word)} — boolean, never nullish
 				// (observed 2026-09-15); the {#if recTags} arms ARE covered by
 				// the direct-mount tests in tests/unit/strip-tag-chips.test.ts.
-				'src/lib/components/chat/StripTagChips.svelte',
+				'src/lib/components/composer/menu/suggest-strip/StripTagChips.svelte',
 				// WorkspaceFileTabs: same compiler `?? ''` arm on the two
 				// data-testid attribute interpolations (tab.path ?? '') —
 				// provably unreachable: leaf(tab.path) in the label runs BEFORE

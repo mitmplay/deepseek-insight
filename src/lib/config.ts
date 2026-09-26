@@ -23,7 +23,7 @@ export function dshBaseUrl(): string {
 export const DSI_DEV_PORT = 5174;
 
 /** ~/.dsi/settings.yaml `chat.input.maxRows` default — the prompt
- *  textarea's auto-grow clamp (PromptInput MAX_ROWS, user spec 2026-08-23). */
+ *  textarea's auto-grow clamp (Composer MAX_ROWS, user spec 2026-08-23). */
 export const DEFAULT_CHAT_MAX_ROWS = 15;
 
 /** `chat.accessConfirmTimeoutMs` default — how long the access chip waits

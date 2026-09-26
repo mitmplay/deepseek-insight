@@ -19,7 +19,7 @@
  * accept gesture differs by mode: "?" inserts the row's text, "!" feeds
  * the row's lines to the executor. All "?" semantics are byte-identical.
  *
- * Kept pure (no DOM, no fetch) so it's unit-testable; PromptInput owns
+ * Kept pure (no DOM, no fetch) so it's unit-testable; Composer owns
  * the textarea, debounce, and fetch.
  */
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import PromptInput from '$lib/components/chat/PromptInput.svelte';
+	import Composer from '$lib/components/composer/Composer.svelte';
 	import type { SerializedImage } from '$lib/services/chat/attachment-service.svelte';
 	import type { DsiPermission } from '$lib/services/conversation/permission-state';
 	import type { DsiImageLimits } from '$lib/services/conversation/image-limits';
@@ -10,7 +10,7 @@
 	/**
 	 * ConversationFooter — the conversation page's send surface wrapper
 	 * (extracted from the page, 2026-08-23): the bottom bar hosting
-	 * PromptInput. Pure layout shell — every input prop passes through
+	 * Composer. Pure layout shell — every input prop passes through
 	 * unchanged; the send/cancel intents and page state stay page-owned.
 	 *
 	 * Focus tint (2026-08-28): on the panel floor the focused panel's
@@ -50,7 +50,7 @@
 		isStreaming: boolean;
 		/** A submit is awaiting its receipt. */
 		sending: boolean;
-		/** Session id — PromptInput's model selector mount. */
+		/** Session id — Composer's model selector mount. */
 		sessionId: string;
 		/** Context tokens consumed by the last model request. */
 		contextTokens: number | undefined;
@@ -78,7 +78,7 @@
 		 *  (the BC-A3 boolean rides verbatim). */
 		onpickcommand?: (line: string) => boolean | Promise<boolean>;
 		/** Focus the composer's textarea once at mount (the /new swap-focus) —
-		 *  pass-through to PromptInput; absent keeps ordinary mounts unfocused. */
+		 *  pass-through to Composer; absent keeps ordinary mounts unfocused. */
 		focusOnMount?: boolean;
 		/** Fired once after the mount focus landed — pass-through. */
 		onfocused?: () => void;
@@ -107,7 +107,7 @@
 	data-focused={focused ? 'true' : 'false'}
 >
 	<div class="mx-auto max-w-3xl">
-		<PromptInput
+		<Composer
 			{onsubmit}
 			{oncancel}
 			{isStreaming}

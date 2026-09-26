@@ -10,7 +10,7 @@
 	 * name collides with the $state rune's lowering — see SlashMenu
 	 * 2026-09-03).
 	 */
-	import SlashMenu from '../../src/lib/components/chat/SlashMenu.svelte';
+	import SlashMenu from '../../src/lib/components/composer/menu/SlashMenu.svelte';
 	import type { DsiCommandRow, DsiGestureRow, DsiSkillRow } from '../../src/lib/types';
 
 	let {

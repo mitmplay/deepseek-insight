@@ -8,7 +8,7 @@
 -->
 <script lang="ts">
 	import PromptBubble from '$lib/components/message/prompt/PromptBubble.svelte';
-	import StreamingIndicator from '$lib/components/chat/StreamingIndicator.svelte';
+	import StreamingIndicator from '$lib/components/composer/sibling/StreamingIndicator.svelte';
 
 	let { text = 'thinking…', time }: { text?: string; time?: number } = $props();
 </script>

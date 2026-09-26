@@ -325,4 +325,25 @@ describe('GET /api/terminal/[id]/stream — the SSE downstream', () => {
 		const frames = await framesDone;
 		expect(frames.map((f) => f.event)).toEqual(['output', 'closed']);
 	});
+
+	it('a client cancel drops the listener so a live PTY cannot enqueue (lines 108-109)', async () => {
+		const offs: string[] = [];
+		const session = fakeSession();
+		const rawOff = session.off;
+		session.off = (ev: string) => {
+			offs.push(ev);
+			rawOff(ev);
+		};
+		registrySpies.events.mockReturnValueOnce(session);
+		registrySpies.exitOutcome.mockReturnValueOnce(null);
+		registrySpies.list.mockReturnValueOnce([]);
+		const res = streamRoute(get('http://localhost/api/terminal/t1/stream')) as Response;
+		const reader = res.body!.getReader();
+		await reader.cancel(); // the tab went away mid-stream
+		expect(offs).toEqual(['event']);
+		// the crash-RCA contract: a post-cancel PTY chunk must be a silent
+		// no-op (state.closed guard), never an ERR_INVALID_STATE throw
+		expect(() => session.emit({ type: 'output', bytes: 'late', nextOffset: 2 })).not.toThrow();
+	});
 });
+

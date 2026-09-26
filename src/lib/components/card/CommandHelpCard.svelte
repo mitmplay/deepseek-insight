@@ -10,7 +10,7 @@
 	 * COMMAND_HELP copy) and host vocabulary (`/plan ?`, `/dsh-doc ?` —
 	 * the catalog row's own description/hint/whenToUse, nothing invented).
 	 *
-	 * Presentational: the view in, nothing out — PromptInput owns the
+	 * Presentational: the view in, nothing out — Composer owns the
 	 * detection (command-help.ts), the Esc dismiss, and the Enter guard.
 	 *
 	 * Floating geometry (SuggestStrip parity): absolute above the textarea

@@ -1,6 +1,6 @@
 /**
  * Composer draft persistence — the per-session prompt draft survives HMR
- * strikes and full reloads (2026-08-30): PromptInput saves here debounced
+ * strikes and full reloads (2026-08-30): Composer saves here debounced
  * while the operator types, restores at mount with the caret at the end,
  * and clears the moment the draft empties (send, macro run-accept) so a
  * sent prompt never resurrects.

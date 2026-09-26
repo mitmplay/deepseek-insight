@@ -60,6 +60,9 @@ export interface YamlEditorHandle {
 	getValue(): string;
 	/** Replace the whole buffer (a fresh load). */
 	setValue(text: string): void;
+	/** Scroll to and highlight a 1-based line range (the file-link #L
+	 *  anchor). Optional: only the text editor implements it. */
+	highlightLines?(range: { start: number; end: number }): void;
 	/** Release the editor and its DOM. */
 	dispose(): void;
 }
@@ -140,9 +143,38 @@ export function createTextEditor(
 		tabSize: 2
 	});
 	const sub = editor.onDidChangeModelContent(() => onChange());
+	/** One decoration collection, REPLACED per call — highlighting twice
+	 *  never stacks two bands. Clamped to the model: a target past EOF
+	 *  collapses onto the last line, it never throws. */
+	let decorations: monaco.editor.IEditorDecorationsCollection | null = null;
+	const highlightLines = (range: { start: number; end: number }): void => {
+		const model = editor.getModel();
+		if (model === null) return;
+		const last = model.getLineCount();
+		if (last < 1) return;
+		const start = Math.min(Math.max(1, Math.floor(range.start)), last);
+		const end = Math.min(Math.max(start, Math.floor(range.end)), last);
+		if (decorations === null) {
+			decorations = editor.createDecorationsCollection([
+				{
+					range: new monaco.Range(start, 1, end, 1),
+					options: { isWholeLine: true, className: 'dsi-line-anchor-highlight' }
+				}
+			]);
+		} else {
+			decorations.set([
+				{
+					range: new monaco.Range(start, 1, end, 1),
+					options: { isWholeLine: true, className: 'dsi-line-anchor-highlight' }
+				}
+			]);
+		}
+		editor.revealLinesInCenter(start, end);
+	};
 	return {
 		getValue: () => editor.getValue(),
 		setValue: (text: string) => editor.setValue(text),
+		highlightLines,
 		dispose: () => {
 			sub.dispose();
 			editor.dispose();

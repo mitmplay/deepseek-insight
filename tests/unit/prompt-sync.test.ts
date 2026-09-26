@@ -10,7 +10,7 @@
  *    the checked group survives for the next broadcast;
  *  - D1/D6: pruneSync drops sessions off the floor; resetSync clears all.
  *
- * Fake members mimic the PromptInput contract: getText/setText on a local
+ * Fake members mimic the Composer contract: getText/setText on a local
  * string, submit a vi.fn that clears and admits (or refuses, per test).
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';

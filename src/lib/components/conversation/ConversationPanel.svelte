@@ -30,7 +30,7 @@
 	import { createPollingOrchestrator } from '$lib/services/conversation/polling-orchestrator.svelte';
 	import { invalidateSessionAttachmentUrls } from '$lib/services/conversation/attachment-urls.svelte';
 	import ConversationError from '$lib/components/conversation/ConversationError.svelte';
-	import StickToBottomToggle from '$lib/components/chat/StickToBottomToggle.svelte';
+	import StickToBottomToggle from '$lib/components/composer/sibling/StickToBottomToggle.svelte';
 	import ConversationFooter from '$lib/components/conversation/ConversationFooter.svelte';
 	import ConversationHeader from '$lib/components/conversation/ConversationHeader.svelte';
 	import ConversationScrollArea from '$lib/components/conversation/ConversationScrollArea.svelte';
@@ -434,10 +434,10 @@ import { appConfig } from '$lib/services/config/app-config.svelte';
 		};
 	});
 
-	/** Wave 2: images arrive serialized from the composer (PromptInput owns
+	/** Wave 2: images arrive serialized from the composer (Composer owns
 	 *  the only base64 moment — serialize-at-submit, BC-A2) and ride the
 	 *  widened submit; the boolean admits/denies draft clearing (BC-A3). */
-	/** Wave 2: images arrive serialized from the composer (PromptInput owns
+	/** Wave 2: images arrive serialized from the composer (Composer owns
 	 *  the only base64 moment — serialize-at-submit, BC-A2) and ride the
 	 *  widened submit; the boolean admits/denies draft clearing (BC-A3).
 	 * Commands delegate to the shared executor (Prompt Macro W1 1.2 — one
@@ -841,7 +841,7 @@ import { appConfig } from '$lib/services/config/app-config.svelte';
 		startMacro(row, true);
 	}
 
-	/** Mirror of the composer's strip rows — refreshed via PromptInput's
+	/** Mirror of the composer's strip rows — refreshed via Composer's
 	 *  onrows callback (props-only contract kept: the panel never reaches
 	 *  into the component's internals). The accepted index resolves
 	 *  against the rows the strip showed at accept time. */

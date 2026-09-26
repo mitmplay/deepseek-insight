@@ -76,7 +76,7 @@
  * (revision 2026-08-26: the earlier blanket "button svg { color: inherit }"
  * guard suppressed the purple default for every control icon and was
  * removed): saturated controls paint white glyphs on their own surface
- * (PromptInput send/cancel, BackToTheEdgeButton, UserMessagesButton), pill
+ * (Composer send/cancel, BackToTheEdgeButton, UserMessagesButton), pill
  * selected states follow the on-state text color (Agents/Workspaces/
  * SessionFilter), and state-semantic toggles carry their state
  * (StickToBottomToggle maroon/grey). Each states its scoped

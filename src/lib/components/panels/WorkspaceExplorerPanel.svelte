@@ -87,7 +87,11 @@
 		onTreePctChange?: (pct: number) => void;
 		/** Route-published file intent in 'explorer' layout (nonce-guarded,
 		 *  consumed exactly once — the tabOverride dissolve pattern). */
-		pendingOpenFile?: { path: string; nonce: number } | null;
+		pendingOpenFile?: {
+			path: string;
+			nonce: number;
+			lines?: { start: number; end: number } | null;
+		} | null;
 		/** Consumed intent — the route clears its pending publish. */
 		onPendingOpenConsumed?: (nonce: number) => void;
 		/** Explorer Layout (amendment 2026-09-16): the OWNER-persisted open
@@ -476,6 +480,9 @@
 	// this effect (openTabs is a dependency), and the guard keeps the
 	// consume single-shot even before the owner clears the publish.
 	let consumedNonce = -1;
+	/** The parked #L anchor target (transient, never persisted) — handed to
+	 *  the active file panel and cleared once it reports the highlight done. */
+	let lineTarget = $state<{ start: number; end: number } | null>(null);
 	$effect(() => {
 		if (pendingOpenFile !== null && pendingOpenFile.nonce !== consumedNonce) {
 			consumedNonce = pendingOpenFile.nonce;
@@ -491,6 +498,10 @@
 				if (!expanded.includes(acc)) onToggle(acc);
 			}
 			handleFileClick(pendingOpenFile.path);
+			// The #L anchor target rides the intent as DISPLAY metadata: park it
+			// for the file panel, which consumes it once (scroll + highlight) and
+			// reports back — a later plain tab click must NOT re-highlight.
+			if (pendingOpenFile.lines) lineTarget = pendingOpenFile.lines;
 			onPendingOpenConsumed?.(pendingOpenFile.nonce);
 		}
 	});
@@ -579,7 +590,14 @@
 			{:else if sessionId !== null}
 				<!-- The floor file component, reused whole: it owns the
 				     fetch, the buffer, and save (BC-1 untouched, §7). -->
-				<WorkspaceFilePanel {sessionId} path={activeFile} {root} onclose={() => {}} />
+				<WorkspaceFilePanel
+				{sessionId}
+				path={activeFile}
+				{root}
+				highlightLines={lineTarget}
+				onhighlightdone={() => (lineTarget = null)}
+				onclose={() => {}}
+			/>
 			{/if}
 		{/if}
 	</WorkspaceFileTabs>

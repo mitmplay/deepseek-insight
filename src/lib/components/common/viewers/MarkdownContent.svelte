@@ -210,8 +210,10 @@
 	/** File Link Intent (ADR 2026-09-25 D2): delegated capture-phase click
 	 *  listener. Without the prop this component changes NOTHING — anchors
 	 *  keep native navigation. With it, scheme-free relative anchors
-	 *  preventDefault and forward the normalized path; everything else
-	 *  (external, /api/, '..', escaped) keeps native behavior. */
+	 *  preventDefault and forward the RAW href — the consumer parses the
+	 *  path AND the #L line anchor out of it (parseFileLinkHref), so the
+	 *  anchor must survive this seam. Everything else (external, /api/,
+	 *  '..', escaped) keeps native behavior. */
 	$effect(() => {
 		const el = containerEl;
 		if (!el || !onFileLink) return;
@@ -220,10 +222,9 @@
 			if (!anchor) return;
 			const href = anchor.getAttribute('href');
 			if (!href || !isFileLinkHref(href)) return;
-			const path = normalizeFileLinkPath(href);
-			if (path === null) return;
+			if (normalizeFileLinkPath(href) === null) return;
 			event.preventDefault();
-			onFileLink(path);
+			onFileLink(href);
 		};
 		el.addEventListener('click', onClick, true);
 		return () => el.removeEventListener('click', onClick, true);

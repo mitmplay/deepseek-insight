@@ -10,6 +10,14 @@ import { mount, unmount, flushSync } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 
+// The first test in this file pays the one-time Svelte compile of
+// TerminalDeskHost — under a loaded machine that alone can exceed the 5s
+// default. A timed-out test skips h.cleanup(), leaking a live desk that
+// then fires phantom session opens into the NEXT test's fetch route
+// (observed 2026-09-26: postOpens 2->3 + unhandled rejection at
+// TerminalDesk.svelte:139). Give the compile room; leaks are the poison.
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
+
 vi.mock('@xterm/xterm', () => ({
 	Terminal: class {
 		open() {}

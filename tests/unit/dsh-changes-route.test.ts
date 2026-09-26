@@ -47,6 +47,12 @@ afterEach(() => {
 	vi.restoreAllMocks();
 });
 
+
+	function armDiffInvalidSummary(body: unknown) {
+		fetchHostPathSpy.mockResolvedValueOnce(new Response(JSON.stringify(body), { status: 200 }));
+		return get('seq=41&turn=7');
+	}
+
 describe('GET /api/dsh/session/[sessionId]/changes (task 2.2-T)', () => {
 	it('forwards the validated summary as {ok:true, summary} and calls the host path with seq', async () => {
 		fetchHostPathSpy.mockResolvedValueOnce(new Response(JSON.stringify(SUMMARY), { status: 200 }));
@@ -88,6 +94,49 @@ describe('GET /api/dsh/session/[sessionId]/changes (task 2.2-T)', () => {
 		await expect(get()).resolves.toMatchObject({ status: 502 });
 	});
 
+
+	it('rejects a bad index param with 400 before any host call', async () => {
+		await expect(get('seq=41&turn=7&index=abc')).resolves.toMatchObject({ status: 400 });
+		await expect(get('seq=41&turn=7&index=-1')).resolves.toMatchObject({ status: 400 });
+		await expect(get('seq=41&turn=7&index=1.5')).resolves.toMatchObject({ status: 400 });
+		expect(fetchHostPathSpy).not.toHaveBeenCalled();
+		const bad = await get('seq=41&turn=7&index=abc');
+		expect(((await bad.json()) as { error: { code: string; message: string } }).error).toMatchObject({
+			code: 'bad-params',
+			message: 'index must be a non-negative integer'
+		});
+	});
+
+	function armDiff(body: unknown) {
+		fetchHostPathSpy.mockResolvedValueOnce(new Response(JSON.stringify(body), { status: 200 }));
+		return get('seq=41&turn=7&index=0');
+	}
+
+	it('diff arm: forwards to changes.diff and passes a valid diff through on the discriminant', async () => {
+		const textDiff = { kind: 'text', path: 'src/a.ts', hunks: [] };
+		const res = await armDiff(textDiff);
+		expect(res.status).toBe(200);
+		expect(fetchHostPathSpy).toHaveBeenCalledWith('/api/changes.diff?sessionId=session-1&seq=41&index=0');
+		expect(((await res.json()) as { ok: boolean; diff: unknown }).diff).toEqual(textDiff);
+
+		await expect(armDiff({ kind: 'binary', path: 'bin/data.db' })).resolves.toMatchObject({ status: 200 });
+		await expect(armDiff({ kind: 'oversized', path: 'big.bin' })).resolves.toMatchObject({ status: 200 });
+	});
+
+	it('diff arm: refuses a non-record body or unknown kind with 502 upstream', async () => {
+		await expect(armDiff([1, 2])).resolves.toMatchObject({ status: 502 });
+		await expect(armDiff({ kind: 'symlink', path: 'x' })).resolves.toMatchObject({ status: 502 });
+		const bad = await armDiff({ kind: 'symlink', path: 'x' });
+		expect(((await bad.json()) as { error: { code: string; message: string } }).error).toMatchObject({
+			code: 'upstream',
+			message: 'changes diff failed validation'
+		});
+	});
+	it('refuses a summary with a bad top-level count with 502 upstream', async () => {
+		await expect(
+			armDiffInvalidSummary({ turn: 7, files: [], total: -1, added: 0, deleted: 0 })
+		).resolves.toMatchObject({ status: 502 });
+	});
 	it('accepts binary/oversized markers and the zero-counts face', async () => {
 		fetchHostPathSpy.mockResolvedValueOnce(new Response(JSON.stringify(SUMMARY), { status: 200 }));
 		const res = await get('seq=9&turn=1');

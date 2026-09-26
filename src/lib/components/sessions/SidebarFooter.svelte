@@ -19,7 +19,7 @@
 	import { X } from '@lucide/svelte';
 	import * as m from '$lib/paraglide/messages';
 	import { t } from '$lib/services/locale/locale-state.svelte';
-	import NewChatButton from '$lib/components/chat/NewChatButton.svelte';
+	import NewChatButton from '$lib/components/composer/NewChatButton.svelte';
 	import SidebarPromptSync from './SidebarPromptSync.svelte';
 	import LanguageMenu from '$lib/components/language-menu/LanguageMenu.svelte';
 	import { APP_VERSION, DSH_VERSION } from '$lib/version';

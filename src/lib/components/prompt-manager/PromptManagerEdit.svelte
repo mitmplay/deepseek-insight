@@ -9,7 +9,7 @@
 	 * row stays highlighted until Save/Cancel (OCI user spec 2026-08-14). The pair
 	 * rides a portal wrapper to document.body when `portal` is true - fixed layers
 	 * must escape the floor zoom transform (BC-7); the modal host renders it in
-	 * place (its tree is already body-portaled by PromptInput), so the wrapper is
+	 * place (its tree is already body-portaled by Composer), so the wrapper is
 	 * inert there.
 	 */
 	let {

@@ -87,7 +87,7 @@
 	} from '$lib/utils/panel-prefs';
 	import { sanitizeWorkspaceProfile } from '$lib/utils/storage-profile';
 	import { conversationSeedUrl } from '$lib/utils/seed-url';
-	import { normalizeFileLinkPath, workspaceFileExists } from '$lib/utils/file-link';
+	import { normalizeFileLinkPath, parseFileLinkHref, workspaceFileExists } from '$lib/utils/file-link';
 	import { clampSidebarWidth, loadSidebarPrefs, saveSidebarPrefs } from '$lib/utils/sidebar-prefs';
 	import type {
 		DsiConversationPanel,
@@ -468,9 +468,13 @@ import {
 	 *  session's explorer, which opens/focuses a tab. No open explorer
 	 *  ⇒ the intent drops (the browsing surface that opens files IS the
 	 *  explorer; the floor keeps conversations only). */
-	function openWorkspaceFile(sessionId: string, path: string): void {
+	function openWorkspaceFile(
+		sessionId: string,
+		path: string,
+		lines?: { start: number; end: number } | null
+	): void {
 		const host = sessionWorkspaceExplorer(sessionId); // Shared Tree D1: the root key
-		if (host) publishFileIntent(host.id, path);
+		if (host) publishFileIntent(host.id, path, lines);
 	}
 
 	/** File Link Intent (ADR 2026-09-25 D3): a transcript file link publishes
@@ -478,9 +482,9 @@ import {
 	 *  workspace — the gate lives in the shared util; anything else drops the
 	 *  click. No navigation ever happens. */
 	async function openFileLinkFromMarkdown(sessionId: string, rawHref: string): Promise<void> {
-		const path = normalizeFileLinkPath(rawHref);
-		console.log('[FLINK] click', sessionId, rawHref, '->', path);
-		if (path === null) return;
+		const { path, lines } = parseFileLinkHref(rawHref);
+		console.log('[FLINK] click', sessionId, rawHref, '->', path, lines);
+		if (path === '') return;
 		const exists = await workspaceFileExists(sessionId, path);
 		console.log('[FLINK] exists:', exists);
 		if (!exists) return;
@@ -493,7 +497,7 @@ import {
 			if (!root) return;
 			openWorkspaceExplorer(sessionId, root);
 		}
-		openWorkspaceFile(sessionId, path);
+		openWorkspaceFile(sessionId, path, lines);
 	}
 
 
@@ -597,12 +601,19 @@ import {
 	// consumes it once-per-nonce and reports back through
 	// onPendingOpenConsumed (the publish then clears; D5's tab state is the
 	// panel's, not the route's).
-	let pendingFileIntents = $state<Record<string, { path: string; nonce: number } | null>>({});
+	let pendingFileIntents = $state<
+		Record<string, { path: string; nonce: number; lines?: { start: number; end: number } | null } | null>
+	>({});
 	let fileIntentSeq = 0;
 
-	/** Publish a file intent to an explorer panel and focus it. */
-	function publishFileIntent(explorerId: string, path: string): void {
-		pendingFileIntents[explorerId] = { path, nonce: ++fileIntentSeq };
+	/** Publish a file intent to an explorer panel and focus it. `lines` is
+	 *  the optional #L anchor target — display metadata, not persisted. */
+	function publishFileIntent(
+		explorerId: string,
+		path: string,
+		lines?: { start: number; end: number } | null
+	): void {
+		pendingFileIntents[explorerId] = { path, nonce: ++fileIntentSeq, lines: lines ?? null };
 		selectedPanelId = explorerId;
 	}
 

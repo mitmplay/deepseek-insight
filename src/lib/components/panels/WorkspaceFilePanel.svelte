@@ -44,7 +44,9 @@
 		root,
 		view = 'edit',
 		onviewchange,
-		onclose
+		onclose,
+		highlightLines = null,
+		onhighlightdone
 	}: {
 		/** The owning session — the read's authorization scope (dedupe key
 		 *  half; the panel never mutates it). */
@@ -61,6 +63,13 @@
 		onviewchange?: (view: 'edit' | 'diff') => void;
 		/** Close intent — the owner removes the panel. */
 		onclose: () => void;
+		/** The file-link #L anchor target (transient, not persisted) — once
+		 *  the edit surface is live it scrolls to and highlights the range,
+		 *  then reports `onhighlightdone` exactly once. */
+		highlightLines?: { start: number; end: number } | null;
+		/** Acknowledge the applied highlight — the owner clears its parked
+		 *  target so a plain re-activation never re-highlights. */
+		onhighlightdone?: () => void;
 	} = $props();
 
 	// The owner prop is the LIVE authority; the override exists only to
@@ -70,6 +79,12 @@
 	const activeView = $derived(viewOverride ?? view);
 
 	let tab = $state<'preview' | 'edit'>('preview');
+	// A #L anchor needs the Monaco surface — line coordinates don't exist
+	// in the markdown preview. Force the edit tab for this open; the
+	// operator can still flip back to preview afterwards.
+	$effect(() => {
+		if (highlightLines !== null && hasTabs) tab = 'edit';
+	});
 	let phase = $state<'loading' | 'failed' | 'ready'>('loading');
 	let errorCode = $state<string | null>(null);
 	let text = $state<string | null>(null);
@@ -110,6 +125,10 @@
 
 	let editorHost = $state<HTMLElement | null>(null);
 	let editor: YamlEditorHandle | null = null;
+	/** Reactive mirror of `editor` (the handle itself stays a plain let —
+	 *  the Monaco glue is not serializable state): the #L anchor highlight
+	 *  effect needs a signal that flips when the editor lands/dies. */
+	let editorReady = $state(false);
 	let initSeq = 0;
 
 	const isMarkdown = $derived(path.toLowerCase().endsWith('.md'));
@@ -444,14 +463,26 @@
 			editor = createTextEditor(host, initial, () => {
 				dirty = editor !== null && editor.getValue() !== baseline;
 			}, { language: monacoLang, readOnly: gateOpen === false });
+			editorReady = true;
 		})();
 		return () => {
 			initSeq++;
 			editor?.dispose();
 			editor = null;
+			editorReady = false;
 			diffHandle?.dispose();
 			diffHandle = null;
 		};
+	});
+
+	// The #L anchor highlight (file-link anchor feature): applies through
+	// the handle whenever the target and a live editor coexist — a fresh
+	// mount AND an already-open file both land here. Acknowledged exactly
+	// once per published target (the owner clears its parked target).
+	$effect(() => {
+		if (!editorReady || highlightLines === null) return;
+		editor?.highlightLines?.(highlightLines);
+		onhighlightdone?.();
 	});
 
 	/** The DIRECT save (The File Eye ADR D4): POST the buffer to the
@@ -540,5 +571,12 @@
 		min-height: 0;
 		display: flex;
 		flex-direction: column;
+	}
+	/* Monaco decoration class names are GLOBAL (the editor injects them
+	   into its own DOM, outside Svelte's scoping) — hence :global. A soft
+	   amber band, distinct from Monaco's own current-line highlight. */
+	:global(.dsi-line-anchor-highlight) {
+		background: rgba(255, 196, 0, 0.22);
+		outline: 1px solid rgba(255, 170, 0, 0.45);
 	}
 </style>

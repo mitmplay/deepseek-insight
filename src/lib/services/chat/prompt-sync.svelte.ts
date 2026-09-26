@@ -28,7 +28,7 @@
  *    the floor; `resetSync` runs in the route's destroy lifecycle.
  *
  * Plain TS + module runes — reactive for every consumer, no component
- * imports. The callers (PromptInput, SidebarPromptSync) hold the UI locks;
+ * imports. The callers (Composer, SidebarPromptSync) hold the UI locks;
  * the store holds no timers and no fetches.
  */
 

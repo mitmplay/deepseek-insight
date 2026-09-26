@@ -48,4 +48,16 @@ describe('workspaceFileExists gate (W2.2)', () => {
 		const fetchImpl = treeResponder([{ name: 'Card.svelte', type: 'file' }]);
 		await expect(workspaceFileExists('s1', 'src/Card.svelte#L153', fetchImpl)).resolves.toBe(true);
 	});
+
+	// Defense-in-depth (hardening 2026-09-26): the dot-dot fast-fail used to
+	// live only in normalizeFileLinkPath — a direct gate call with a traversal
+	// path fired a probe fetch before the host refused it. The gate now drops
+	// it locally, with NO fetch at all.
+	it('traversal paths → false with NO probe fetch', async () => {
+		const fetchImpl = treeResponder([{ name: 'passwd', type: 'file' }]);
+		await expect(workspaceFileExists('s1', '../etc/passwd', fetchImpl)).resolves.toBe(false);
+		await expect(workspaceFileExists('s1', 'src/../../../etc/passwd', fetchImpl)).resolves.toBe(false);
+		await expect(workspaceFileExists('s1', 'src/..%2F/etc', fetchImpl)).resolves.toBe(false); // literal segment, not traversal — host decides
+		expect((fetchImpl as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(1); // only the literal one probed
+	});
 });

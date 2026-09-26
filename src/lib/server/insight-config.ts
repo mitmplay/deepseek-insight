@@ -89,7 +89,7 @@ function parseConfig(configPath?: string): Record<string, unknown> | null {
 // ── chat ────────────────────────────────────────────────────────────────────
 
 export interface ChatInputConfig {
-	/** Prompt textarea auto-grow clamp, in rows (PromptInput MAX_ROWS). */
+	/** Prompt textarea auto-grow clamp, in rows (Composer MAX_ROWS). */
 	maxRows: number;
 }
 

@@ -6,7 +6,7 @@
 	 * disabled even though the DOM portals to document.body.
 	 */
 	import PanelLoupe from '$lib/components/panels/PanelLoupe.svelte';
-	import PromptInput from '$lib/components/chat/PromptInput.svelte';
+	import Composer from '$lib/components/composer/Composer.svelte';
 
 	let { onclose }: { onclose: () => void } = $props();
 
@@ -14,5 +14,5 @@
 </script>
 
 <PanelLoupe panelId="p1" sessionId={SID} {onclose}>
-	<PromptInput onsubmit={() => true} oncancel={() => {}} isStreaming={false} sending={false} sessionId={SID} />
+	<Composer onsubmit={() => true} oncancel={() => {}} isStreaming={false} sending={false} sessionId={SID} />
 </PanelLoupe>

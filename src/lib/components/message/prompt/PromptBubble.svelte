@@ -45,7 +45,8 @@
 		tone = 'prompt',
 		imageRefs = [],
 		sessionId,
-		children
+		children,
+		onFileLink
 	}: {
 		/** Markdown body — omitted in children-only mounts (context chips). */
 		text?: string;
@@ -59,6 +60,8 @@
 		/** Owning session — the attachment read's authorization scope. */
 		sessionId?: string;
 		children?: import('svelte').Snippet;
+		/** File Link Intent forwarder — reaches the bubble's markdown body. */
+		onFileLink?: (path: string) => void;
 	} = $props();
 
 	const skin = $derived(
@@ -76,7 +79,7 @@
 			<MessageImages refs={imageRefs} {sessionId} />
 		</div>
 	{/if}
-	<MessageBubble role="user" {skin} {text} {time}>
+	<MessageBubble role="user" {skin} {text} {time} {onFileLink}>
 		{#if children}{@render children()}{/if}
 	</MessageBubble>
 </div>

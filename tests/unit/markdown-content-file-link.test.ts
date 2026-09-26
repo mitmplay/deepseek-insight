@@ -28,20 +28,22 @@ function clickAnchor(target: HTMLElement, href: string): void {
 }
 
 describe('MarkdownContent onFileLink (File Link Intent W1.2)', () => {
-	it('emits the normalized path once and prevents navigation', () => {
+	it('emits the raw href once and prevents navigation', () => {
 		const onFileLink = vi.fn();
 		const { target, cleanup } = mountContent('[card](src/lib/components/cards/Card.svelte)', onFileLink);
 		clickAnchor(target, 'src/lib/components/cards/Card.svelte');
 		expect(onFileLink).toHaveBeenCalledTimes(1);
+		// The #L anchor feature: the RAW href crosses this seam — the
+		// consumer parses path AND line target out of it (parseFileLinkHref).
 		expect(onFileLink).toHaveBeenCalledWith('src/lib/components/cards/Card.svelte');
 		cleanup();
 	});
 
-	it('normalizes ./ and duplicate slashes before emitting', () => {
+	it('emits the anchor-bearing href verbatim (line target survives)', () => {
 		const onFileLink = vi.fn();
-		const { target, cleanup } = mountContent('[a](./src//deep//a.ts)', onFileLink);
-		clickAnchor(target, './src//deep//a.ts');
-		expect(onFileLink).toHaveBeenCalledWith('src/deep/a.ts');
+		const { target, cleanup } = mountContent('[a](./src//deep//a.ts#L3-L9)', onFileLink);
+		clickAnchor(target, './src//deep//a.ts#L3-L9');
+		expect(onFileLink).toHaveBeenCalledWith('./src//deep//a.ts#L3-L9');
 		cleanup();
 	});
 

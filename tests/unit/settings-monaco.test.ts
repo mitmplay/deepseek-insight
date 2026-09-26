@@ -18,11 +18,17 @@ const monacoState = {
 		disposed: boolean;
 	}>,
 	models: [] as Array<{ value: string; disposed: boolean }>,
+	ranges: [] as Array<{ start: number; end: number }>,
 	diffs: [] as Array<{ model: { original: unknown; modified: unknown } | null; disposed: boolean }>,
 	diffCalls: [] as Array<{ container: HTMLElement; options: Record<string, unknown> }>,
 };
 
 vi.mock('monaco-editor', () => ({
+	Range: class {
+		constructor(start: number, _a: number, end: number, _b: number) {
+			monacoState.ranges.push({ start, end });
+		}
+	},
 	editor: {
 		create: (container: HTMLElement, options: Record<string, unknown>) => {
 			const editor = {
@@ -36,8 +42,18 @@ vi.mock('monaco-editor', () => ({
 				},
 				getValue: () => editor.value,
 				setValue: (text: string) => (editor.value = text),
+				getModel: () => editor.model,
+				createDecorationsCollection: (init: unknown[]) => {
+					const collection = { init, setCalls: [] as unknown[][], set: (x: unknown[]) => void collection.setCalls.push(x) };
+					editor.decorations = collection;
+					return collection;
+				},
+				revealLinesInCenter: (s: number, e: number) => editor.revealed.push([s, e]),
 				dispose: () => (editor.disposed = true)
 			};
+			editor.model = null as { getLineCount: () => number } | null;
+			editor.decorations = null as { init: unknown[]; setCalls: unknown[][] } | null;
+			editor.revealed = [] as Array<[number, number]>;
 			monacoState.createCalls.push({ container, options });
 			monacoState.editors.push(editor);
 			return editor;
@@ -100,6 +116,7 @@ beforeEach(() => {
 	monacoState.diffs.length = 0;
 	monacoState.diffCalls.length = 0;
 	workerTags.length = 0;
+	monacoState.ranges.length = 0;
 });
 
 describe('settings-monaco glue', () => {
@@ -200,6 +217,58 @@ describe('settings-monaco glue', () => {
 		handle.dispose();
 		expect(monacoState.editors[2]!.contentSubDisposed).toBe(true);
 		expect(monacoState.editors[2]!.disposed).toBe(true);
+	});
+
+	it('createTextEditor.highlightLines creates the decoration collection once, then replaces it', () => {
+		const container = document.createElement('div');
+		const handle = createTextEditor(container, 'l1\nl2\nl3', () => {});
+		const editor = monacoState.editors[0] as unknown as {
+			model: { getLineCount: () => number } | null;
+			decorations: { init: unknown[]; setCalls: unknown[][] } | null;
+			revealed: Array<[number, number]>;
+		};
+		editor.model = { getLineCount: () => 3 };
+		handle.highlightLines!({ start: 2, end: 2 });
+		// first call CREATES the collection with the clamped range
+		expect(monacoState.ranges[0]).toEqual({ start: 2, end: 2 });
+		expect(editor.decorations!.init).toHaveLength(1);
+		expect(editor.revealed[0]).toEqual([2, 2]);
+		// second call REPLACES via set — highlighting twice never stacks
+		handle.highlightLines!({ start: 1, end: 3 });
+		expect(editor.decorations!.setCalls).toHaveLength(1);
+		expect(monacoState.ranges[1]).toEqual({ start: 1, end: 3 });
+		expect(editor.revealed[1]).toEqual([1, 3]);
+	});
+
+	it('createTextEditor.highlightLines clamps out-of-range targets onto the model', () => {
+		const handle = createTextEditor(document.createElement('div'), 'x', () => {});
+		const editor = monacoState.editors[0] as unknown as {
+			model: { getLineCount: () => number } | null;
+			revealed: Array<[number, number]>;
+		};
+		editor.model = { getLineCount: () => 2 };
+		// start below 1 floors at 1; end beyond EOF collapses onto the last line
+		handle.highlightLines!({ start: -5, end: 99 });
+		expect(monacoState.ranges[0]).toEqual({ start: 1, end: 2 });
+		// end above start collapses onto start
+		handle.highlightLines!({ start: 2, end: 0.5 });
+		expect(monacoState.ranges[1]).toEqual({ start: 2, end: 2 });
+	});
+
+	it('createTextEditor.highlightLines is a no-op without a model or lines', () => {
+		const handle = createTextEditor(document.createElement('div'), 'x', () => {});
+		const editor = monacoState.editors[0] as unknown as {
+			model: { getLineCount: () => number } | null;
+			decorations: unknown;
+			revealed: unknown[];
+		};
+		// model null → early return, no decoration work
+		handle.highlightLines!({ start: 1, end: 1 });
+		expect(editor.decorations).toBeNull();
+		// empty model (0 lines) → early return too
+		editor.model = { getLineCount: () => 0 };
+		handle.highlightLines!({ start: 1, end: 1 });
+		expect(editor.revealed).toHaveLength(0);
 	});
 
 	it('createDiffEditor mounts two owned models, read-only by default (D2)', () => {

@@ -262,6 +262,7 @@
 					tone={group.kind === 'prompt' ? 'prompt' : 'context'}
 					imageRefs={group.kind === 'prompt' ? group.entry.imageRefs : undefined}
 					{sessionId}
+					{onFileLink}
 				>
 					{#if group.kind === 'prompt'}
 						{#if group.context.length > 0}
@@ -408,7 +409,7 @@
 								<!-- MarkdownContent lean path (2026-08-22): .md-content
 								     skins lists/headings/code — a bare @html div left
 								     assistant bullets flat under Tailwind preflight.
-								     Streaming dots moved to PromptInput (OCI placement,
+								     Streaming dots moved to Composer (OCI placement,
 								     2026-08-24) — one indicator, in the input. -->
 								<MarkdownContent content={run.entry.text} hideToggle {onFileLink} />
 							{:else}

@@ -10,7 +10,7 @@
  */
 
 /** True when the segment escapes the workspace — never a real file. */
-function hasDotDotSegment(path: string): boolean {
+export function hasDotDotSegment(path: string): boolean {
 	return path.split('/').some((segment) => segment === '..');
 }
 
@@ -37,8 +37,46 @@ export function isFileLinkHref(href: string): boolean {
  * Returns null when the path escapes the workspace ('..' anywhere) or
  * normalizes to empty.
  */
+/**
+ * Split a line anchor (#L139, #L139-L150) off a file-link href. The
+ * anchor is a DISPLAY hint for the file panel, never part of the path —
+ * letting it ride made the host read 404 (workspace-file/not-found,
+ * RCA 2026-09-26). Returns the bare path plus the parsed 1-based range
+ * (null when absent or malformed — a bad anchor degrades to no target,
+ * it never breaks the open).
+ */
+export function parseFileLinkHref(href: string): {
+	path: string;
+	lines: { start: number; end: number } | null;
+} {
+	const value = href.trim();
+	const hash = value.indexOf('#');
+	const raw = hash === -1 ? value : value.slice(0, hash);
+	const anchor = hash === -1 ? '' : value.slice(hash + 1);
+	let lines: { start: number; end: number } | null = null;
+	// GitHub style #L12-L15 AND the bare #12-15 variant both parse —
+	// operators write both; a number is a number.
+	const single = anchor.match(/^L?(\d+)$/);
+	const range = anchor.match(/^L?(\d+)-L?(\d+)$/);
+	if (single) {
+		const n = Number(single[1]);
+		if (n >= 1) lines = { start: n, end: n };
+	} else if (range) {
+		const s = Number(range[1]);
+		const e = Number(range[2]);
+		// 1-based only, and a reversed range is malformed, not swapped —
+		// a bad anchor degrades to no target, it never guesses.
+		if (s >= 1 && e >= s) lines = { start: s, end: e };
+	}
+	return { path: normalizeFileLinkPath(raw) ?? '', lines };
+}
+
 export function normalizeFileLinkPath(href: string): string | null {
 	let value = href.trim().replace(/^\.\//, '').replace(/\/{2,}/g, '/');
+	// A line anchor is display metadata, not path bytes — strip it before
+	// normalization so '#L139' never reaches the host read (RCA above).
+	const hash = value.indexOf('#');
+	if (hash !== -1) value = value.slice(0, hash);
 	if (value.startsWith('/')) value = value.slice(1);
 	if (value === '' || hasDotDotSegment(value)) return null;
 	return value;
@@ -56,7 +94,7 @@ export async function workspaceFileExists(
 	fetchImpl: typeof fetch = fetch
 ): Promise<boolean> {
 	const clean = path.split('#')[0];
-	if (clean === '') return false;
+	if (clean === '' || hasDotDotSegment(clean)) return false;
 	const slash = clean.lastIndexOf('/');
 	const dir = slash === -1 ? '' : clean.slice(0, slash);
 	const base = slash === -1 ? clean : clean.slice(slash + 1);
