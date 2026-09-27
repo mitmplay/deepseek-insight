@@ -3,7 +3,7 @@
 	import * as m from '$lib/paraglide/messages';
 
 	/**
-	 * SettingsSkillsTabgroup — the shelf's own tab pill (The Shelf
+	 * SettingsSkillsHeaderTabs — the shelf's own tab pill (The Shelf
 	 * Chrome, D3): the joined-pill segmented grammar (class:on,
 	 * aria-pressed) speaking the shelf's native tab names directly —
 	 * install / uninstall, plain labels, no counts. Install is the

@@ -190,6 +190,9 @@ import { appConfig } from '$lib/services/config/app-config.svelte';
 	setPanelMode(true);
 	// Transcript descendants (FilesEditedCard) derive their fetch target
 	// from this — the panel is the sessionId authority (2026-09-25).
+	// Intentional initial capture: the page keys this panel by sessionId, so
+	// a session change remounts rather than re-initializes.
+	// svelte-ignore state_referenced_locally
 	setConversationSession(sessionId);
 
 	// Intentional initial capture: the store is bound to THIS session for

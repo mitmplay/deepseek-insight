@@ -12,6 +12,8 @@
 		sessionId?: string;
 		entries: TurnMember[];
 	} = $props();
+	// Intentional init-capture: props are fixed for the lifetime of this test host.
+	// svelte-ignore state_referenced_locally
 	if (sessionId !== undefined) setConversationSession(sessionId);
 
 	let openChipId: string | null = null;

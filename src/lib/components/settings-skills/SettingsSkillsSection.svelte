@@ -2,10 +2,10 @@
 	import { t } from '$lib/services/locale/locale-state.svelte';
 	import * as m from '$lib/paraglide/messages';
 	import { ChevronDown, ChevronRight, CircleUserRound, ExternalLink, Check, LoaderCircle } from '@lucide/svelte';
-	import SettingsSkillsSelfSkill from './SettingsSkillsSelfSkill.svelte';
+	import SettingsSkillsItem from './SettingsSkillsItem.svelte';
 
 	/**
-	 * SettingsSkillsSelfSection - ONE source group of the Skill Shelf
+	 * SettingsSkillsSection - ONE source group of the Skill Shelf
 	 * (The Shelf Chrome ADR grammar): a collapsible group head (caret,
 	 * source id, author, row count) over the tab-scoped, search-filtered
 	 * skill rows (checkbox + names, tier/badge, uninstall verb).
@@ -132,7 +132,7 @@
 	{#if !hidden}
 		<ul class="shelf-rows">
 			{#each skills as skill (skill.n)}
-				<SettingsSkillsSelfSkill
+				<SettingsSkillsItem
 					id={skill.id}
 					n={skill.n}
 					tier={skill.tier}

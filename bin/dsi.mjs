@@ -28,6 +28,7 @@ import { fileURLToPath } from 'node:url';
 import { parse, stringify } from 'yaml';
 
 import { mirrorSkills } from './lib/mirror-skills.mjs';
+import { dshLauncherCmd, parsePluginArgs } from './lib/plugin-chain.mjs';
 
 // Layman-facing help: wrapped near 76 columns, continuation lines indented,
 // the recommended one-liner first. --zai is optional on purpose — no GLM
@@ -61,6 +62,10 @@ const USAGE = [
 	'      --ov    install the OpenViking memory plugin into the active dsh',
 	'              profile (dsh plugin ... add). Client only — the memory',
 	'              server itself is set up separately (dsi-ov-setup skill)',
+	'      --plugin <add|remove> <pkg> [--profile <p>]',
+	'              run the dsh plugin command, then bounce the floor:',
+	'              killOrphans + token re-sync + re-serve (The Plugin Rack',
+	'              ADR D5). --plugin-restart is the bounce alone.',
 	'',
 	'  Ports: `dsi dsh --sync` serves the DSI page on 5174 and opens your',
 	'  browser there. With --dev the Vite dev server takes 5175 instead',
@@ -80,7 +85,11 @@ const USAGE = [
 	'                   install the OpenViking memory plugin into the active',
 	'                   dsh profile (idempotent; alone, without --sync)',
 	'      dsi dsh --sync-kills',
-	'                   kill orphaned dsh/dsi processes left by an earlier run'
+	'                   kill orphaned dsh/dsi processes left by an earlier run',
+	'      dsi dsh --plugin add git+https://github.com/Temoa/dsh-rules-paths.git',
+	'                   install via dsh plugin, then restart the pair (The',
+	'                   Plugin Rack ADR D5); --plugin-restart bounces alone',
+	'      dsi dsh --plugin remove <pkg>'
 ].join('\n');
 
 const command = process.argv[2];
@@ -187,6 +196,38 @@ if (command === 'dsh') {
 			rest.filter((arg) => arg !== '--zai' && arg !== '--dev' && arg !== '--ov'),
 			withDev
 		);
+	} else if (flag === '--plugin' || flag === '--plugin-restart') {
+		// The Plugin Rack ADR (2026-09-27, D3/D5): the dsh CLI is the writer,
+		// dsi owns the bounce. Install/remove delegates to the launcher rule
+		// (DSH_WEB_CMD override, else the pinned npx dsh), fails loud, and
+		// ONLY a successful apply reaches the restart chain: killOrphans,
+		// then the synced pair (dsh web + token re-sync + DSI re-serve).
+		const parsed = parsePluginArgs(process.argv.slice(3), {
+			envProfile: process.env.DSH_PROFILE ?? 'web'
+		});
+		if (parsed === null) {
+			console.error(`dsi dsh: unknown flag "${flag}"`);
+			console.error(USAGE);
+			process.exit(64);
+		}
+		if ('error' in parsed) {
+			console.error('dsi dsh: ' + parsed.error);
+			process.exit(64);
+		}
+		if (parsed.action !== 'restart') {
+			const cmd = dshLauncherCmd(parsed.profile, parsed.action, parsed.pkg, dshWebVersion());
+			console.log(`dsi dsh: plugin ${parsed.action} into the ${parsed.profile} profile (${cmd})`);
+			const result = spawnSync('/bin/sh', ['-c', cmd], { stdio: 'inherit' });
+			if (result.error !== undefined) throw result.error;
+			const code = result.status ?? 1;
+			if (code !== 0) {
+				console.error(`dsi dsh: plugin ${parsed.action} failed (exit ${code}) — nothing bounced; fix the cause above, then re-run`);
+				process.exit(code);
+			}
+		}
+		console.log('dsi dsh: bouncing the floor (orphan sweep + synced pair re-run)');
+		killOrphans();
+		runSyncedPair([]);
 	} else if (flag === '--sync-kills') {
 		killOrphans();
 		process.exit(0);

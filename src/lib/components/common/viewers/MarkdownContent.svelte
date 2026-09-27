@@ -268,6 +268,44 @@ import FileTypeIcon from '$lib/components/panels/FileTypeIcon.svelte';
 		};
 	});
 
+	/** External-link host icon (2026-09-27): every http(s) anchor gets the
+	 *  host's favicon (DuckDuckGo icon service) prepended — gitlab.com shows
+	 *  the GitLab mark, github.com the octocat, etc. Same DOM post-pass
+	 *  discipline as the file-link pass above: idempotent WeakSet, re-runs on
+	 *  content change, markdown.ts stays pure. Images are 14px, lazy, and
+	 *  referrerpolicy-hardened; a failed load just leaves the plain link. */
+	const extIconDecorated = new WeakSet<HTMLAnchorElement>();
+	$effect(() => {
+		void highlightedHtml;
+		const el = containerEl;
+		if (!el) return;
+		for (const anchor of Array.from(el.querySelectorAll<HTMLAnchorElement>('a[href]'))) {
+			if (extIconDecorated.has(anchor)) continue;
+			extIconDecorated.add(anchor);
+			const href = anchor.getAttribute('href') ?? '';
+			let host = '';
+			try {
+				const u = new URL(href, location.origin);
+				if (!/^https?:$/.test(u.protocol) || u.host === location.host) continue;
+				host = u.hostname;
+			} catch {
+				continue;
+			}
+			const icon = document.createElement('img');
+			icon.className = 'elink-icon';
+			// Google s2 (verified 2026-09-27: gitlab.com returns the official
+			// tanuki mark); DDG's ip3 service proved flaky (TLS + wrong marks).
+			icon.src = `https://www.google.com/s2/favicons?domain=${host}&sz=64`;
+			icon.alt = '';
+			icon.width = 14;
+			icon.height = 14;
+			icon.loading = 'lazy';
+			icon.referrerPolicy = 'no-referrer';
+			icon.style.cssText = 'display:inline-block;vertical-align:-2px;margin-right:4px';
+			anchor.prepend(icon);
+		}
+	});
+
 	/** Render every unprocessed placeholder in this container (OCI pass). */
 	$effect(() => {
 		// Depend on the HTML so a content change re-runs the pass.

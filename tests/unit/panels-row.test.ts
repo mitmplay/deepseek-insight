@@ -398,7 +398,8 @@ describe('ControlBar tray (task 5.1-T)', () => {
 				request.kind !== 'prompt-manager' &&
 				request.kind !== 'settings-home' &&
 				request.kind !== 'injected-doc' &&
-				request.kind !== 'skill-shelf'
+				request.kind !== 'skill-shelf' &&
+				request.kind !== 'plugin-rack'
 			)
 				seen.push(request.sessionId);
 		});
@@ -449,7 +450,8 @@ describe('ControlBar tray (task 5.1-T)', () => {
 				request.kind !== 'prompt-manager' &&
 				request.kind !== 'settings-home' &&
 				request.kind !== 'injected-doc' &&
-				request.kind !== 'skill-shelf'
+				request.kind !== 'skill-shelf' &&
+				request.kind !== 'plugin-rack'
 			)
 				replaced.push(request.sessionId);
 		});
@@ -459,7 +461,8 @@ describe('ControlBar tray (task 5.1-T)', () => {
 				request.kind !== 'prompt-manager' &&
 				request.kind !== 'settings-home' &&
 				request.kind !== 'injected-doc' &&
-				request.kind !== 'skill-shelf'
+				request.kind !== 'skill-shelf' &&
+				request.kind !== 'plugin-rack'
 			)
 				added.push(request.sessionId);
 		});

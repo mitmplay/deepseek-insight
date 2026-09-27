@@ -6,12 +6,36 @@
 
 > A `Prompt Input` with **Slash-command(/)**, **Macros(!)** and **Auto-complete(?)**. Prompt-manager you can search it and to manage macros & autocomplete; user-prompts worth keeping is one-click-away tobe reuse.
 
-Slash commands are available to execute various operations:
+## Slash commands are available to execute various operations:
 - `/dsi-terminal` — Open a terminal session
 - `/dsi-prompts` — Open prompt manager
+- `/dsi-plugins` — Open plugin manager
 - `/dsi-skills` — Open skill manager
-  
-Included skills for:
+
+### Autocomplete (`?`)
+
+Type `?` followed by a few letters, for example `?deploy`, and a small list appears showing the prompts you have saved before, best match first. Choosing one puts its text into the input, so you can read it and change a detail before sending. It keeps you from typing the same long prompts over and over, and from trying to remember where you saved them.
+
+### Macros (`!`)
+
+`!` works the same way, but choosing a prompt runs it right away instead of filling the input. Save the prompts you use every day as macros, and routines like a code review or a session summary become a single short line. Use `?` when you want to look first, and `!` when you already know what you want.
+
+### Prompt Manager (`/dsi-prompts`)
+The prompt manager is where your saved prompts live, so the `?` and `!` tricks above always have something to find. Search across everything you have kept, open a prompt to tweak its wording, flag the ones you use daily as macros, and send a keeper straight back into the input with one click. A prompt you were proud of today becomes a shortcut tomorrow.
+
+### Plugin Manager (`/dsi-plugins`)
+Plugins add whole features to DSI — the plugin manager shows what is on the rack. A simple install tab lists what you can add, uninstall lists what is already on, and each row shows the plugin's state so you always know what is running. You never touch a config file to add or remove one.
+
+### Skill Manager (`/dsi-skills`)
+Skills are the instructions your agents can follow, and this panel is their shelf. Browse what is installed group by group, tick the ones you want gone, and anything you remove can come back later. If a skill stopped being useful, it is two clicks away from being off the shelf.
+
+### Terminal (`/dsi-terminal`)
+One terminal is rarely enough when agents are working, so this one opens several, each in its own tab. Open a tab per task, keep a long build running in the background, and your tabs survive a page refresh — come back and they are still there. When a session has ended, the tab tells you instead of leaving you to guess.
+
+### Workspace explorer
+The workspace explorer is DSI's window into the folder your agents are working in. Click the workspace chip at the top of a conversation — or a file name in one of the assistant's replies — and the panel opens with that file ready. A directory tree shows the whole project, every opened file keeps its own tab so several can sit side by side, and files your agents have changed are marked in the tree, so the work is visible at a glance. One click turns any tab into a before-and-after diff when you want to see exactly what was edited.
+
+## Included skills for:
 - Coding agents: `/dsi-adr`, `/dsi-spec`, `/dsi-task`
 - Integration helper for [OpenViking](https://openviking.ai/): `/dsi-ov-setup` 
 

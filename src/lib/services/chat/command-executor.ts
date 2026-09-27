@@ -123,6 +123,7 @@ export async function executeCommand(
 			| 'dsisettings'
 			| 'dshsettings'
 			| 'skillshelf'
+			| 'pluginrack'
 			| 'loadinjected';
 		args: string;
 		agentId?: string;
@@ -165,6 +166,9 @@ export async function executeCommand(
 	}
 	if (command.type === 'skillshelf') {
 		return runSkillShelf(command.args, command.reload === true, ctx, onNote);
+	}
+	if (command.type === 'pluginrack') {
+		return runPluginRack(command.args, command.reload === true, ctx, onNote);
 	}
 	if (command.type === 'dsisettings' || command.type === 'dshsettings') {
 		return runSettingsEditor(
@@ -396,6 +400,60 @@ async function runPromptManager(
  * forces the rebuild HERE so the panel's first fetch already carries the
  * fresh snapshot. No note on success — the focused panel IS the feedback.
  */
+
+/**
+ * /dsi-plugins (The Plugin Rack ADR, 2026-09-27, D1): aim the
+ * PluginManagerPanel — the floor dedupes and FOCUSES the open rack (the
+ * manager-request grammar). Snapshot-first is the ROUTE's contract
+ * (GET /api/plugins/snapshot builds when absent, D2); the '--reload' flag
+ * forces the rebuild HERE so the panel's first fetch already carries the
+ * fresh snapshot. No note on success — the focused panel IS the feedback.
+ */
+async function runPluginRack(
+	args: string,
+	reload: boolean,
+	ctx: ExecutorContext,
+	onNote?: NoteSink
+): Promise<ExecutorResult> {
+	// The parser's leftover-args rule (the shelf's grammar): the parser
+	// keeps unknown args raw so this note can be honest about the grammar
+	// instead of silently ignoring them.
+	if (args !== '') {
+		const usage = 'usage: /dsi-plugins [--reload]';
+		onNote?.(false, usage);
+		return { ok: false, note: usage };
+	}
+	if (ctx.panelId == null) {
+		const note = '/dsi-plugins needs a panel floor (open this session on the floor first)';
+		onNote?.(false, note);
+		return { ok: false, note };
+	}
+	if (reload) {
+		try {
+			const res = await fetch('/api/plugins/reload', { method: 'POST' });
+			if (!res.ok) {
+				const note = '/dsi-plugins: snapshot rebuild failed (' + res.status + ')';
+				onNote?.(false, note);
+				return { ok: false, note };
+			}
+		} catch {
+			const note = '/dsi-plugins: snapshot rebuild failed (network)';
+			onNote?.(false, note);
+			return { ok: false, note };
+		}
+	}
+	const added = addPanel({
+		kind: 'plugin-rack',
+		afterSessionId: ctx.sessionId
+	});
+	if (!added) {
+		const note = '/dsi-plugins: the floor is not mounted';
+		onNote?.(false, note);
+		return { ok: false, note };
+	}
+	return { ok: true };
+}
+
 async function runSkillShelf(
 	args: string,
 	reload: boolean,

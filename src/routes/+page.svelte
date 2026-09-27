@@ -50,6 +50,7 @@
 	import PromptManagerPanel from '$lib/components/prompt-manager/PromptManagerPanel.svelte';
 	import TerminalDesk from '$lib/components/terminal/TerminalDesk.svelte';
 	import SettingsSkillsPanel from '$lib/components/settings-skills/SettingsSkillsPanel.svelte';
+	import PluginManagerPanel from '$lib/components/settings-plugins/PluginManagerPanel.svelte';
 	import SettingsEditorPanel from '$lib/components/panels/SettingsEditorPanel.svelte';
 	import InjectedDocPanel from '$lib/components/panels/InjectedDocPanel.svelte';
 	import WorkspaceExplorerPanel from '$lib/components/panels/WorkspaceExplorerPanel.svelte';
@@ -95,6 +96,7 @@
 		DsiInjectedDocPanel,
 		DsiPanelEntry,
 		DsiSkillShelfPanel,
+		DsiPluginRackPanel,
 		DsiWorkspaceExplorerPanel,
 	DsiWorkspaceFilePanel,
 		DsiPreset,
@@ -221,6 +223,16 @@ import {
 		};
 	}
 
+	/** A plugin-rack floor slot (The Plugin Rack ADR, 2026-09-27, D1):
+	 *  no session, no preset — the panel reads /api/plugins itself. */
+	function makePluginRackPanel(): DsiPanelEntry {
+		return {
+			id: nextPanelId(),
+			kind: 'plugin-rack',
+			width: shelfPanelWidth()
+		};
+	}
+
 
 
 	/** Skill-shelf chrome intents (hard-reload survival, the
@@ -231,6 +243,15 @@ import {
 		const idx = panels.findIndex((p) => p.id === panelId);
 		if (idx < 0 || panels[idx].kind !== 'skill-shelf') return;
 		panels = panels.with(idx, { ...(panels[idx] as DsiSkillShelfPanel), tab });
+	}
+
+	/** The rack's tab intent (The Plugin Rack ADR, 2026-09-27): same
+	 *  persisted-entry write as the shelf's - panel-prefs saves the blob,
+	 *  a hard reload restores the active tab. */
+	function setRackTab(panelId: string, tab: 'install' | 'uninstall'): void {
+		const idx = panels.findIndex((p) => p.id === panelId);
+		if (idx < 0 || panels[idx].kind !== 'plugin-rack') return;
+		panels = panels.with(idx, { ...(panels[idx] as DsiPluginRackPanel), tab });
 	}
 
 	function setShelfCollapsed(panelId: string, collapsed: string[]): void {
@@ -1094,6 +1115,24 @@ import {
 			insertPanel(makeSkillShelfPanel(), anchorIdx >= 0 ? anchorIdx + 1 : insertionSlot());
 			return;
 		}
+		if (request.kind === 'plugin-rack') {
+			// One live rack (The Plugin Rack ADR, 2026-09-27, D1): the open
+			// rack takes the FOCUS; only a miss inserts. Same grammar as the
+			// shelf branch above.
+			const open = panels.find((p) => p.kind === 'plugin-rack');
+			if (open) {
+				selectedPanelId = open.id;
+				return;
+			}
+			const anchorIdx =
+				request.afterSessionId !== undefined
+					? panels.findIndex(
+							(p) => p.kind === 'conversation' && p.sessionId === request.afterSessionId
+						)
+					: -1;
+			insertPanel(makePluginRackPanel(), anchorIdx >= 0 ? anchorIdx + 1 : insertionSlot());
+			return;
+		}
 		// Injected-doc branch (Loadinjected ADR D3/D5): dedupe per the
 		// (sourceSessionId, displayPath) pair — a prevented double load
 		// FOCUSES the open panel (selection + sidebar highlight, nothing
@@ -1231,7 +1270,7 @@ import {
 		// panel via doAdd and never replace — a stray request of those kinds
 		// is an honest no-op, never a swap. /new and /loadinjected keep
 		// their swaps.
-		if (request.kind === 'terminal' || request.kind === 'prompt-manager' || request.kind === 'settings-home' || request.kind === 'skill-shelf') {
+		if (request.kind === 'terminal' || request.kind === 'prompt-manager' || request.kind === 'settings-home' || request.kind === 'skill-shelf' || request.kind === 'plugin-rack') {
 			return;
 		}
 		// Injected-doc successor-swap (Loadinjected ADR D4: bare
@@ -1269,7 +1308,8 @@ import {
 			request.kind === 'prompt-manager' ||
 			request.kind === 'settings-home' ||
 			request.kind === 'injected-doc' ||
-			request.kind === 'skill-shelf'
+			request.kind === 'skill-shelf' ||
+			request.kind === 'plugin-rack'
 		) {
 			return false; // a swap by session needs a successor session
 		}
@@ -1293,7 +1333,8 @@ import {
 			request.kind === 'prompt-manager' ||
 			request.kind === 'settings-home' ||
 			request.kind === 'injected-doc' ||
-			request.kind === 'skill-shelf'
+			request.kind === 'skill-shelf' ||
+			request.kind === 'plugin-rack'
 		)
 			return; // defensive: a swap needs a successor session
 		const panelId = slotPanelId;
@@ -1735,6 +1776,16 @@ import {
 				onclose={hostClose ?? (() => removePanel(panel.id))}
 				escapeScope="root"
 				host="panel"
+			/>
+		</div>
+	{:else if panel.kind === 'plugin-rack'}
+		<!-- Plugin-rack branch (The Plugin Rack ADR, 2026-09-27, D1):
+		     the content owns its fetches (/api/plugins); close is
+		     PanelColumn's chrome — the rack takes no onclose. -->
+		<div class="panel-manager-body" data-testid="panel-plugins">
+			<PluginManagerPanel
+				initialTab={panel.tab ?? 'install'}
+				ontabchange={(v) => setRackTab(panel.id, v)}
 			/>
 		</div>
 	{:else if panel.kind === 'skill-shelf'}

@@ -293,6 +293,14 @@ describe('renderMarkdown — CommonMark subset the transcripts use', () => {
 		expect(renderMarkdown('[route](/api/dsh/sessions)')).toContain('<a href="/api/dsh/sessions">route</a>');
 	});
 
+	it('angle-bracket destinations are destination syntax, never path bytes (2026-09-27 operator bug)', () => {
+		const html = renderMarkdown('[PluginManagerHeader.svelte](<deepseek-insight/src/lib/components/settings-plugins/PluginManagerHeader.svelte>)');
+		assertOnlyAllowedTags(html);
+		expect(html).toContain('<a href="deepseek-insight/src/lib/components/settings-plugins/PluginManagerHeader.svelte">');
+		expect(html).not.toContain('%3C');
+		expect(html).not.toContain('&lt;deepseek');
+	});
+
 	it('protocol-relative // links stay text — off-origin navigation refused', () => {
 		expect(renderMarkdown('[x](//evil.example/x)')).not.toContain('<a ');
 	});
@@ -348,6 +356,61 @@ it('unescaped helper sanity: rendered code equals the typed source', () => {
 		const html = renderMarkdown('&lt;script&gt;not real&lt;/script&gt;');
 		assertOnlyAllowedTags(html);
 		expect(html).not.toContain('<script');
+	});
+});
+
+describe('bare-URL autolink — display short, href full (2026-09-27)', () => {
+	it('a bare URL with a query renders origin+path as the label, full URL as the href', () => {
+		const html = renderMarkdown(
+			'https://gitlab.com/wharsojo.dev/deepseek-insight/-/merge_requests/new?merge_request[source_branch]=feature/plugin-rack'
+		);
+		expect(html).toContain('href="https://gitlab.com/wharsojo.dev/deepseek-insight/-/merge_requests/new?merge_request[source_branch]=feature/plugin-rack"');
+		expect(html).toContain('>https://gitlab.com/wharsojo.dev/deepseek-insight/-/merge_requests/new</a>');
+		expect(html).not.toContain('target="_blank">https://gitlab.com/wharsojo.dev/deepseek-insight/-/merge_requests/new?');
+	});
+
+	it('carries the hardened external-anchor attributes (BC-12)', () => {
+		const html = renderMarkdown('see https://example.com/docs now');
+		expect(html).toContain('<a href="https://example.com/docs" rel="noopener noreferrer" target="_blank">https://example.com/docs</a>');
+	});
+
+	it('leaves [label](href) links alone — the label never becomes the bare URL', () => {
+		const html = renderMarkdown('[MR](https://gitlab.com/x/-/merge_requests/new?mr[source]=f1)');
+		expect(html).toContain('>MR</a>');
+		expect(html).toContain('href="https://gitlab.com/x/-/merge_requests/new?mr[source]=f1"');
+	});
+
+	it('a whole-URL code span upgrades to the icon-capable anchor (2026-09-27 contract)', () => {
+		const html = renderMarkdown('`https://example.com/a?b=1`');
+		expect(html).not.toContain('<code>');
+		expect(html).toContain('href="https://example.com/a?b=1"');
+		expect(html).toContain('target="_blank">https://example.com/a</a>');
+	});
+
+	it('trailing punctuation stays outside the link', () => {
+		const html = renderMarkdown('visit https://example.com/x?y=2.');
+		expect(html).toContain('target="_blank">https://example.com/x</a>.');
+		expect(html).toContain('href="https://example.com/x?y=2"');
+	});
+
+	it('a code span that is ENTIRELY one URL renders as the external link, not code', () => {
+		const html = renderMarkdown(
+			'GitLab suggests an MR: `https://gitlab.com/wharsojo.dev/deepseek-insight/-/merge_requests/new?merge_request[source_branch]=feature/plugin-rack`.'
+		);
+		expect(html).not.toContain('<code>');
+		expect(html).toContain('href="https://gitlab.com/wharsojo.dev/deepseek-insight/-/merge_requests/new?merge_request[source_branch]=feature/plugin-rack"');
+		expect(html).toContain('target="_blank">https://gitlab.com/wharsojo.dev/deepseek-insight/-/merge_requests/new</a>');
+	});
+
+	it('code that merely CONTAINS a URL stays literal (tool-payload rule)', () => {
+		const html = renderMarkdown('`curl https://example.com/api`');
+		expect(html).toContain('<code>');
+		expect(html).not.toContain('<a ');
+	});
+
+	it('a parenthesized URL keeps the closing paren outside (wiki-link safety)', () => {
+		const html = renderMarkdown('(see https://example.com/a(1))');
+		expect(html).toContain('href="https://example.com/a(1)"');
 	});
 });
 

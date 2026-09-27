@@ -30,7 +30,8 @@ export type PanelAddRequest =
 	| ManagerPanelAddRequest
 	| SettingsHomePanelAddRequest
 	| InjectedDocAddRequest
-	| SkillShelfPanelAddRequest;
+	| SkillShelfPanelAddRequest
+	| PluginRackPanelAddRequest;
 
 export interface ConversationPanelAddRequest {
 	/** 'conversation' (default when absent — the pre-D6 legacy shape). */
@@ -123,6 +124,14 @@ export interface InjectedDocAddRequest {
  *  shelf reads the DSI-local /api/skills routes itself. */
 export interface SkillShelfPanelAddRequest {
 	kind: 'skill-shelf';
+	afterSessionId?: string;
+}
+/** The /dsi-plugins request (The Plugin Rack ADR, 2026-09-27, D1):
+ *  aims the PluginManagerPanel - ONE live rack, the floor dedupes and
+ *  focuses the open copy (the manager-request grammar). No session: the
+ *  rack reads the DSI-local /api/plugins routes itself. */
+export interface PluginRackPanelAddRequest {
+	kind: 'plugin-rack';
 	afterSessionId?: string;
 }
 

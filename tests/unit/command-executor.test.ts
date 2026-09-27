@@ -108,7 +108,8 @@ describe('executeCommand — /new (create + swap)', () => {
 				request.kind !== 'prompt-manager' &&
 				request.kind !== 'settings-home' &&
 				request.kind !== 'injected-doc' &&
-				request.kind !== 'skill-shelf'
+				request.kind !== 'skill-shelf' &&
+				request.kind !== 'plugin-rack'
 			)
 				swaps.push({ agentPreset: request.agentPreset });
 		});

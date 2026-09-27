@@ -3,7 +3,7 @@
 	import * as m from '$lib/paraglide/messages';
 
 	/**
-	 * SettingsSkillsSelfSkill - ONE skill card of a shelf source group
+	 * SettingsSkillsItem - ONE skill card of a shelf source group
 	 * (The Shelf Chrome ADR grammar): a header row (checkbox + name/id
 	 * pair, tier pill, installed/foreign badge, uninstall verb) over an
 	 * overview paragraph lifted from the skill's SKILL.md. Presentational:

@@ -95,7 +95,8 @@ describe('AddPanel — whitespace-only input never reaches the floor', () => {
 				request.kind !== 'prompt-manager' &&
 				request.kind !== 'settings-home' &&
 				request.kind !== 'injected-doc' &&
-				request.kind !== 'skill-shelf'
+				request.kind !== 'skill-shelf' &&
+				request.kind !== 'plugin-rack'
 			)
 				added.push(request.sessionId);
 		});
@@ -115,7 +116,8 @@ describe('AddPanel — whitespace-only input never reaches the floor', () => {
 				request.kind !== 'prompt-manager' &&
 				request.kind !== 'settings-home' &&
 				request.kind !== 'injected-doc' &&
-				request.kind !== 'skill-shelf'
+				request.kind !== 'skill-shelf' &&
+				request.kind !== 'plugin-rack'
 			)
 				replaced.push(request.sessionId);
 		});

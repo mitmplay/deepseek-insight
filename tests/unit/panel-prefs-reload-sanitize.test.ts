@@ -32,6 +32,25 @@ afterEach(() => {
 });
 
 describe('reload blob sanitize — what survives the whitelist', () => {
+describe('plugin-rack reload survival (The Plugin Rack ADR, 2026-09-27)', () => {
+	it('a plugin-rack slot survives the blob with its tab; junk tab sanitizes to install', () => {
+		savePanelPrefs({
+			panels: [
+				{ id: 'rack-1', kind: 'plugin-rack', width: 480, tab: 'uninstall' } as never,
+				{ id: 'rack-2', kind: 'plugin-rack', width: 480, tab: 'bogus' } as never
+			],
+			selectedPanelId: 'rack-1',
+			panelWidth: 730,
+			zoom: 1
+		});
+		const panels = loadPanelPrefs().panels as Array<{ kind: string; id: string; tab?: string }>;
+		const kept = panels.filter((p) => p.kind === 'plugin-rack');
+		expect(kept.map((p) => p.id)).toEqual(['rack-1', 'rack-2']);
+		expect(kept[0].tab).toBe('uninstall');
+		expect(kept[1].tab).toBe('install');
+	});
+});
+
 	it('a terminal slot survives the blob as a terminal (Surviving Shell D3 — the desk re-attaches)', () => {
 		savePanelPrefs({
 			panels: [{ id: 't-slot', kind: 'terminal', width: 460 } as never],

@@ -334,14 +334,68 @@ function renderInline(text: string): string {
 	// so **bold** inside `code` stays literal, then splice them back.
 	const codeSpans: string[] = [];
 	let rest = text.replace(/`([^`\n]+)`/g, (_m, body: string) => {
-		codeSpans.push(`<code>${body}</code>`);
+		// A code span that is ENTIRELY one http(s) URL renders as an external
+		// link instead (2026-09-27: transcripts habitually backtick URLs; the
+		// operator still expects the icon'd short-display link). Code that
+		// merely CONTAINS a URL stays literal — the tool-payload rule holds.
+		const raw = unescapeEntities(body);
+		if (/^https?:\/\/\S+$/i.test(raw)) {
+			codeSpans.push(externalAnchor(raw));
+		} else {
+			codeSpans.push(`<code>${body}</code>`);
+		}
 		return `\u0000${codeSpans.length - 1}\u0000`;
 	});
 
 	rest = emphasis(rest);
 	rest = links(rest);
+	rest = autolinkBareUrls(rest);
 
 	return rest.replace(/\u0000(\d+)\u0000/g, (_m, idx: string) => codeSpans[Number(idx)] ?? '');
+}
+
+/** One hardened external anchor from a RAW url — display is origin+path
+ *  (query/fragment stripped), href keeps everything (BC-12 attributes). */
+function externalAnchor(rawUrl: string): string {
+	let cut = rawUrl.length;
+	for (const c of ['?', '#']) {
+		const i = rawUrl.indexOf(c);
+		if (i !== -1 && i < cut) cut = i;
+	}
+	return `<a href="${rawUrl.replaceAll('"', '&quot;')}" rel="noopener noreferrer" target="_blank">${rawUrl.slice(0, cut)}</a>`;
+}
+
+/**
+ * Bare-URL autolink (2026-09-27): an http(s) URL in plain text becomes an
+ * anchor whose DISPLAY TEXT is the origin+path with the query/hash stripped
+ * (transcript URLs like …new?merge_request[source_branch]=… render short)
+ * while the HREF keeps the FULL URL. Runs after [label](href) parsing and
+ * skips text inside existing anchors/code placeholders (\u0000N\u0000 markers).
+ * Trailing punctuation ),.,;:!?'"] and matching surrounding parens stay
+ * outside the link (CommonMark's autolink tail rule).
+ */
+function autolinkBareUrls(text: string): string {
+	return text.replace(
+		// The URL charset allows (), [], {} — GitLab/GitHub query strings carry
+		// [brackets] and paths carry (parens); trailing balance/punctuation is trimmed below.
+		/https?:\/\/[^\s<>"'\u0000]+/gi,
+		(whole, offset: number, full: string) => {
+			// Inside an existing anchor's label/href or a code placeholder? Leave it.
+			// (window spans any href an emitted anchor may carry).
+			const before = full.slice(Math.max(0, offset - 2000), offset);
+			if (/<a\s[^>]*$/i.test(before) || /<code>[^<]*$/i.test(before)) return whole;
+			let url = whole;
+			// Trim a trailing closing paren only when the URL has no open paren
+			// left to balance it (the "[…](…)" wiki-link case).
+			while (url.endsWith(')') && (url.match(/\(/g)?.length ?? 0) < (url.match(/\)/g)?.length ?? 0)) {
+				url = url.slice(0, -1);
+			}
+			// Trailing punctuation never belongs to the URL.
+			url = url.replace(/[.,;:!?]+$/, "");
+			const tail = whole.slice(url.length);
+			return `${externalAnchor(url)}${tail}`;
+		}
+	);
 }
 
 /** ***bold-italic***, **bold**, *italic*, _italic_, ~~strike~~. */
@@ -368,13 +422,18 @@ function links(text: string): string {
 			.replaceAll('&gt;', '>')
 			.replaceAll('&quot;', '"')
 			.replaceAll('&#39;', "'");
-		if (/^https?:\/\//i.test(unescaped)) {
-			return `<a href="${href}" rel="noopener noreferrer" target="_blank">${label}</a>`;
+		// CommonMark angle-bracket destinations: [label](<deepseek-insight/x>) —
+		// the wrapper is destination syntax, never path bytes. Strip it before
+		// every branch so file links survive (the escape-first pipeline hands
+		// the wrapper over as &lt;/&gt;, unescaped above).
+		const bare = unescaped.replace(/^<(.+)>$/, '$1');
+		if (/^https?:\/\//i.test(bare)) {
+			return `<a href="${bare.replaceAll('"', '&quot;')}" rel="noopener noreferrer" target="_blank">${label}</a>`;
 		}
 		// Relative is only safe when NO scheme is present — a single colon
 		// before any slash is exactly how javascript:/data: smuggle in, and
 		// a leading // is a protocol-relative off-origin navigation.
-		if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(unescaped) || unescaped.startsWith('//')) return whole;
-		return `<a href="${href}">${label}</a>`;
+		if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(bare) || bare.startsWith('//')) return whole;
+		return `<a href="${bare.replaceAll('"', '&quot;')}">${label}</a>`;
 	});
 }

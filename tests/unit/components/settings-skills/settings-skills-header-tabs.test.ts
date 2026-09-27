@@ -1,16 +1,16 @@
 /**
- * SettingsSkillsTabgroup tests (The Shelf Chrome D3): the shelf's own
+ * SettingsSkillsHeaderTabs tests (The Shelf Chrome D3): the shelf's own
  * pill speaks install/uninstall natively, PLAIN labels — no counts.
  */
 import { flushSync } from 'svelte';
 import { mount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import SettingsSkillsTabgroup from '$lib/components/settings-skills/SettingsSkillsTabgroup.svelte';
+import SettingsSkillsHeaderTabs from '$lib/components/settings-skills/SettingsSkillsHeaderTabs.svelte';
 
 function mountGroup(props: Record<string, unknown> = {}) {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
-	mount(SettingsSkillsTabgroup, { target, props });
+	mount(SettingsSkillsHeaderTabs, { target, props });
 	flushSync();
 	return target;
 }
@@ -19,7 +19,7 @@ afterEach(() => {
 	document.body.innerHTML = '';
 });
 
-describe('SettingsSkillsTabgroup', () => {
+describe('SettingsSkillsHeaderTabs', () => {
 	it('defaults to the install segment with plain labels (no counts)', () => {
 		const target = mountGroup();
 		const install = target.querySelector('[data-testid="shelf-tab-install"]')!;

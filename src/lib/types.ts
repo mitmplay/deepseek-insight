@@ -590,6 +590,7 @@ export type DsiPanelEntry =
 	| DsiSettingsPanel
 	| DsiInjectedDocPanel
 	| DsiSkillShelfPanel
+	| DsiPluginRackPanel
 	| DsiWorkspaceExplorerPanel
 	| DsiWorkspaceFilePanel;
 
@@ -617,7 +618,21 @@ export interface DsiSkillShelfPanel {
 	reload?: ReloadFeedback | null;
 }
 
-/** The conversation branch — renders one DSH session's transcript. */
+/** The plugin-rack branch (The Plugin Rack ADR, 2026-09-27, D1) — hosts
+ *  PluginManagerPanel; no session, no preset chip, no cold/spine facts.
+ *  The content talks to the DSI-local /api/plugins routes itself. */
+export interface DsiPluginRackPanel {
+	/** Stable panel identity - selection and close target this. */
+	id: string;
+	kind: 'plugin-rack';
+	/** Panel width in px, always within panel-prefs clamp bounds. */
+	width: number;
+	/** Persisted chrome (the explorer-tab pattern): the active pill tab.
+	 *  Junk sanitizes to 'install'. */
+	tab?: 'install' | 'uninstall';
+}
+
+/** The conversation branch - renders one DSH session's transcript. */
 export interface DsiConversationPanel {
 	/** Stable panel identity — selection and close target this, not sessionId. */
 	id: string;

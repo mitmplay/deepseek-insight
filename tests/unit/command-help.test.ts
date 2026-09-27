@@ -377,3 +377,42 @@ describe('MENU_GESTURES — the zero-extra-names invariant holds with workspace 
 	});
 });
 
+
+// ── Plugin Rack — the rack's own localized getters (The Shelf Voice W1.5) ──
+describe('COMMAND_HELP.pluginrack — locale-resolving getters', () => {
+	it('summary and param getters resolve real copy on each read', () => {
+		expect(COMMAND_HELP.pluginrack.usage).toBe('/dsi-plugins [--reload]');
+		expect(typeof COMMAND_HELP.pluginrack.summary).toBe('string');
+		expect(COMMAND_HELP.pluginrack.summary.length).toBeGreaterThan(0);
+		const [reload] = COMMAND_HELP.pluginrack.params;
+		expect(reload?.name).toBe('--reload');
+		expect(reload?.description.length).toBeGreaterThan(0);
+		expect(COMMAND_HELP.pluginrack.params[0]?.description).toBe(reload?.description);
+	});
+
+	it('example getters resolve real copy for all three rows', () => {
+		const examples = COMMAND_HELP.pluginrack.examples;
+		expect(examples.map((e) => e.line)).toEqual(['/dsi-plugins', '/dsi-plugins --reload', '/dsi-plugins ?']);
+		for (const ex of examples) {
+			expect(ex.description.length).toBeGreaterThan(0);
+		}
+		expect(COMMAND_HELP.pluginrack.examples[0]?.description).toBe(examples[0]?.description);
+		expect(gestureHelpCardView('pluginrack').usage).toBe('/dsi-plugins [--reload]');
+	});
+
+	it('/dsi-plugins ? routes to the pluginrack topic and the menu row resolves lazily', () => {
+		expect(commandHelpTopic('/dsi-plugins ?')).toBe('pluginrack');
+		const row = MENU_GESTURES.find((g) => g.name === 'pluginrack');
+		expect(row).toBeDefined();
+		expect(row?.seed).toBe('/dsi-plugins ');
+		expect(row?.description).toBe(COMMAND_HELP.pluginrack.summary);
+	});
+});
+
+// ── hostHelpCardView — the empty-token guard (a slash + bare-question draft) ──
+describe('hostHelpCardView — empty-token edge', () => {
+	it('a slash + bare question-mark draft yields an empty token and no card', () => {
+		expect(helpQuery('/ ?')).toEqual({ token: '' });
+		expect(hostHelpCardView('/ ?', COMMANDS, SKILLS)).toBeNull();
+	});
+});

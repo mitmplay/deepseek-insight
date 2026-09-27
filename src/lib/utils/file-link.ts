@@ -49,7 +49,7 @@ export function parseFileLinkHref(href: string): {
 	path: string;
 	lines: { start: number; end: number } | null;
 } {
-	const value = href.trim();
+	const value = stripAngleWrapper(href.trim());
 	const hash = value.indexOf('#');
 	const raw = hash === -1 ? value : value.slice(0, hash);
 	const anchor = hash === -1 ? '' : value.slice(hash + 1);
@@ -71,8 +71,17 @@ export function parseFileLinkHref(href: string): {
 	return { path: normalizeFileLinkPath(raw) ?? '', lines };
 }
 
+/** CommonMark angle-bracket destinations (<path> and their %3C/%3E
+ *  encodings) are destination syntax, never path bytes - renderers that
+ *  hand the wrapper through must not have it reach the host read. */
+function stripAngleWrapper(value: string): string {
+	return value
+		.replace(/^(?:%3C|<)/i, '')
+		.replace(/(?:%3E|>)$/i, '');
+}
+
 export function normalizeFileLinkPath(href: string): string | null {
-	let value = href.trim().replace(/^\.\//, '').replace(/\/{2,}/g, '/');
+	let value = stripAngleWrapper(href.trim()).replace(/^\.\//, '').replace(/\/{2,}/g, '/');
 	// A line anchor is display metadata, not path bytes — strip it before
 	// normalization so '#L139' never reaches the host read (RCA above).
 	const hash = value.indexOf('#');

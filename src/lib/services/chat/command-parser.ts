@@ -69,6 +69,7 @@ export interface ParsedCommand {
 		| 'dsisettings'
 		| 'dshsettings'
 		| 'skillshelf'
+		| 'pluginrack'
 		| 'loadinjected';
 	/** The raw remainder after the command token, trimmed (may be empty). */
 	args: string;
@@ -263,6 +264,16 @@ export function parseCommand(text: string): ParsedCommand | null {
 				'/dsh-settings': 'dshsettings'
 			} as const;
 			return { type: types[token as keyof typeof types], args } as ParsedCommand;
+		}
+		case '/dsi-plugins': {
+			// The Plugin Rack ADR (2026-09-27, D1/D2): the shelf's grammar
+			// re-decided for the rack — bare opens the rack panel; the ONE
+			// flag '--reload' forces a snapshot rebuild before the panel
+			// opens. Any other args keep the raw shape so the executor
+			// usage-errors them (the '/new leftover' rule).
+			if (args === '') return { type: 'pluginrack', args };
+			if (args === '--reload') return { type: 'pluginrack', args: '', reload: true };
+			return { type: 'pluginrack', args };
 		}
 		case '/dsi-skills': {
 			// The Skill Shelf ADR (2026-09-20, D1/D3): bare opens the shelf

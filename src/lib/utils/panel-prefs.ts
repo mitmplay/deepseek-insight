@@ -222,6 +222,7 @@ export function isPanelEntry(value: unknown): value is DsiPanelEntry {
 		entry.kind !== 'settings-editor' &&
 		entry.kind !== 'injected-doc' &&
 		entry.kind !== 'skill-shelf' &&
+		entry.kind !== 'plugin-rack' &&
 		entry.kind !== 'workspace-explorer' &&
 		entry.kind !== 'workspace-file' &&
 		entry.kind !== 'terminal'
@@ -272,6 +273,7 @@ export function isPanelEntry(value: unknown): value is DsiPanelEntry {
 		entry.kind !== 'prompt-manager' &&
 		entry.kind !== 'settings-editor' &&
 		entry.kind !== 'skill-shelf' &&
+		entry.kind !== 'plugin-rack' &&
 		entry.kind !== 'injected-doc' &&
 		entry.kind !== 'workspace-explorer' &&
 		entry.kind !== 'workspace-file' &&
@@ -316,6 +318,8 @@ function sanitizePanels(raw: unknown): DsiPanelEntry[] {
 			const kindDefault =
 				entry.kind === 'skill-shelf'
 					? shelfPanelWidth() // The Shelf Chrome ADR: the shelf's born 480 lane
+				: entry.kind === 'plugin-rack'
+					? shelfPanelWidth() // The Plugin Rack ADR: same narrow lane as the shelf
 					: entry.kind === 'workspace-explorer'
 					? PANEL_WORKSPACE_FILE_WIDTH // Settings Tree D1: the wide lane is the only lane
 					: entry.kind === 'workspace-file'
@@ -385,6 +389,16 @@ function sanitizePanels(raw: unknown): DsiPanelEntry[] {
 					collapsed: clampExpanded(entry.collapsed),
 					searchQ: typeof entry.searchQ === 'string' ? entry.searchQ : '',
 					reload,
+					width
+				} as DsiPanelEntry;
+			}
+			if (entry.kind === 'plugin-rack') {
+				// The Plugin Rack ADR (2026-09-27): the tab survives the reload
+				// blob (the explorer-tab pattern); junk sanitizes to 'install'.
+				return {
+					id: entry.id as string,
+					kind: 'plugin-rack',
+					tab: entry.tab === 'uninstall' ? 'uninstall' : 'install',
 					width
 				} as DsiPanelEntry;
 			}

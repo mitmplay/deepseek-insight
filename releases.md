@@ -1,5 +1,27 @@
 # Releases
 
+## v0.6.0
+
+Bumped from v0.5.38 — The Plugin Rack wave: plugins install through dsh and restart through dsi, `/dsi-plugins` joins the slash menu, and markdown grows real external links.
+
+### Features
+
+- **The Plugin Rack (W1–W4)** (0381eb0, 4ccc5ad, 9e03af1, e22eaa3, 50ebc7d; ADR 2026-09-27) — plugins become a managed shelf: a rack engine (`rack.mjs` + `src/lib/server/plugins/engine.ts`) owns install/uninstall with the manifest as the uninstall authority (D4); `/api/plugins/{apply,reload,snapshot}` wire it to the wire; `/dsi-plugins` joins the slash menu and command help (abbf5b4); the PluginManagerPanel gives the rack a two-tab chrome — install vs uninstall — with per-row state, snapshot/search/capture toolbar (92a4e2f), rows opening the repo and creator profile (885330d), and a hard-reload-surviving active tab (1c723cc). Proven by `plugin-rack-engine.test.ts`, `plugin-rack-macro.test.ts`, `plugin-rack-panel.test.ts`, `plugin-rack-panel-edges.test.ts`, `api-plugins-*.test.ts`, `dsi-plugin-chain.test.ts`, `plugin-i18n-parity.test.ts`.
+- **Skill shelf reorganization** (6da530a, 58dbed5, 92f4b12) — the skills panel splits into Header/Actions/Tabs components on the shelf-chrome pattern, renamed to the SettingsSkills* family.
+- **Bare-URL autolink + external host icons** (416f7e4) — a bare http(s) URL in any transcript renders as a hardened anchor: display text is origin+path, the href keeps the full query/hash, and every external link gains its host favicon (Google s2 service); pinned by six new cases in `markdown.test.ts`.
+- **Whole-URL code spans render as links** (2251847) — a code span that is entirely one http(s) URL upgrades to the icon'd external link; code that merely contains a URL stays literal (tool-payload rule holds).
+- **README filled out** (e7e1321) — plain-language paragraphs for autocomplete (`?`), macros (`!`), the prompt/plugin/skill managers, the multi-tab terminal, and the workspace explorer.
+
+### Bug fixes
+
+- **Slash-menu tests stale after the 9th gesture** (e93b519) — `pluginrack` (`/dsi-plugins `) joined `MENU_GESTURES` at index 5 without the tests following; the ladder, counts (8→9), `@mention` index and highlight offsets re-synced to the ADR D1 contract — 25/25 + 26/26 green, full suite 4,536.
+- **Markdown angle-bracket destinations** (152aecb) — `[label](<path>)` destinations sanitize to bare paths instead of leaking the wrapper.
+- **Favicon service reliability** (2251847) — DuckDuckGo's ip3 icon service (TLS failures, wrong marks) replaced with Google s2 favicons, verified returning the true GitLab mark.
+
+### Housekeeping
+
+- Coverage lifted to the 80% per-file floor across 8 files (fdee648); `api-plugins-reload-route` and `restart-chain` unit tests added (e5dfd90); committed tmp scratch files dropped (9e73db4, 401e1b1, 8a8f9c3, e4d74cf); intentional `state_referenced_locally` warnings silenced (f621a05).
+
 ## v0.5.38
 
 Bumped from v0.5.37 — the Fullpath Bow file-link wave lands, the editor moves to monaco 0.57, and the workspace image preview is re-rooted on the local filesystem.

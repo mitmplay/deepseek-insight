@@ -41,7 +41,8 @@ export type CommandHelpTopic =
 	| 'terminal'
 	| 'dsisettings'
 	| 'dshsettings'
-	| 'skillshelf';
+	| 'skillshelf'
+	| 'pluginrack';
 
 /**
  * The help topic a draft line asks for, or null when the line is not a
@@ -214,6 +215,42 @@ export const COMMAND_HELP: Record<CommandHelpTopic, CommandHelpEntry> = {
 			}
 		]
 	},
+	pluginrack: {
+		usage: '/dsi-plugins [--reload]',
+		// The rack pilots the shelf's localized-help grammar (The Shelf
+		// Voice W1.5): getters resolve the ACTIVE locale at read time.
+		get summary() {
+			return t(m.commandHelpPluginrackSummary);
+		},
+		params: [
+			{
+				name: '--reload',
+				get description() {
+					return t(m.commandHelpPluginrackParamReload);
+				}
+			}
+		],
+		examples: [
+			{
+				line: '/dsi-plugins',
+				get description() {
+					return t(m.commandHelpPluginrackExampleBare);
+				}
+			},
+			{
+				line: '/dsi-plugins --reload',
+				get description() {
+					return t(m.commandHelpPluginrackExampleReload);
+				}
+			},
+			{
+				line: '/dsi-plugins ?',
+				get description() {
+					return t(m.commandHelpPluginrackExampleHelp);
+				}
+			}
+		]
+	},
 	dshsettings: {
 		usage: '/dsh-settings',
 		summary:
@@ -318,6 +355,17 @@ export const MENU_GESTURES: readonly DsiGestureRow[] = [
 		// locale at render, never frozen at module init.
 		get description() {
 			return t(m.commandHelpSkillshelfSummary);
+		}
+	},
+	{
+		name: 'pluginrack',
+		display: '/dsi-plugins',
+		seed: '/dsi-plugins ',
+		// The Plugin Rack ADR (2026-09-27, D1): one row per COMMAND_HELP,
+		// the zero-extra-names rule holds. Getter: the description
+		// resolves the ACTIVE locale at render, never frozen at init.
+		get description() {
+			return t(m.commandHelpPluginrackSummary);
 		}
 	},
 	{
