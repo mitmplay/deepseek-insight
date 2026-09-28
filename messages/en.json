@@ -401,8 +401,6 @@
 	"pluginRackInstall": "Install",
 	"pluginRackUninstall": "Uninstall",
 	"pluginRackInstalled": "Installed",
-	"pluginRackInstalling": "Installing…",
-	"pluginRackUninstalling": "Removing…",
 	"pluginRackApplying": "Applying — the floor will come back shortly.",
 	"pluginRackLoadFailed": "Could not load the rack.",
 	"pluginRackEmpty": "No plugins on the rack yet — add a line to plugins-reff.md.",

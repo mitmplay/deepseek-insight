@@ -401,8 +401,6 @@
 	"pluginRackInstall": "Instal",
 	"pluginRackUninstall": "Copot",
 	"pluginRackInstalled": "Terpasang",
-	"pluginRackInstalling": "Menginstal…",
-	"pluginRackUninstalling": "Mencopot…",
 	"pluginRackApplying": "Menerapkan — lantai akan kembali sebentar lagi.",
 	"pluginRackLoadFailed": "Tidak dapat memuat rak plugin.",
 	"pluginRackEmpty": "Belum ada plugin di rak — tambahkan satu baris di plugins-reff.md.",

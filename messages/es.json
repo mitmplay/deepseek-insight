@@ -401,8 +401,6 @@
 	"pluginRackInstall": "Instalar",
 	"pluginRackUninstall": "Desinstalar",
 	"pluginRackInstalled": "Instalado",
-	"pluginRackInstalling": "Instalando…",
-	"pluginRackUninstalling": "Desinstalando…",
 	"pluginRackApplying": "Aplicando — la página volverá enseguida.",
 	"pluginRackLoadFailed": "No se pudo cargar el rack de plugins.",
 	"pluginRackEmpty": "Aún no hay plugins en el rack — añade una línea a plugins-reff.md.",

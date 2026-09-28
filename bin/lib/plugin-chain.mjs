@@ -11,7 +11,7 @@
  *
  * @param {string[]} argv
  * @param {{ envProfile?: string }} [options]
- * @returns {null | { error: string } | { action: 'add' | 'remove' | 'restart', pkg: string, profile: string }}
+ * @returns {null | { error: string } | { action: 'add' | 'remove' | 'restart', pkg: string, profile: string, dev?: boolean }}
  *   null = argv is not a --plugin invocation (the caller falls through to
  *   its own unknown-flag error); { error } = a --plugin invocation with a
  *   bad shape (usage exit 64).
@@ -22,8 +22,13 @@ export function parsePluginArgs(argv, options = {}) {
 	if (flag !== '--plugin' && flag !== '--plugin-restart') return null;
 	const rest = argv.slice(1);
 	if (flag === '--plugin-restart') {
-		if (rest.length !== 0) return { error: 'usage: dsi dsh --plugin-restart' };
-		return { action: 'restart', pkg: '', profile: envProfile };
+		// --dev is the only accepted extra: the bounce must restore the SAME
+		// UI mode the floor was serving (RCA 2026-09-27 — a dev-mode floor
+		// bounced into build mode came back on 5174 while the browser sat on
+		// 5175's corpse; the UI mode rides the DSI_DEV env marker).
+		const dev = rest.includes('--dev');
+		if (rest.some((arg) => arg !== '--dev')) return { error: 'usage: dsi dsh --plugin-restart [--dev]' };
+		return { action: 'restart', pkg: '', profile: envProfile, dev };
 	}
 	const [action, pkg, ...tail] = rest;
 	if (action !== 'add' && action !== 'remove') {
@@ -44,6 +49,25 @@ export function parsePluginArgs(argv, options = {}) {
 		}
 	}
 	return { action, pkg, profile };
+}
+
+/**
+ * The bounce's dev-mode decision (RCA 2026-09-27, second order): an explicit
+ * --dev flag wins, otherwise the chain asks whether a dev floor is alive.
+ * Pure: the process-table probe is injected so the real pgrep stays in
+ * dsi.mjs's impure half.
+ *
+ * @param {boolean} flagDev — the parsed `--plugin-restart --dev` flag
+ * @param {() => boolean} devFloorAlive — probe for a running vite dev server
+ * @returns {boolean}
+ */
+export function bounceDevMode(flagDev, devFloorAlive) {
+	if (flagDev) return true;
+	try {
+		return devFloorAlive() === true;
+	} catch {
+		return false;
+	}
 }
 
 /**

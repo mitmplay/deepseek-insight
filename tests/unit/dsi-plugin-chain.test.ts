@@ -7,7 +7,7 @@
 import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { dshLauncherCmd, parsePluginArgs } from '../../bin/lib/plugin-chain.mjs';
+import { bounceDevMode, dshLauncherCmd, parsePluginArgs } from '../../bin/lib/plugin-chain.mjs';
 
 const BIN = resolve(import.meta.dirname, '../../bin/dsi.mjs');
 
@@ -45,11 +45,33 @@ describe('parsePluginArgs', () => {
 		expect(mustParse(['--plugin-restart'])).toMatchObject({ action: 'restart' });
 		expect(mustFail(['--plugin-restart', 'extra'])).toContain('usage');
 	});
+	it('restart accepts --dev and records it (RCA 2026-09-27: the bounce must restore the dev floor)', () => {
+		expect(mustParse(['--plugin-restart']).dev).toBe(false);
+		expect(mustParse(['--plugin-restart', '--dev']).dev).toBe(true);
+		expect(mustFail(['--plugin-restart', '--dev', 'stray'])).toContain('usage');
+	});
 	it('bad shapes error with the usage line', () => {
 		expect(mustFail(['--plugin'])).toContain('usage');
 		expect(mustFail(['--plugin', 'bogus', 'x'])).toContain('usage');
 		expect(mustFail(['--plugin', 'add', '--profile'])).toContain('usage');
 		expect(mustFail(['--plugin', 'add', 'x', 'stray'])).toContain('unexpected argument');
+	});
+});
+
+describe('bounceDevMode (RCA 2026-09-27, second order)', () => {
+	it('an explicit --dev wins without asking the process table', () => {
+		let asked = 0;
+		expect(bounceDevMode(true, () => { asked++; return false; })).toBe(true);
+		expect(asked).toBe(0);
+	});
+	it('no flag: a live dev floor (pgrep probe hits) bounces back as dev', () => {
+		expect(bounceDevMode(false, () => true)).toBe(true);
+	});
+	it('no flag, no dev floor: production bounce (the 5174-only regression)', () => {
+		expect(bounceDevMode(false, () => false)).toBe(false);
+	});
+	it('a throwing probe reads as production — the bounce still happens', () => {
+		expect(bounceDevMode(false, () => { throw new Error('pgrep missing'); })).toBe(false);
 	});
 });
 

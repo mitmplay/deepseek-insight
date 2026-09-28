@@ -1,5 +1,24 @@
 # Releases
 
+## v0.6.1
+
+Bumped from v0.6.0 — the Plugin Rack bounce is fixed for real and the rack reads like a list.
+
+### Features
+
+- **Busy verbs spin, the panel rides the bounce by itself** (dc69965) — a running plugin verb shows a spinner on its rack row and the panel auto-follows a restart bounce instead of needing a manual refresh; stale i18n keys dropped from all four catalogs (en/es/id/zh), pinned by `plugin-rack-panel.test.ts`, `restart-chain.test.ts` and `plugin-i18n-parity.test.ts`.
+- **Rack rows number like a list** (161ee8d) — rows render as `1.` `2.` `3.` with a snug gap, so the rack scans like an ordered list (`PluginManagerRackRow.svelte`).
+
+### Bug fixes
+
+- **The bounce comes back** (9501315) — the post-install restart had gone silent: pkill's pattern match missed the real listener, so the bounce now sweeps the port listener itself, restores dev-mode fidelity (the dev server restarts as dev, not prod), and writes a chain journal of every restart step; `restart-chain.test.ts` grew 57 lines of regression pins.
+- **Bounce detects the dev floor in the process table, not the env** (26fe77d) — dev detection read an env var the relaunched process never had; `bin/dsi.mjs` + `bin/lib/plugin-chain.mjs` now find the dev floor by inspecting the process table, pinned in `dsi-plugin-chain.test.ts`.
+- **Reload verb rebuilds the snapshot** (8958275) — reload re-read a stale cache, showing pre-reload rows; the verb now rebuilds the snapshot from disk and `plugin-rack-panel.test.ts` pins it. `plugins-reff.md` updated to match.
+
+### Housekeeping
+
+- Stray `tmp/commit-msg.txt` scratch file dropped (642b396).
+
 ## v0.6.0
 
 Bumped from v0.5.38 — The Plugin Rack wave: plugins install through dsh and restart through dsi, `/dsi-plugins` joins the slash menu, and markdown grows real external links.

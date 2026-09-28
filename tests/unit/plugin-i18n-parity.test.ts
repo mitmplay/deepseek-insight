@@ -14,8 +14,6 @@ const RACK_KEYS = [
 	'pluginRackInstall',
 	'pluginRackUninstall',
 	'pluginRackInstalled',
-	'pluginRackInstalling',
-	'pluginRackUninstalling',
 	'pluginRackApplying',
 	'pluginRackLoadFailed',
 	'pluginRackEmpty',

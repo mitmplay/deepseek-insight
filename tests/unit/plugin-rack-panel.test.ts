@@ -84,17 +84,38 @@ describe('PluginManagerPanel', () => {
 		expect(JSON.parse(String(applyCall?.[1]?.body))).toEqual({ action: 'install', targets: ['dsh-rules-paths'] });
 	});
 
-	it('a restarting apply announces the bounce banner (D5)', async () => {
+	it('a restarting apply announces the bounce banner, then the panel refreshes ITSELF (D5, no hard reload)', async () => {
+		let snapshots = 0;
 		stubFetch((input) => {
 			if (String(input).includes('/api/plugins/apply')) return Promise.resolve(jsonRes({ ok: true, results: [{ id: 'dsh-rules-paths', ok: true }], restarting: true }));
+			snapshots++;
 			return Promise.resolve(jsonRes(SNAP));
 		});
 		const { target } = mountPanel();
 		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-rows"]')).toBeTruthy());
+		const before = snapshots;
 		(target.querySelector('[data-testid="rack-install-dsh-rules-paths"]') as HTMLButtonElement).click();
 		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-bounce"]')).toBeTruthy());
+		// The poll rides the bounce out (~BOUNCE_POLL_MS), then the panel
+		// reloads its snapshot and the banner clears by itself.
+		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-bounce"]')).toBeNull(), { timeout: 10_000 });
+		expect(snapshots).toBeGreaterThan(before);
 	});
 
+
+	it('the rack-reload verb REBUILDS via POST /api/plugins/reload, never a cached re-read', async () => {
+		const REBUILT = { ...SNAP.snapshot, generatedAt: '2026-09-28T00:00:00Z', plugins: [{ ...SNAP.snapshot.plugins[0], installed: true }] };
+		const fetchMock = stubFetch((input) => {
+			if (String(input).includes('/api/plugins/reload')) return Promise.resolve(jsonRes({ ok: true, snapshot: REBUILT }));
+			return Promise.resolve(jsonRes(SNAP));
+		});
+		const { target } = mountPanel();
+		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-generated"]')?.textContent).toContain('2026-09-27'));
+		(target.querySelector('[data-testid="rack-reload"]') as HTMLButtonElement).click();
+		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-generated"]')?.textContent).toContain('2026-09-28'));
+		const reloadCall = (fetchMock.mock.calls as unknown as [string, RequestInit][]).find(([u]) => String(u).includes('/api/plugins/reload'));
+		expect(reloadCall?.[1]?.method).toBe('POST');
+	});
 
 describe('PluginManagerRackRow doors (Shelf Credentials grammar)', () => {
 	it('renders the repo door and the author door with safe external anchors', async () => {

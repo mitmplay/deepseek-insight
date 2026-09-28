@@ -60,6 +60,12 @@
 		tab = next;
 		ontabchange?.(next);
 	}
+	// The bounce wait (D5 answers-first): the server is DOWN while the chain
+	// re-serves, so the poll expects failures and polls through them until a
+	// snapshot answers again — then load() refreshes the panel by itself. No
+	// operator hard-reload.
+	const BOUNCE_POLL_MS = 1500;
+	const BOUNCE_TIMEOUT_MS = 120_000;
 	let searchQ = $state('');
 	let rootEl = $state<HTMLElement | null>(null);
 	let visiblePlugins = $derived.by(() => {
@@ -72,6 +78,23 @@
 		);
 	});
 
+	/** Poll through the bounce: the floor answers failures until the chain
+	 *  has re-served, then one snapshot success ends the wait. False on
+	 *  timeout (the banner gives way to the retry UI; polling never hangs). */
+	async function waitFloorBack(): Promise<boolean> {
+		const deadline = Date.now() + BOUNCE_TIMEOUT_MS;
+		while (Date.now() < deadline) {
+			await new Promise((resolve) => setTimeout(resolve, BOUNCE_POLL_MS));
+			try {
+				const res = await fetch('/api/plugins/snapshot', { cache: 'no-store' });
+				if (res.ok) return true;
+			} catch {
+				// floor still down — keep polling
+			}
+		}
+		return false;
+	}
+
 	async function load(): Promise<void> {
 		loading = true;
 		loadFailed = false;
@@ -79,6 +102,28 @@
 			const res = await fetch('/api/plugins/snapshot');
 			const body = await res.json();
 			if (body.ok) snapshot = body.snapshot;
+			else loadFailed = true;
+		} catch {
+			loadFailed = true;
+		} finally {
+			loading = false;
+		}
+	}
+
+	// The header's reload verb is a REBUILD, not a re-read (RCA 2026-09-27:
+	// wired to load() it only re-fetched the cached snapshot — the button
+	// looked dead because a cached GET cannot change). POST --reload asks
+	// the engine to re-take the snapshot (fresh numbering + manifest-
+	// reconciled installed flags) and the body carries it directly.
+	async function runReload(): Promise<void> {
+		if (loading || floorBounce) return;
+		loading = true;
+		loadFailed = false;
+		errors = [];
+		try {
+			const res = await fetch('/api/plugins/reload', { method: 'POST' });
+			const body = await res.json();
+			if (body.ok && body.snapshot) snapshot = body.snapshot;
 			else loadFailed = true;
 		} catch {
 			loadFailed = true;
@@ -98,8 +143,16 @@
 			});
 			const body = await res.json();
 			if (body.ok && body.restarting) {
-				// D5: the chain kills this very server — say so, answer done.
+				// D5: the chain kills this very server — say so, then ride the
+				// bounce out: when the floor answers again the panel refreshes
+				// ITSELF (no operator hard-reload).
 				floorBounce = true;
+				busyId = null;
+				void waitFloorBack().then(async (back) => {
+					if (back) await load();
+					else loadFailed = true;
+					floorBounce = false;
+				});
 				return;
 			}
 			if (!body.ok) {
@@ -123,7 +176,7 @@
 
 <div class="rack" bind:this={rootEl} data-testid="rack-body">
 	<PluginManagerToolbar generatedAt={snapshot?.generatedAt ?? ''} bind:searchQ container={rootEl} />
-	<PluginManagerHeader {tab} {loading} {floorBounce} ontabchange={setTab} onreload={() => void load()} />
+	<PluginManagerHeader {tab} {loading} {floorBounce} ontabchange={setTab} onreload={() => void runReload()} />
 
 	{#if floorBounce}
 		<div class="rack-banner" data-testid="rack-bounce" role="status">{t(m.pluginRackApplying)}</div>

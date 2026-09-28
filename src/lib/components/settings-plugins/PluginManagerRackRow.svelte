@@ -9,7 +9,7 @@
 	 */
 	import { t } from '$lib/services/locale/locale-state.svelte';
 	import * as m from '$lib/paraglide/messages';
-	import { Check, CircleUserRound, ExternalLink } from '@lucide/svelte';
+	import { Check, CircleUserRound, ExternalLink, LoaderCircle } from '@lucide/svelte';
 
 	interface Props {
 		plugin: {
@@ -29,7 +29,7 @@
 </script>
 
 <li class="rack-row" data-testid={'rack-row-' + plugin.id}>
-	<span class="rack-n">{plugin.n}</span>
+	<span class="rack-n">{plugin.n}.</span>
 	<span class="rack-id">
 		{plugin.id}
 		{#if plugin.installed}
@@ -49,7 +49,14 @@
 				disabled={disabled}
 				onclick={() => onapply('remove', plugin.id)}
 			>
-				{busyId === plugin.id ? t(m.pluginRackUninstalling) : t(m.pluginRackUninstall)}
+				{#if busyId === plugin.id}
+					<span class="rack-busy" data-testid={'rack-busy-' + plugin.id}>
+						<span class="spin"><LoaderCircle size={11} aria-hidden="true" /></span>
+						{t(m.pluginRackUninstall)}
+					</span>
+				{:else}
+					{t(m.pluginRackUninstall)}
+				{/if}
 			</button>
 		{:else}
 			<button
@@ -58,7 +65,14 @@
 				disabled={disabled}
 				onclick={() => onapply('install', plugin.id)}
 			>
-				{busyId === plugin.id ? t(m.pluginRackInstalling) : t(m.pluginRackInstall)}
+				{#if busyId === plugin.id}
+					<span class="rack-busy" data-testid={'rack-busy-' + plugin.id}>
+						<span class="spin"><LoaderCircle size={11} aria-hidden="true" /></span>
+						{t(m.pluginRackInstall)}
+					</span>
+				{:else}
+					{t(m.pluginRackInstall)}
+				{/if}
 			</button>
 		{/if}
 	</span>
@@ -95,9 +109,9 @@
 <style>
 	.rack-row {
 		display: grid;
-		grid-template-columns: 1.6rem 1fr auto auto auto;
+		grid-template-columns: auto 1fr auto auto auto;
 		align-items: center;
-		gap: 0.5rem;
+		gap: 0.35rem;
 		padding: 0.3rem 0.4rem;
 		border-radius: 6px;
 	}
@@ -107,6 +121,7 @@
 	.rack-n {
 		opacity: 0.55;
 		font-variant-numeric: tabular-nums;
+		padding-right: 0.15rem;
 	}
 	.rack-badge {
 		display: inline-flex;
@@ -137,6 +152,20 @@
 	}
 	.rack-door:hover {
 		opacity: 1;
+	}
+	.rack-busy {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3rem;
+	}
+	.spin {
+		display: inline-flex;
+		animation: rack-verb-spin 1s linear infinite;
+	}
+	@keyframes rack-verb-spin {
+		to {
+			transform: rotate(360deg);
+		}
 	}
 	.rack-verb button {
 		cursor: pointer;

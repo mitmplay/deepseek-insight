@@ -226,8 +226,23 @@ if (command === 'dsh') {
 			}
 		}
 		console.log('dsi dsh: bouncing the floor (orphan sweep + synced pair re-run)');
+		// Dev-floor detection must run BEFORE the sweep kills what it would
+		// detect (RCA 2026-09-27, second order): the DSI_DEV env marker only
+		// exists on floors launched by THIS CLI's dev launcher — a floor from
+		// before the marker existed, or from plain `pnpm dev`, carries none.
+		// The vite dev process itself is visible to pgrep (unlike the npx
+		// shims — different argv rewriting), so ask the process table.
+		const dev = bounceDevMode(parsed.dev === true, isDevFloorAlive);
 		killOrphans();
-		runSyncedPair([]);
+		// The pkill sweep cannot see every floor shape (RCA 2026-09-27: the
+		// npx shims — 'npm exec @deepseek-ai/dsh…' and '.bin/dsh web' — are
+		// invisible to pkill -f on macOS, so the dsh host survived holding
+		// 3080 and preflightPort exited 64, killing the detached chain
+		// silently). The bounce chain owns the DSI ports by contract, so
+		// free them by listener, not by name.
+		freeFloorPorts([3080, 5174, 5175]);
+		// Restore the SAME UI mode the floor was serving.
+		runSyncedPair([], dev);
 	} else if (flag === '--sync-kills') {
 		killOrphans();
 		process.exit(0);
@@ -397,6 +412,33 @@ function killOrphans() {
 	console.log('dsi dsh: orphan sweep done (dsh-web-synced.sh, dsh bin, dsi server)');
 }
 
+/** SIGTERM whatever LISTENS on these ports: the bounce chain's name-blind
+ * second sweep (RCA 2026-09-27). pkill -f cannot match every floor shape
+ * (the npx shim processes are invisible to it on macOS), so a surviving
+ * dsh host held 3080, preflightPort exited 64, and the detached chain died
+ * silently. Only the bounce uses this; a manual --sync preflight still
+ * REFUSES a busy port it does not own. */
+function freeFloorPorts(ports) {
+	for (const port of ports) {
+		try {
+			spawnSync('/bin/sh', ['-c', 'lsof -ti tcp:' + port + ' -sTCP:LISTEN | xargs kill 2>/dev/null || true'], { stdio: 'pipe' });
+		} catch {
+			// no lsof (or no xargs): the pattern sweep above and the 5s
+			// preflight wait remain the honest fallbacks.
+		}
+	}
+}
+
+/** True when a vite dev server of THIS checkout is alive. Only the
+ *  checkout's own vite matches — a foreign project's dev server never
+ *  carries the deepseek-insight path segment. pgrep sees this process
+ *  (it does not rewrite argv the way the npm/npx shims do), so the probe
+ *  is reliable where the orphan sweep's name matching is not. */
+function isDevFloorAlive() {
+	const probe = spawnSync('pgrep', ['-f', 'deepseek-insight/node_modules/vite/bin/vite.js'], { stdio: 'pipe' });
+	return (probe.status ?? 1) === 0;
+}
+
 /** Add the ZAI provider and default model to ~/.dsh/settings.yaml when
  *  absent. Existing entries always win — an already-configured host is
  *  rewritten only when at least one block was added. Exits non-zero when
@@ -529,7 +571,11 @@ function startDsiDevServer(defaultPort = '5175') {
 		env: {
 			...process.env,
 			// Same first-start bootstrap seam as the built server.
-			DSI_TEMPLATE_PATH: process.env.DSI_TEMPLATE_PATH ?? path.join(packageRoot, 'template', '.dsi')
+			DSI_TEMPLATE_PATH: process.env.DSI_TEMPLATE_PATH ?? path.join(packageRoot, 'template', '.dsi'),
+			// Dev-floor marker (RCA 2026-09-27): the plugin-rack bounce reads
+			// this from the API server's env to re-serve --dev instead of the
+			// stale build. Nothing else may set it.
+			DSI_DEV: '1'
 		}
 	});
 }

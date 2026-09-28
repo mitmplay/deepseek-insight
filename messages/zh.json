@@ -401,8 +401,6 @@
 	"pluginRackInstall": "安装",
 	"pluginRackUninstall": "卸载",
 	"pluginRackInstalled": "已安装",
-	"pluginRackInstalling": "安装中…",
-	"pluginRackUninstalling": "卸载中…",
 	"pluginRackApplying": "正在应用 — 页面稍后会自动恢复。",
 	"pluginRackLoadFailed": "无法加载插件架。",
 	"pluginRackEmpty": "插件架暂无插件 — 在 plugins-reff.md 中添加一行。",
