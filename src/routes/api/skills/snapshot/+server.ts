@@ -6,6 +6,7 @@
 
 import { json } from '@sveltejs/kit';
 
+import { fetchStarsByKey } from '$lib/server/github-stars';
 import { getEngine } from '$lib/server/skills/engine';
 import { uninstallableIds } from '$lib/server/skills/types';
 import type { RequestHandler } from './$types';
@@ -15,7 +16,8 @@ export const GET: RequestHandler = async () => {
 		const engine = getEngine();
 		const { present } = await engine.snapshotStatus();
 		const { snapshot, reused } = await engine.refresh(!present);
-		return json({ ok: true, reused, snapshot, uninstallable: uninstallableIds(snapshot) });
+		const stars = await fetchStarsByKey(snapshot.sources.map((s) => ({ key: s.id, repo: s.repo })));
+		return json({ ok: true, reused, snapshot, stars, uninstallable: uninstallableIds(snapshot) });
 	} catch (err) {
 		return json({ ok: false, error: String((err as Error).message) }, { status: 503 });
 	}

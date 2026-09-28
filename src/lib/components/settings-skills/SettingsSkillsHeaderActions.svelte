@@ -8,7 +8,8 @@
 	 */
 	import { t } from '$lib/services/locale/locale-state.svelte';
 	import * as m from '$lib/paraglide/messages';
-	import { RotateCw, ChevronsDownUp, ChevronsUpDown, LoaderCircle, Check, X } from '@lucide/svelte';
+	import { RotateCw, ChevronsDownUp, ChevronsUpDown, LoaderCircle, Check } from '@lucide/svelte';
+	import SettingsSkillsReloadButton from './SettingsSkillsReloadButton.svelte';
 
 	interface Props {
 		tab: 'install' | 'uninstall';
@@ -49,16 +50,7 @@
 			{/if}
 		</button>
 		{#if tab === 'install' && reloadState === 'loading'}
-			<button
-				type="button"
-				class="shelf-reload-cancel"
-				data-testid="shelf-reload-cancel"
-				title={t(m.skillsShelfReloadCancel)}
-				aria-label={t(m.skillsShelfReloadCancel)}
-				onclick={oncancelreload}
-			>
-				<X size={13} aria-hidden="true" />
-			</button>
+			<SettingsSkillsReloadButton {oncancelreload} />
 		{/if}
 	{/if}
 	<!-- The lineage-fold pill grammar (SidebarOpenPanelTree): ONE
@@ -131,21 +123,6 @@
 		font-variant-numeric: tabular-nums;
 		opacity: 0.75;
 		padding-inline: 0.15rem;
-	}
-	.shelf-reload-cancel {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		padding: 0.15rem 0.35rem;
-		border: 1px solid var(--color-border, #d0d7de);
-		border-radius: 0.25rem;
-		background: transparent;
-		cursor: pointer;
-		color: inherit;
-	}
-	.shelf-reload-cancel:hover {
-		color: #cf222e;
-		border-color: #cf222e;
 	}
 	/* The fold pill — SidebarOpenPanelTree's seg-group contract: ONE
 	   joined pill, zero gap, outer 9999px curves, icon-only segments;

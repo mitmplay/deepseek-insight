@@ -244,6 +244,10 @@
 	$effect(() => emit(ontabchange, tab));
 	$effect(() => emit(onsearchchange, searchQ));
 
+	// GitHub stargazers per source id — the snapshot/reload responses carry
+	// them best-effort; a group head without a number simply has no fetch.
+	let stars = $state<Record<string, number>>({});
+
 	async function loadSnapshot(): Promise<void> {
 		loading = true;
 		loadError = null;
@@ -252,6 +256,7 @@
 			const body = await res.json();
 			if (!body.ok) throw new Error(body.error ?? 'snapshot failed');
 			snapshot = body.snapshot;
+			stars = body.stars ?? {};
 			uninstallable = new Set(body.uninstallable as string[]);
 			// Default render is ALL COLLAPSED (2026-09-21): the operator
 			// lands on a quiet shelf and expands the repo they want —
@@ -390,6 +395,7 @@
 				throw new Error(body.error ?? 'reload failed');
 			}
 			snapshot = body.snapshot;
+			stars = body.stars ?? {};
 			uninstallable = new Set(body.uninstallable as string[]);
 			dispatch('reloadSucceeded');
 		} catch (e) {
@@ -446,6 +452,7 @@
 					version={g.source.version ?? null}
 					repoUrl={g.source.repo}
 					skills={g.skills}
+					stars={stars[g.source.id] ?? null}
 					hidden={groupHidden(g.source.id)}
 					selected={selected}
 					uninstallable={uninstallable}

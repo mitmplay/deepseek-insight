@@ -5,6 +5,7 @@
 
 import { json } from '@sveltejs/kit';
 
+import { fetchStarsByKey } from '$lib/server/github-stars';
 import { getEngine } from '$lib/server/skills/engine';
 import { EngineCancelledError, uninstallableIds } from '$lib/server/skills/types';
 import type { RequestHandler } from './$types';
@@ -12,7 +13,8 @@ import type { RequestHandler } from './$types';
 export const POST: RequestHandler = async () => {
 	try {
 		const { snapshot } = await getEngine().refresh(true);
-		return json({ ok: true, snapshot, uninstallable: uninstallableIds(snapshot) });
+		const stars = await fetchStarsByKey(snapshot.sources.map((s) => ({ key: s.id, repo: s.repo })));
+		return json({ ok: true, snapshot, stars, uninstallable: uninstallableIds(snapshot) });
 	} catch (err) {
 		// a CANCELLED refresh is the operator's own verb (Reload Rememberer,
 		// 2026-09-23) — the panel walks to idle without an error note.

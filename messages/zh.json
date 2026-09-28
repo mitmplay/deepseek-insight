@@ -357,6 +357,7 @@
 	"skillsShelfReloadCancel": "取消重新加载",
 	"skillsShelfOpenRepo": "在新标签页打开源代码仓库",
 	"skillsShelfOpenAuthor": "在新标签页打开作者主页",
+	"skillsShelfStars": "GitHub 星标",
 	"skillsShelfInstall": "安装",
 	"skillsShelfUninstall": "卸载",
 	"skillsShelfBadgeInstalled": "已安装",
@@ -414,6 +415,7 @@
 	"commandHelpPluginrackExampleHelp": "打印此帮助卡片。",
 	"pluginRackOpenRepo": "打开插件仓库",
 	"pluginRackOpenAuthor": "打开作者主页",
+	"pluginRackStars": "GitHub 星标",
 	"pluginRackInstallEmpty": "插件架上的插件都已安装。",
 	"pluginRackSearch": "搜索插件",
 	"pluginRackUninstallEmpty": "尚未安装任何插件 - 请在安装标签页中安装。"

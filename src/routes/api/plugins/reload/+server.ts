@@ -6,12 +6,14 @@
 import { json } from '@sveltejs/kit';
 
 import { getRackEngine } from '$lib/server/plugins/engine';
+import { fetchRackStars } from '$lib/server/plugins/stars';
 import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async () => {
 	try {
 		const { snapshot, errors } = await getRackEngine().refresh(true);
-		return json({ ok: true, snapshot, ...(errors ? { errors } : {}) });
+		const stars = await fetchRackStars(snapshot.plugins);
+		return json({ ok: true, snapshot, stars, ...(errors ? { errors } : {}) });
 	} catch (err) {
 		return json({ ok: false, error: String((err as Error).message) }, { status: 503 });
 	}

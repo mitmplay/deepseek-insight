@@ -13,6 +13,7 @@ const SNAP = {
 	ok: true,
 	reused: true,
 	uninstallable: ['signed-one'],
+	stars: { pstack: 1829 },
 	snapshot: {
 		generatedAt: '2026-09-20T00:00:00Z',
 		sources: [
@@ -61,6 +62,9 @@ describe('SettingsSkillsPanel', () => {
 		await vi.waitFor(() => {
 			expect(target.querySelector('[data-testid="shelf-group-pstack"]')).not.toBeNull();
 		});
+		// the source's GitHub stars ride after the total-skill count, compact
+		const starEl = target.querySelector('[data-testid="shelf-stars-pstack"]');
+		expect(starEl?.textContent).toContain('1.8K');
 		// the shelf ships ALL COLLAPSED - expand before asserting rows
 		target.querySelector<HTMLButtonElement>('[data-testid="shelf-expand-all"]')!.click();
 		flushSync();
@@ -82,6 +86,9 @@ describe('SettingsSkillsPanel', () => {
 		await vi.waitFor(() => {
 			expect(target.querySelector('[data-testid="shelf-group-pstack"]')).not.toBeNull();
 		});
+		// the source's GitHub stars ride after the total-skill count, compact
+		const starEl = target.querySelector('[data-testid="shelf-stars-pstack"]');
+		expect(starEl?.textContent).toContain('1.8K');
 		// the shelf ships ALL COLLAPSED - expand before asserting rows
 		target.querySelector<HTMLButtonElement>('[data-testid="shelf-expand-all"]')!.click();
 		flushSync();
@@ -106,6 +113,9 @@ describe('SettingsSkillsPanel', () => {
 		await vi.waitFor(() => {
 			expect(target.querySelector('[data-testid="shelf-group-pstack"]')).not.toBeNull();
 		});
+		// the source's GitHub stars ride after the total-skill count, compact
+		const starEl = target.querySelector('[data-testid="shelf-stars-pstack"]');
+		expect(starEl?.textContent).toContain('1.8K');
 		// the shelf ships ALL COLLAPSED - expand before asserting rows
 		target.querySelector<HTMLButtonElement>('[data-testid="shelf-expand-all"]')!.click();
 		flushSync();
@@ -127,6 +137,9 @@ describe('SettingsSkillsPanel', () => {
 		await vi.waitFor(() => {
 			expect(target.querySelector('[data-testid="shelf-group-pstack"]')).not.toBeNull();
 		});
+		// the source's GitHub stars ride after the total-skill count, compact
+		const starEl = target.querySelector('[data-testid="shelf-stars-pstack"]');
+		expect(starEl?.textContent).toContain('1.8K');
 		// the shelf ships ALL COLLAPSED - expand before asserting rows
 		target.querySelector<HTMLButtonElement>('[data-testid="shelf-expand-all"]')!.click();
 		flushSync();
@@ -150,6 +163,9 @@ describe('SettingsSkillsPanel', () => {
 		await vi.waitFor(() => {
 			expect(target.querySelector('[data-testid="shelf-group-pstack"]')).not.toBeNull();
 		});
+		// the source's GitHub stars ride after the total-skill count, compact
+		const starEl = target.querySelector('[data-testid="shelf-stars-pstack"]');
+		expect(starEl?.textContent).toContain('1.8K');
 		// the shelf ships ALL COLLAPSED - expand before asserting rows
 		target.querySelector<HTMLButtonElement>('[data-testid="shelf-expand-all"]')!.click();
 		flushSync();

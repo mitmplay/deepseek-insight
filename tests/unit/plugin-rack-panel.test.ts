@@ -19,7 +19,8 @@ const SNAP = {
 			{ n: '1', id: 'dsh-rules-paths', repo: 'https://github.com/Temoa/dsh-rules-paths', author: 'Temoa', authorUrl: 'https://github.com/Temoa', installed: false },
 			{ n: '2', id: 'installed-plugin', repo: 'https://github.com/x/y', author: null, installed: true }
 		]
-	}
+	},
+	stars: { 'dsh-rules-paths': 42, 'installed-plugin': 7 }
 };
 
 function stubFetch(impl: (input: string, init?: RequestInit) => Promise<Response>): ReturnType<typeof vi.fn> {
@@ -50,6 +51,9 @@ describe('PluginManagerPanel', () => {
 		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-rows"]')).toBeTruthy());
 		expect(target.querySelector('[data-testid="rack-row-dsh-rules-paths"]')?.textContent).toContain('Temoa');
 		expect(target.querySelector('[data-testid="rack-install-dsh-rules-paths"]')).toBeTruthy();
+		// the star count rides after the install button
+		const starEl = target.querySelector('[data-testid="rack-stars-dsh-rules-paths"]');
+		expect(starEl?.textContent).toContain('42');
 		// the installed plugin is NOT on the install tab
 		expect(target.querySelector('[data-testid="rack-row-installed-plugin"]')).toBeNull();
 		// switch to uninstall tab: only the installed plugin, with its verb
@@ -57,6 +61,25 @@ describe('PluginManagerPanel', () => {
 		flushSync();
 		expect(target.querySelector('[data-testid="rack-uninstall-installed-plugin"]')).toBeTruthy();
 		expect(target.querySelector('[data-testid="rack-row-dsh-rules-paths"]')).toBeNull();
+	});
+
+	it('the catalog can list two distinct plugins under one id - rows key by n, not id', async () => {
+		const dupSnap = {
+			...SNAP,
+			snapshot: {
+				...SNAP.snapshot,
+				plugins: [
+					{ n: '3', id: 'dsh-deepresearch', repo: 'https://github.com/omdsh-dev/dsh-deep-research', author: 'omdsh-dev', installed: false },
+					{ n: '4', id: 'dsh-deepresearch', repo: 'https://github.com/havingautism/dsh-deepresearch', author: 'havingautism', installed: false }
+				]
+			}
+		};
+		stubFetch((input) => (String(input).includes('/api/plugins/snapshot') ? Promise.resolve(jsonRes(dupSnap)) : Promise.reject(new Error('unexpected'))));
+		const { target } = mountPanel();
+		// no each_key_duplicate crash: both rows render
+		await vi.waitFor(() => expect(target.querySelectorAll('[data-testid^="rack-row-"]').length).toBe(2));
+		expect(target.textContent).toContain('omdsh-dev');
+		expect(target.textContent).toContain('havingautism');
 	});
 
 	it('installed badge marks installed rows only (uninstall tab)', async () => {

@@ -8,15 +8,21 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 const refreshMock = vi.fn();
+const starsMock: Record<string, number> = {};
 
 vi.mock('$lib/server/plugins/engine', () => ({
   getRackEngine: () => ({ refresh: refreshMock })
+}));
+
+vi.mock('$lib/server/plugins/stars', () => ({
+  fetchRackStars: vi.fn(async () => starsMock)
 }));
 
 import { POST as reloadPOST } from '../../src/routes/api/plugins/reload/+server';
 
 beforeEach(() => {
   refreshMock.mockReset();
+  for (const k of Object.keys(starsMock)) delete starsMock[k];
 });
 
 describe('POST /api/plugins/reload', () => {
@@ -26,14 +32,14 @@ describe('POST /api/plugins/reload', () => {
     expect(res.status).toBe(200);
     expect(refreshMock).toHaveBeenCalledWith(true);
     const body = await res.json();
-    expect(body).toEqual({ ok: true, snapshot: { v: 2, plugins: [{ id: 'p1' }] } });
+    expect(body).toEqual({ ok: true, snapshot: { v: 2, plugins: [{ id: 'p1' }] }, stars: {} });
     expect('errors' in body).toBe(false);
   });
   it('refresh with errors carries them through next to the snapshot', async () => {
     refreshMock.mockResolvedValue({ snapshot: { v: 3, plugins: [] }, reused: false, errors: ['reff-empty: no plugin lines found'] });
     const res = await reloadPOST({} as never);
     expect(res.status).toBe(200);
-    await expect(res.json()).resolves.toEqual({ ok: true, snapshot: { v: 3, plugins: [] }, errors: ['reff-empty: no plugin lines found'] });
+    await expect(res.json()).resolves.toEqual({ ok: true, snapshot: { v: 3, plugins: [] }, stars: {}, errors: ['reff-empty: no plugin lines found'] });
   });
   it('engine failure maps to 503 with the stringified message', async () => {
     refreshMock.mockRejectedValue(new Error('rack engine not found'));

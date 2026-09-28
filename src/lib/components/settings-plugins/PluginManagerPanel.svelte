@@ -49,6 +49,9 @@
 	let busyId = $state<string | null>(null);
 	let floorBounce = $state(false);
 	let errors = $state<ErrorRow[]>([]);
+	// GitHub stargazers per plugin id — the snapshot/reload responses carry
+	// them best-effort; an absent fetch simply leaves the badge off the row.
+	let stars = $state<Record<string, number>>({});
 	// The shelf's tab grammar (Shelf Chrome ADR): install lists uninstalled
 	// plugins, uninstall lists installed ones - a successful apply MOVES the
 	// row (the post-apply load() refetch flips the installed flag).
@@ -101,8 +104,10 @@
 		try {
 			const res = await fetch('/api/plugins/snapshot');
 			const body = await res.json();
-			if (body.ok) snapshot = body.snapshot;
-			else loadFailed = true;
+			if (body.ok) {
+				snapshot = body.snapshot;
+				stars = body.stars ?? {};
+			} else loadFailed = true;
 		} catch {
 			loadFailed = true;
 		} finally {
@@ -123,8 +128,10 @@
 		try {
 			const res = await fetch('/api/plugins/reload', { method: 'POST' });
 			const body = await res.json();
-			if (body.ok && body.snapshot) snapshot = body.snapshot;
-			else loadFailed = true;
+			if (body.ok && body.snapshot) {
+				snapshot = body.snapshot;
+				stars = body.stars ?? {};
+			} else loadFailed = true;
 		} catch {
 			loadFailed = true;
 		} finally {
@@ -195,8 +202,10 @@
 		</div>
 	{:else}
 		<ul class="rack-rows" data-testid="rack-rows">
-			{#each visiblePlugins as plugin (plugin.id)}
-				<PluginManagerRackRow {plugin} {busyId} {floorBounce} onapply={(action, id) => void apply(action, id)} />
+			<!-- keyed by the engine row number, not id: the catalog can list two
+			     distinct plugins under one id (e.g. dsh-deepresearch by two authors) -->
+			{#each visiblePlugins as plugin (plugin.n)}
+				<PluginManagerRackRow {plugin} {busyId} {floorBounce} {stars} onapply={(action, id) => void apply(action, id)} />
 			{/each}
 		</ul>
 		{#if errors.length > 0}

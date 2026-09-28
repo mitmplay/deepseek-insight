@@ -130,7 +130,7 @@
 		gap: 0.25rem;
 		height: 100%;
 		overflow: hidden; /* the SCROLL lives on .tree-scroll — the anchor must not scroll */
-		padding: 0.5rem;
+		padding: 0.1rem 0.1rem 0 0.2rem;
 		font-size: 0.8125rem;
 	}
 	.tree-scroll {

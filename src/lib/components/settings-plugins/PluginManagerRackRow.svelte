@@ -9,7 +9,8 @@
 	 */
 	import { t } from '$lib/services/locale/locale-state.svelte';
 	import * as m from '$lib/paraglide/messages';
-	import { Check, CircleUserRound, ExternalLink, LoaderCircle } from '@lucide/svelte';
+	import { Check, CircleUserRound, ExternalLink, LoaderCircle, Star } from '@lucide/svelte';
+	import { formatCompact } from '$lib/utils/compact-number';
 
 	interface Props {
 		plugin: {
@@ -20,11 +21,13 @@
 			authorUrl?: string | null;
 			installed: boolean;
 		};
+		/** GitHub stargazers per plugin id (best-effort; absent when unfetched). */
+		stars: Record<string, number>;
 		busyId: string | null;
 		floorBounce: boolean;
 		onapply: (action: 'install' | 'remove', id: string) => void;
 	}
-	let { plugin, busyId, floorBounce, onapply }: Props = $props();
+	let { plugin, busyId, floorBounce, stars, onapply }: Props = $props();
 	const disabled = $derived(busyId !== null || floorBounce);
 </script>
 
@@ -76,6 +79,13 @@
 			</button>
 		{/if}
 	</span>
+	{#if typeof stars[plugin.id] === 'number'}
+		<!-- The star count rides AFTER the row's verb (the install button) -->
+		<span class="rack-stars" data-testid={'rack-stars-' + plugin.id} title={t(m.pluginRackStars)}>
+			<Star size={11} aria-hidden="true" />
+			{formatCompact(stars[plugin.id])}
+		</span>
+	{/if}
 	<span class="rack-doors">
 		<!-- Two doors (Shelf Credentials grammar): repo + author profile,
 		     placed after the row's verb -->
@@ -109,10 +119,10 @@
 <style>
 	.rack-row {
 		display: grid;
-		grid-template-columns: auto 1fr auto auto auto;
+		grid-template-columns: auto 1fr auto auto auto auto;
 		align-items: center;
 		gap: 0.35rem;
-		padding: 0.3rem 0.4rem;
+		padding: 0.12rem 0.4rem;
 		border-radius: 6px;
 	}
 	.rack-row:hover {
@@ -136,6 +146,14 @@
 	.rack-author {
 		opacity: 0.6;
 		font-size: 0.75rem;
+	}
+	.rack-stars {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.2rem;
+		font-size: 0.75rem;
+		opacity: 0.65;
+		font-variant-numeric: tabular-nums;
 	}
 	.rack-doors {
 		display: inline-flex;

@@ -357,6 +357,7 @@
 	"skillsShelfReloadCancel": "Cancel reload",
 	"skillsShelfOpenRepo": "Open the source repository in a new tab",
 	"skillsShelfOpenAuthor": "Open the author profile in a new tab",
+	"skillsShelfStars": "GitHub stars",
 	"skillsShelfInstall": "Install",
 	"skillsShelfUninstall": "Uninstall",
 	"skillsShelfBadgeInstalled": "installed",
@@ -414,6 +415,7 @@
 	"commandHelpPluginrackExampleHelp": "Prints this help card.",
 	"pluginRackOpenRepo": "Open the plugin repo",
 	"pluginRackOpenAuthor": "Open the creator's profile",
+	"pluginRackStars": "GitHub stars",
 	"pluginRackInstallEmpty": "Everything on the rack is installed.",
 	"pluginRackSearch": "Search plugins",
 	"pluginRackUninstallEmpty": "Nothing installed yet - install a plugin from the install tab."

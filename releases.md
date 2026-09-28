@@ -1,5 +1,18 @@
 # Releases
 
+## v0.6.2
+
+Bumped from v0.6.1 — the plugin rack survives duplicate catalog ids and the resource shelves are refreshed.
+
+### Bug fixes
+
+- **Duplicate catalog ids no longer crash the rack** (eff3e4f) — the catalog can list two distinct plugins under one id (e.g. `dsh-deepresearch` by omdsh-dev and havingautism), and keying rows by `plugin.id` threw `each_key_duplicate`; rows now key by the engine row number `plugin.n`, pinned by the duplicate-id regression test in `tests/unit/plugin-rack-panel.test.ts`.
+- **Tighter rack rows** — rack-row vertical padding trimmed (0.3rem → 0.12rem) so the numbered list scans cleanly.
+
+### Housekeeping
+
+- `plugins-reff.md` and `skills-reff.md` refreshed: sequential numbering, a new `open-design` skill entry, and the plugins shelf trimmed to the installed pick (`dsh-agent-teams`).
+
 ## v0.6.1
 
 Bumped from v0.6.0 — the Plugin Rack bounce is fixed for real and the rack reads like a list.
