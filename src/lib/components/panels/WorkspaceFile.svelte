@@ -186,6 +186,10 @@
 		min-height: 0; /* the editor fills the remaining space and scrolls internally */
 		border: 1px solid var(--color-border, #d0d7de);
 		border-radius: 0.25rem;
+		/* Scaled down (13px base → ~11px effective): zoom (not transform)
+		   reflows layout, so Monaco's automaticLayout still fills the
+		   box and internal scrolling math stays correct. */
+		zoom: 0.85;
 	}
 	.file-scroll {
 		flex: 1;

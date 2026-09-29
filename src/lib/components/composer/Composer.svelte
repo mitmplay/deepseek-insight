@@ -1147,6 +1147,9 @@
 					textareaEl?.focus();
 				}}
 				onclose={() => textareaEl?.focus()}
+				// Tag-chip toggle: focus returns to the textarea so the
+				// strip's keyboard navigation never parks on a checkbox.
+				onrefocus={() => textareaEl?.focus()}
 			/>
 			<!-- PromptInputText — the composer textarea. display:block keeps
 			     this wrapper collapsed onto the box (2026-08-24 alignment

@@ -331,6 +331,7 @@
 						query={stripView.query}
 						mode={stripView.mode}
 						onpick={(i) => acceptAt(i)}
+						onrefocus={() => textareaEl?.focus()}
 					/>
 				{/if}
 				{#if slashView !== null}

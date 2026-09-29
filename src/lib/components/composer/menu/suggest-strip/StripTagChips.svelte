@@ -11,11 +11,16 @@
 	let {
 		recTags,
 		checked,
-		ontoggle
+		ontoggle,
+		onrefocus = undefined
 	}: {
 		recTags: string[];
 		checked: string[];
 		ontoggle: (word: string) => void;
+		/** After a toggle the host refocuses the prompt textarea — the
+		 *  strip's keyboard lifecycle lives there, so focus must never
+		 *  park on the checkbox. */
+		onrefocus?: () => void;
 	} = $props();
 </script>
 
@@ -26,7 +31,10 @@
 				<input
 					type="checkbox"
 					checked={checked.includes(word)}
-					onchange={() => ontoggle(word)}
+					onchange={() => {
+						ontoggle(word);
+						onrefocus?.();
+					}}
 				/>
 				{word}
 			</label>

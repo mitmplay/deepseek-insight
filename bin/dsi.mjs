@@ -20,7 +20,7 @@
 
 import { spawn, spawnSync } from 'node:child_process';
 import net from 'node:net';
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -69,7 +69,10 @@ const USAGE = [
 	'',
 	'  Ports: `dsi dsh --sync` serves the DSI page on 5174 and opens your',
 	'  browser there. With --dev the Vite dev server takes 5175 instead',
-	'  and the browser follows. Override with PORT=<n>.',
+	'  and the browser follows. Override with PORT=<n>. The HOST half',
+	'  takes 3080 by default; when that port is held by a dsh web you',
+	'  must keep running (another conversation floor), forward',
+	'  --port <n> — it goes to `dsh web` and DSI follows it automatically.',
 	'',
 	'  All commands (flags — see above):',
 	'',
@@ -156,6 +159,11 @@ function isRecord(value) {
 const ORPHAN_PATTERNS = [
 	'dsh-web-synced.sh',
 	'@deepseek-ai/dsh/lib/bin.js',
+	// The npx-published launch's REAL argv shape (observed 2026-11-06:
+	// `node …/_npx/<hash>/node_modules/.bin/dsh web`) — the published
+	// package's own .bin shim, which neither lib/bin.js nor the npx shims
+	// pattern above matches.
+	'_npx/[^/]*/node_modules/.bin/dsh',
 	'apps/cli/src/bin.ts web',
 	'deepseek-insight/build/index.js',
 	// --dev mode's UI half (scoped to the DSI checkout's vite, never a
@@ -370,16 +378,24 @@ async function runSyncedPair(extraArgs, dev = false) {
 	// takes 5175 instead (vite.config.ts pins 5174 strictPort, so pair mode
 	// passes 5175 explicitly), giving the two-port dev shape.
 	const uiPort = process.env.PORT ?? (dev ? '5175' : '5174');
+	// The host half takes --port <n> when forwarded (a 3080 held by a
+	// dsh web this CLI does not own — e.g. another live conversation
+	// floor — is exactly the case the preflight must not kill). The
+	// forwarded flag goes to `dsh web` untouched; DSI follows via
+	// DSH_BASE_URL so the page dials the host wherever it landed.
+	warnIfFirstRunDownload();
+	const hostPort = hostPortFromArgs(extraArgs) ?? 3080;
+	const dshBase = hostPort === 3080 ? undefined : `http://127.0.0.1:${hostPort}`;
 	// Preflight BOTH halves: a forgotten previous run holds not just the
-	// host's 3080 but often the UI port too — the host would only crash
+	// host port but often the UI port too — the host would only crash
 	// later, and the UI server would crash first with EADDRINUSE.
-	await preflightPort(3080, 'dsh host');
+	await preflightPort(hostPort, 'dsh host');
 	await preflightPort(uiPort, 'DSI page');
 	const host = spawn('/bin/sh', [script, ...extraArgs], {
 		stdio: 'inherit',
 		env: { ...process.env, DSH_WEB_VERSION: dshWebVersion() }
 	});
-	const ui = dev ? startDsiDevServer(uiPort) : startDsiServer(uiPort);
+	const ui = dev ? startDsiDevServer(uiPort, dshBase) : startDsiServer(uiPort, dshBase);
 	// The browser follows the UI: the built page (5174) — or, in --dev mode,
 	// the dev server (5175).
 	openBrowser(`http://localhost:${uiPort}/`);
@@ -557,7 +573,7 @@ function runSkillsMirror() {
  *  sources and devDependencies exist — a published tarball (bin + build)
  *  refuses loudly instead of half-booting. The --port CLI flag overrides the
  *  config's server.port while strictPort keeps the fail-loud contract. */
-function startDsiDevServer(defaultPort = '5175') {
+function startDsiDevServer(defaultPort = '5175', dshBase = undefined) {
 	const viteBin = path.join(packageRoot, 'node_modules', 'vite', 'bin', 'vite.js');
 	if (!existsSync(viteBin)) {
 		console.error(`dsi dsh --dev: no vite at ${viteBin} — --dev needs a full DSI checkout (pnpm install); use the built server instead`);
@@ -575,12 +591,13 @@ function startDsiDevServer(defaultPort = '5175') {
 			// Dev-floor marker (RCA 2026-09-27): the plugin-rack bounce reads
 			// this from the API server's env to re-serve --dev instead of the
 			// stale build. Nothing else may set it.
-			DSI_DEV: '1'
+			DSI_DEV: '1',
+			...(dshBase !== undefined ? { DSH_BASE_URL: dshBase } : {})
 		}
 	});
 }
 
-function startDsiServer(defaultPort = '5174') {
+function startDsiServer(defaultPort = '5174', dshBase = undefined) {
 	const serverEntry = path.join(packageRoot, 'build', 'index.js');
 	if (!existsSync(serverEntry)) {
 		console.error(`dsi: no build found at ${serverEntry} — run \`pnpm run build\` first`);
@@ -594,9 +611,52 @@ function startDsiServer(defaultPort = '5174') {
 			HOST: process.env.HOST ?? '127.0.0.1',
 			// First-start bootstrap seam: the server clones template/.dsi to ~/.dsi
 			// when the operator home is absent (src/lib/server/settings-document.ts).
-			DSI_TEMPLATE_PATH: process.env.DSI_TEMPLATE_PATH ?? path.join(packageRoot, 'template', '.dsi')
+			DSI_TEMPLATE_PATH: process.env.DSI_TEMPLATE_PATH ?? path.join(packageRoot, 'template', '.dsi'),
+			...(dshBase !== undefined ? { DSH_BASE_URL: dshBase } : {})
 		}
 	});
+}
+
+/** True when @deepseek-ai/dsh@version already sits in an npx cache —
+ *  the probe scans the same cache layout npm exec populates
+ *  (the _npx cache dirs npm exec populates). */
+function dshPackageCached(version) {
+	const npxCache = path.join(process.env.npm_config_cache ?? path.join(homedir(), '.npm'), '_npx');
+	if (!existsSync(npxCache)) return true; // no cache dir — skip the guess, stay quiet
+	try {
+		for (const entry of readdirSync(npxCache)) {
+			const manifest = path.join(npxCache, entry, 'node_modules', '@deepseek-ai', 'dsh', 'package.json');
+			if (existsSync(manifest) && JSON.parse(readFileSync(manifest, 'utf-8')).version === version) return true;
+		}
+	} catch {
+		// unreadable cache — stay quiet rather than warn on a guess
+	}
+	return false;
+}
+
+/** The silent-minutes bug (2026-11-06): piped through the token watcher,
+ *  npm exec suppresses its download progress entirely, so a FIRST run of a
+ *  new pinned dsh installs for minutes with zero output while the DSI half
+ *  is already serving a floor whose every /api call fails. This heads-up
+ *  fires before the host spawns, only when the pin is NOT yet cached. */
+function warnIfFirstRunDownload() {
+	if (process.env.DSH_WEB_CMD !== undefined) return;
+	// The env override (same one dsh-web-synced.sh honors) wins over the pin.
+	const version = process.env.DSH_WEB_VERSION ?? dshWebVersion();
+	if (dshPackageCached(version)) return;
+	console.log(`dsi dsh: fetching @deepseek-ai/dsh@${version} — first run for this pin, the download can take a few minutes; the DSI page may open before the host answers, just refresh once it prints its URL`);
+}
+
+/** The host port a forwarded --port <n> (or --port=<n>) names, else null.
+ *  Only the LAST occurrence wins — the same value `dsh web` would resolve. */
+function hostPortFromArgs(args) {
+	let port = null;
+	for (let i = 0; i < args.length; i++) {
+		if (args[i] === '--port' && /^\d+$/.test(args[i + 1] ?? '')) port = Number(args[i + 1]);
+		const eq = /^--port=(\d+)$/.exec(args[i] ?? '');
+		if (eq) port = Number(eq[1]);
+	}
+	return port;
 }
 
 // The web command ends the script — and MUST fall off here, not dsh's:

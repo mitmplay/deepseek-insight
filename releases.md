@@ -1,5 +1,24 @@
 # Releases
 
+## v0.6.3
+
+Bumped from v0.6.2 — the synced pair survives a busy 3080, first-run npx downloads are no longer silent, and the dsh pin moves to 0.2.0-rc.1.
+
+### Features
+
+- **`dsi dsh --port <n>` forwards to the host half** (a5d5b5b) — when 3080 is held by a `dsh web` this CLI does not own (another live conversation floor), the preflight no longer kills it; the forwarded flag goes to `dsh web` untouched and DSI follows via `DSH_BASE_URL`, so the page dials the host wherever it landed (`bin/dsi.mjs` `hostPortFromArgs`, `runSyncedPair`).
+- **First-run npx download heads-up** (a5d5b5b) — a new pinned dsh installs for minutes with zero output when piped through the token watcher; the CLI now probes the `_npx` cache (`dshPackageCached`) and prints a heads-up before spawning the host.
+- **dsh pin 0.1.7-rc.2 → 0.2.0-rc.1** (a5d5b5b, `package.json`) — the Model Gate release; impact analysis in `dev/kb/releases/2026-09-29`.
+
+### Bug fixes
+
+- **Orphan detection covers the npx-published launch** (a5d5b5b) — the real argv shape is `node …/_npx/<hash>/node_modules/.bin/dsh web`, matched by neither `lib/bin.js` nor the npx shims pattern; a new orphan pattern stops the preflight from restarting over it.
+- **Prompt textarea refocus after a tag-chip toggle** (a5c3f04) — toggling a tag chip stole focus from the prompt; the strip refocuses the textarea.
+
+### Housekeeping
+
+- File editor host scaled down to zoom 0.85 (ee4d7e1); Model Gate release notes added under `dev/kb/releases/`.
+
 ## v0.6.2
 
 Bumped from v0.6.1 — the plugin rack survives duplicate catalog ids and the resource shelves are refreshed.

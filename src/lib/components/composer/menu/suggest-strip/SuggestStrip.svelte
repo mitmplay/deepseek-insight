@@ -39,7 +39,8 @@
 		onrename,
 		ondelete,
 		onmanage,
-		onclose
+		onclose,
+		onrefocus = undefined
 	}: {
 		rows: SuggestedPrompt[];
 		activeIndex?: number;
@@ -59,6 +60,9 @@
 		onclose?: () => void;
 		/** ⚙ row: host opens the Prompts Manager (Wave 3). */
 		onmanage?: () => void;
+		/** Tag-chip toggle: host refocuses the prompt textarea — the
+		 *  strip's keys live there; focus never parks on a checkbox. */
+		onrefocus?: () => void;
 	} = $props();
 
 	/** Row whose ⋯ menu is open — null when closed. Exclusive: StripChips
@@ -143,7 +147,7 @@
 		<SuggestLine {onmanage} />
 		<!-- D10: tags-first rows, then the manage affordance, then the tag
 		     filter — the bottom of the strip where the eye finishes. -->
-		<StripTagChips {recTags} checked={checkedTags} ontoggle={toggleChecked} />
+		<StripTagChips {recTags} checked={checkedTags} ontoggle={toggleChecked} {onrefocus} />
 	</div>
 {/if}
 

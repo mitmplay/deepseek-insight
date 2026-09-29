@@ -254,6 +254,56 @@ describe('5.1-T — StripTagChips (D10)', () => {
 		target.remove();
 	});
 
+	// The focus-return contract (BUG fix): after a toggle the chip asks the
+	// host to refocus the prompt textarea — the strip's keyboard lifecycle
+	// lives there, so focus must never park on the checkbox.
+	it('a toggle calls onrefocus AFTER ontoggle reports the word up', async () => {
+		const order: string[] = [];
+		const target = document.createElement('div');
+		document.body.appendChild(target);
+		const instance = mount(StripTagChips, {
+			target,
+			props: {
+				recTags: ['git', 'rca'],
+				checked: [],
+				ontoggle: (w: string) => order.push('toggle:' + w),
+				onrefocus: () => order.push('refocus')
+			}
+		});
+		flushSync();
+		const labels = Array.from(target.querySelectorAll('.strip-tag-chip'));
+		(labels[0]!.querySelector('input') as HTMLInputElement).click();
+		flushSync();
+		expect(order).toEqual(['toggle:git', 'refocus']);
+		unmount(instance);
+		target.remove();
+	});
+
+	it('onrefocus is optional — a toggle without it still reports the word (old hosts)', async () => {
+		const toggled: string[] = [];
+		const target = document.createElement('div');
+		document.body.appendChild(target);
+		const instance = mount(StripTagChips, {
+			target,
+			props: { recTags: ['git'], checked: [], ontoggle: (w: string) => toggled.push(w) }
+		});
+		flushSync();
+		(target.querySelector('.strip-tag-chip input') as HTMLInputElement).click();
+		flushSync();
+		expect(toggled).toEqual(['git']);
+		unmount(instance);
+		target.remove();
+	});
+
+	it('through SuggestStrip, a chip toggle fires the threaded onrefocus', async () => {
+		const refocused = vi.fn();
+		const h = mountStrip(rows, { onrefocus: refocused });
+		chips(h.target.parentNode as HTMLElement).find((l) => l.textContent?.trim() === 'git')!.querySelector('input')!.click();
+		flushSync();
+		expect(refocused).toHaveBeenCalledTimes(1);
+		h.cleanup();
+	});
+
 	it('chips start UNCHECKED when the filter is empty (class:on false arm)', async () => {
 		const h = mountStrip(rows);
 		const boxes = chips(h.target.parentNode as HTMLElement).map((l) => l.querySelector('input')!);
