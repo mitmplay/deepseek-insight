@@ -440,7 +440,7 @@ describe('AssistantTurn — OCI two-group shell (2026-08-21)', () => {
 		const comp = mount(AssistantTurn, { target, props: { time: Date.now(), usage: TURN_USAGE, text: 'turn text', children: createRawSnippet(() => ({ render: () => '<p>turn body</p>' })) } });
 		const pill = target.querySelector('[data-testid="turn-usage"] button') as HTMLElement;
 		expect(pill).not.toBeNull();
-		expect(pill.textContent).toBe('Usage 10,479 tok');
+		expect(pill.textContent).toBe('Usage 5,479 tok'); // ADR-0012 D1: the provider's exact total, not the 10,479 bucket double-count
 		expect(target.querySelector('[data-testid="turn-usage-popup"]')).toBeNull();
 		pill.click();
 		flushSync();

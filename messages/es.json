@@ -248,6 +248,8 @@
 	"cacheHit": "Acierto de caché",
 	"uncachedInput": "Entrada sin caché",
 	"cachedInput": "Entrada en caché",
+	"impliedMarker": "~ implícita",
+	"impliedNote": "Derivada del total del proveedor — no informada por el proveedor.",
 	"output": "Salida",
 	"noMembersYet": "aún no hay miembros…",
 	"roLogged": "solo lectura — la carga registrada",

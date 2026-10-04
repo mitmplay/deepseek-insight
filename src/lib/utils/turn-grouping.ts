@@ -166,9 +166,14 @@ export function turnUsage(entries: TurnMember[]): import('$lib/types').DsiTokenU
 	const cacheRead = sum((u) => u.cacheReadTokens);
 	const cacheWrite = sum((u) => u.cacheWriteTokens);
 	const reasoning = sum((u) => u.reasoningTokens);
+	// The provider's exact total aggregates under the same all-or-nothing
+	// rule (The Exact Total, ADR-0012 D3): a turn mixing carriers and
+	// non-carriers keeps the bucket-sum headline.
+	const total = sum((u) => u.totalTokens);
 	return {
 		inputTokens: records.reduce((a, u) => a + u.inputTokens, 0),
 		outputTokens: records.reduce((a, u) => a + u.outputTokens, 0),
+		...(total !== undefined ? { totalTokens: total } : {}),
 		...(cacheRead !== undefined ? { cacheReadTokens: cacheRead } : {}),
 		...(cacheWrite !== undefined ? { cacheWriteTokens: cacheWrite } : {}),
 		...(reasoning !== undefined ? { reasoningTokens: reasoning } : {}),

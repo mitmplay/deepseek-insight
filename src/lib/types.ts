@@ -63,6 +63,10 @@ export interface DsiCodeDispatch {
 export interface DsiTokenUsage {
 	inputTokens: number;
 	outputTokens: number;
+	/** Wire: provider-reported exact total (prompt + output, all attempts),
+	 *  copied verbatim when present — never synthesized (The Exact Total,
+	 *  ADR-0012 D1). Includes cached input the provider did not itemize. */
+	totalTokens?: number;
 	cacheReadTokens?: number;
 	cacheWriteTokens?: number;
 	reasoningTokens?: number;

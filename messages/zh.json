@@ -248,6 +248,8 @@
 	"cacheHit": "缓存命中",
 	"uncachedInput": "未缓存输入",
 	"cachedInput": "已缓存输入",
+	"impliedMarker": "～推算",
+	"impliedNote": "由提供商总计推算得出，非提供商直接上报。",
 	"output": "输出",
 	"noMembersYet": "尚无成员…",
 	"roLogged": "只读 — 已记录的载荷",

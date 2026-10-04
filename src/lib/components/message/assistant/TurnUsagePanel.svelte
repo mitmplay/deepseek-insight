@@ -38,14 +38,31 @@
 	});
 
 	const exact = (n: number): string => n.toLocaleString('en-US');
+	// The Exact Total (ADR-0012): the headline copies the provider-reported
+	// exact total when every record carried one (D3 guarantees presence);
+	// the bucket sum remains the fallback. The implied cached row (D2)
+	// derives the provider's unitemized remainder so rows sum to the
+	// headline — display-only, never stored.
 	const total = $derived(
-		usage.inputTokens + (usage.cacheReadTokens ?? 0) + (usage.cacheWriteTokens ?? 0) + usage.outputTokens
+		usage.totalTokens ??
+			usage.inputTokens + (usage.cacheReadTokens ?? 0) + (usage.cacheWriteTokens ?? 0) + usage.outputTokens
 	);
-	const billedInput = $derived(usage.inputTokens + (usage.cacheReadTokens ?? 0) + (usage.cacheWriteTokens ?? 0));
+	// Cache-hit denominator: the host's own (prompt = total − output) when
+	// the total is present, else the itemized buckets.
+	const billedInput = $derived(
+		usage.totalTokens !== undefined
+			? usage.totalTokens - usage.outputTokens
+			: usage.inputTokens + (usage.cacheReadTokens ?? 0) + (usage.cacheWriteTokens ?? 0)
+	);
 	const cacheHit = $derived(
-		usage.cacheReadTokens === undefined || billedInput === 0
+		usage.cacheReadTokens === undefined || billedInput <= 0
 			? null
 			: `${Math.round((usage.cacheReadTokens / billedInput) * 1000) / 10}%`
+	);
+	const impliedCache = $derived(
+		usage.cacheReadTokens === undefined && usage.totalTokens !== undefined
+			? usage.totalTokens - usage.outputTokens - usage.inputTokens - (usage.cacheWriteTokens ?? 0)
+			: undefined
 	);
 	const routes = $derived(
 		(usage.routes ?? (usage.provider !== undefined && usage.model !== undefined
@@ -92,6 +109,13 @@
 				{#if usage.cacheReadTokens !== undefined}
 					<dt>{t(m.cachedInput)}</dt>
 					<dd class="m-0 text-right whitespace-nowrap">{exact(usage.cacheReadTokens)} tok</dd>
+				{:else if impliedCache !== undefined && impliedCache > 0}
+					<!-- Implied, never provider-reported: provenance stays visible (ADR-0012 D2). -->
+					<dt>
+						{t(m.cachedInput)}
+						<span class="text-text-muted/60" title={t(m.impliedNote)}>{t(m.impliedMarker)}</span>
+					</dt>
+					<dd class="m-0 text-right whitespace-nowrap">~{exact(impliedCache)} tok</dd>
 				{/if}
 				<dt>{t(m.output)}</dt>
 				<dd class="m-0 text-right whitespace-nowrap">

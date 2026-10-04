@@ -473,3 +473,31 @@ describe('groupTurns — turn-lifecycle markers (Turn End Stamp task 1.3)', () =
 	});
 });
 
+describe('turnUsage — the exact total (ADR-0012 D3)', () => {
+	const zai = (id: string, seq: number, withTotal: boolean): AssistantSideEntry => ({
+		kind: 'assistant-message', id, seq, time: 1000 + seq, text: 'x', streaming: false,
+		usage: {
+			inputTokens: 11302, outputTokens: 205,
+			...(withTotal ? { totalTokens: 22259 } : {}),
+			provider: 'zai', model: 'glm-5.3-flash'
+		}
+	});
+
+	it('a turn where every record carries the total sums it', () => {
+		const u = turnUsage([zai('a1', 1, true), zai('a2', 2, true)]);
+		expect(u?.totalTokens).toBe(44518);
+	});
+
+	it('a turn mixing carriers and non-carriers drops the field (all-or-nothing)', () => {
+		const u = turnUsage([zai('a1', 1, true), zai('a2', 2, false)]);
+		expect(u).toBeDefined();
+		expect(u && 'totalTokens' in u).toBe(false);
+	});
+
+	it('the observed bucketless zai turn totals 22,259 while buckets sum 11,507', () => {
+		const u = turnUsage([zai('a1', 1, true)]);
+		expect(u?.totalTokens).toBe(22259);
+		expect(u!.inputTokens + u!.outputTokens).toBe(11507); // the gap D2 closes at render
+	});
+});
+

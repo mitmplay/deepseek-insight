@@ -1,5 +1,23 @@
 # Releases
 
+## v0.6.4
+
+Bumped from v0.6.3 — the turn-usage surface stops under-counting: the provider's exact total becomes the headline and the detail rows always sum to it (The Exact Total, ADR-0012).
+
+### Features
+
+- **Turn usage trusts the provider's exact total** (24ff847, ADR-0012 D1) — the token-usage shape carries the wire totalTokens (safe positive counts, copied verbatim, never synthesized), turnUsage() aggregates it all-or-nothing (D3), and the pill + popup headline show it; the bucket sum stays as the fallback. Fixes a 48% under-count against DSH's own pill on providers that fold cached input into the total without a cache bucket (zai/glm-5.3-flash: 11,507 shown vs 22,259 billed). Tests: tests/unit/dsh-events-usage.test.ts and the turn-grouping "the exact total" block.
+- **Implied cached-input row** (24ff847, ADR-0012 D2) — when the provider's cache bucket is absent, the popup derives the unitemized remainder (total minus output minus input minus cache-write) as a marked "~ implied" row, so detail rows sum exactly to the headline; copy localized across en/zh/id/es with the parity gate (messages-parity.test.ts). Tests: tests/unit/turn-usage-panel.test.ts (three display shapes).
+
+### Bug fixes
+
+- **Usage pill double-count corrected** (24ff847) — a turn whose cache buckets overlapped the prompt total previously showed the bucket sum (10,479 for a 5,479-token turn); the pinned expectation in chat-components.test.ts was updated with the fix.
+
+### Housekeeping
+
+- dsh pin moves to 0.2.1-alpha.1 (package.json webVersion, 827add2); the DSH jump impact analysis lives in ADR-0012 section 2 fact 8: no host-side usage-accounting change in the jump.
+- Spec discipline note: ADR-0012 shipped with its full spec set (PRD, Tasks.md, Tasks.json twin, karpathy-context) under dev/specs/2026-10/.
+
 ## v0.6.3
 
 Bumped from v0.6.2 — the synced pair survives a busy 3080, first-run npx downloads are no longer silent, and the dsh pin moves to 0.2.0-rc.1.

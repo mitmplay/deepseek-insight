@@ -248,6 +248,8 @@
 	"cacheHit": "Cache hit",
 	"uncachedInput": "Input tanpa cache",
 	"cachedInput": "Input cache",
+	"impliedMarker": "~ implisit",
+	"impliedNote": "Dihitung dari total penyedia — bukan dilaporkan penyedia.",
 	"output": "Output",
 	"noMembersYet": "belum ada anggota…",
 	"roLogged": "hanya-baca — payload yang tercatat",

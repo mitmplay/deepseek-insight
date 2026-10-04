@@ -248,6 +248,8 @@
 	"cacheHit": "Cache hit",
 	"uncachedInput": "Uncached input",
 	"cachedInput": "Cached input",
+	"impliedMarker": "~ implied",
+	"impliedNote": "Derived from the provider total — not provider-reported.",
 	"output": "Output",
 	"noMembersYet": "no members yet…",
 	"roLogged": "read-only — the logged payload",

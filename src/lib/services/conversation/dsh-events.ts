@@ -687,11 +687,16 @@ function usageOf(
 		return undefined;
 	}
 	const opt = (n: unknown): number | undefined => (typeof n === 'number' ? n : undefined);
+	// The exact total is a count, never zero or fractional (The Exact Total,
+	// ADR-0012 D1): copy the host-validated figure, decline junk.
+	const count = (n: unknown): number | undefined =>
+		(typeof n === 'number' && Number.isSafeInteger(n) && n > 0 ? n : undefined);
 	const provider = typeof source?.provider === 'string' && source.provider.length > 0 ? source.provider : undefined;
 	const model = typeof source?.model === 'string' && source.model.length > 0 ? source.model : undefined;
 	return {
 		inputTokens: u.inputTokens,
 		outputTokens: u.outputTokens,
+		...(count(u.totalTokens) !== undefined ? { totalTokens: count(u.totalTokens) } : {}),
 		...(opt(u.cacheReadTokens) !== undefined ? { cacheReadTokens: opt(u.cacheReadTokens) } : {}),
 		...(opt(u.cacheWriteTokens) !== undefined ? { cacheWriteTokens: opt(u.cacheWriteTokens) } : {}),
 		...(opt(u.reasoningTokens) !== undefined ? { reasoningTokens: opt(u.reasoningTokens) } : {}),
