@@ -92,6 +92,32 @@ export function normalizeFileLinkPath(href: string): string | null {
 }
 
 /**
+ * The deep fallback’s root lister: the workspace root’s top-level
+ * DIRECTORY names, via the same confined tree route the existence gate
+ * uses. Any refusal degrades to an empty list — the fallback then
+ * silently does nothing and the honest drop stands.
+ */
+export async function workspaceRootDirs(
+	sessionId: string,
+	fetchImpl: typeof fetch = fetch
+): Promise<string[]> {
+	try {
+		const res = await fetchImpl(
+			`/api/dsh/workspace-tree?sessionId=${encodeURIComponent(sessionId)}&path=`
+		);
+		if (!res.ok) return [];
+		const body = (await res.json()) as {
+			ok?: boolean;
+			listing?: { entries?: { name: string; type: string }[] };
+		};
+		if (body?.ok !== true || !Array.isArray(body.listing?.entries)) return [];
+		return body.listing.entries.filter((e) => e.type === 'dir').map((e) => e.name);
+	} catch {
+		return [];
+	}
+}
+
+/**
  * Resolve a file-link path AGAINST the workspace root (Fullpath Bow ADR
  * 2026-09-26 D1): the assistant speaks in its own cwd's paths, which sit
  * one level ABOVE the workspace root, so real links carry the root path or
@@ -176,7 +202,8 @@ export async function resolveFileLinkTarget(
 	sessionId: string,
 	path: string,
 	root: string | null | undefined,
-	exists: (sessionId: string, path: string) => Promise<boolean> = workspaceFileExists
+	exists: (sessionId: string, path: string) => Promise<boolean> = workspaceFileExists,
+	listRoot?: (sessionId: string) => Promise<string[]>
 ): Promise<string | null> {
 	const resolved = resolveFileLinkPath(path, root);
 	// The spine workspace can sit ABOVE the session's real DSH workspace
@@ -189,6 +216,24 @@ export async function resolveFileLinkTarget(
 	if (!candidates.includes(path)) candidates.push(path);
 	for (const candidate of candidates) {
 		if (await exists(sessionId, candidate)) return candidate;
+	}
+	// Deep fallback (2026-10-05 incident): the harness floor can be the
+	// session root while the assistant's bare link lives under a repo
+	// subdirectory (root ~/agentic-ai, file deepseek-insight/src/...). The
+	// classic candidates never ADD a prefix, so they all miss. List the
+	// root ONCE and probe <top-level-dir>/<path> with early exit — bounded
+	// by the root's top-level directory count.
+	if (listRoot && resolved !== '' && !hasDotDotSegment(resolved)) {
+		try {
+			const dirs = await listRoot(sessionId);
+			for (const dir of dirs) {
+				if (dir === '' || dir === '.' || dir === '..') continue;
+				const candidate = dir + '/' + resolved;
+				if (await exists(sessionId, candidate)) return candidate;
+			}
+		} catch {
+			// listing refused → the honest drop stands
+		}
 	}
 	return null;
 }

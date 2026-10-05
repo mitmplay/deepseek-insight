@@ -105,6 +105,30 @@ describe('resolveFileLinkTarget probe order (Fullpath Bow D1)', () => {
 		await expect(resolveFileLinkTarget('s1', 'nope/missing.ts', root, exists)).resolves.toBeNull();
 	});
 
+	it('deep fallback: bare path found under a root subdirectory (2026-10-05 incident)', async () => {
+		// Session root is the harness floor (~/agentic-ai); the assistant's
+		// bare link src/lib/... actually lives under deepseek-insight/. The
+		// three classic candidates all miss; the root listing finds it.
+		const exists = vi.fn(async (_s: string, p2: string) => p2 === 'deepseek-insight/src/lib/card.svelte');
+		const listRoot = vi.fn(async () => ['notes', 'deepseek-insight']);
+		await expect(
+			resolveFileLinkTarget('s1', 'src/lib/card.svelte', '/Users/op/agentic-ai', exists, listRoot)
+		).resolves.toBe('deepseek-insight/src/lib/card.svelte');
+		// 1 classic candidate (resolved === path for a bare relative link)
+		// + 2 dir probes (early exit on the hit)
+		expect(exists).toHaveBeenCalledTimes(3); // 1 classic + 2 dir probes (early exit)
+		expect((exists as ReturnType<typeof vi.fn>).mock.calls[0]?.[1]).toBe('src/lib/card.svelte');
+		expect((exists as ReturnType<typeof vi.fn>).mock.calls[1]?.[1]).toBe('notes/src/lib/card.svelte');
+		expect((exists as ReturnType<typeof vi.fn>).mock.calls[2]?.[1]).toBe('deepseek-insight/src/lib/card.svelte');
+		expect(listRoot).toHaveBeenCalledTimes(1); // the root is listed ONCE
+	});
+
+	it('deep fallback off by default: no listRoot → null after the classic candidates', async () => {
+		const exists = vi.fn(async () => false);
+		await expect(resolveFileLinkTarget('s1', 'src/lib/card.svelte', '/Users/op/agentic-ai', exists)).resolves.toBeNull();
+		expect(exists).toHaveBeenCalledTimes(1); // resolved === path → single candidate
+	});
+
 	it('workspace-relative path unchanged → single probe, no retry possible', async () => {
 		const exists = vi.fn(async () => true);
 		await expect(resolveFileLinkTarget('s1', 'src/a.ts', root, exists)).resolves.toBe('src/a.ts');

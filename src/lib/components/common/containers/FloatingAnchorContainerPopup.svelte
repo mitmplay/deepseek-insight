@@ -82,7 +82,7 @@
 	<div
 		bind:this={popupEl}
 		tabindex="-1"
-		class="pointer-events-auto absolute right-full top-1/2 z-50 mr-2 max-h-[60vh] w-max min-w-72 max-w-[80vw] -translate-y-1/2 overflow-y-auto rounded-lg border border-surface-border bg-surface-elevated py-1 shadow-xl outline-none focus:outline-none"
+		class="pointer-events-auto absolute right-full top-1/2 z-50 mr-2 max-h-[60vh] w-96 max-w-[80vw] -translate-y-1/2 overflow-y-auto rounded-lg border border-surface-border bg-surface-elevated py-1 shadow-xl outline-none focus:outline-none"
 		data-testid={popupTestId}
 	>
 		{#if title !== undefined}

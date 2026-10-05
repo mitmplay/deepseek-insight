@@ -88,7 +88,7 @@
 	} from '$lib/utils/panel-prefs';
 	import { sanitizeWorkspaceProfile } from '$lib/utils/storage-profile';
 	import { conversationSeedUrl } from '$lib/utils/seed-url';
-	import { normalizeFileLinkPath, parseFileLinkHref, resolveFileLinkTarget } from '$lib/utils/file-link';
+	import { normalizeFileLinkPath, parseFileLinkHref, resolveFileLinkTarget, workspaceRootDirs } from '$lib/utils/file-link';
 	import { clampSidebarWidth, loadSidebarPrefs, saveSidebarPrefs } from '$lib/utils/sidebar-prefs';
 	import type {
 		DsiConversationPanel,
@@ -508,7 +508,7 @@ import {
 		// Fullpath Bow ADR 2026-09-26 D1: resolve against the session's workspace
 		// root BEFORE the gate; the helper owns the resolved-first, as-is-retry
 		// probe order and returns null when both candidates refuse.
-		const target = await resolveFileLinkTarget(sessionId, path, panelWorkspaceFor(sessionId));
+		const target = await resolveFileLinkTarget(sessionId, path, panelWorkspaceFor(sessionId), undefined, workspaceRootDirs);
 		if (target === null) return;
 		// No explorer yet ⇒ OPEN ONE (the operator's contract: the link itself
 		// opens the panel — the old silent-drop made the feature dead on the
