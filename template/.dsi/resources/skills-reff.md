@@ -5,5 +5,4 @@ Skills Resources:
 4. [web-quality-skills](https://github.com/addyosmani/web-quality-skills) - [Addy Osmani](https://www.linkedin.com/in/addyosmani/)
 5. [agent-skills](https://github.com/addyosmani/agent-skills) - [Addy Osmani](https://www.linkedin.com/in/addyosmani/)
 6. [impeccable](https://github.com/pbakaus/impeccable) - [Paul Bakaus](https://www.linkedin.com/in/paulbakaus/)
-7. [open-design](https://github.com/nexu-io/open-design/tree/main) - [Nexu](https://www.linkedin.com/company/nexu-io/)
-8. [ECC](https://github.com/affaan-m/ECC/tree/main) - [Affaan M](https://www.linkedin.com/in/affaan-m/)
+7. [deepseek-insight](https://github.com/mitmplay/deepseek-insight) - [Wharsojo](https://www.linkedin.com/in/wharsojo/)

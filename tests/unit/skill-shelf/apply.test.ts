@@ -1,6 +1,6 @@
 // 1.3-T — signed apply: atomic install-or-nothing, unsigned uninstall refusal, tier rule, collisions.
 import { describe, expect, it, afterEach } from 'vitest'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { makeFixtureTree, makeWorkspace, runEngine, cleanup } from './helpers'
 
@@ -40,6 +40,43 @@ describe('signed apply', () => {
     const out = apply('uninstall', ['p-skill-01'])
     expect(out.ok).toBe(true)
     expect(existsSync(join(ws.skillsDir, 'p-skill-01'))).toBe(false)
+  })
+
+  it('uninstall of a vanished cached-installed folder reconciles: ok + flags flip (2026-10-05 ghost-row BUG)', () => {
+    const { ws, apply } = fresh()
+    apply('install', ['1.1'])
+    rmSync(join(ws.skillsDir, 'p-skill-01'), { recursive: true, force: true }) // folder + receipt vanish off-shelf
+    const out = apply('uninstall', ['p-skill-01'])
+    expect(out.ok).toBe(true)
+    expect(out.results[0]).toMatchObject({ id: 'p-skill-01', ok: true, uninstalled: true, alreadyGone: true })
+    const cache = JSON.parse(readFileSync(ws.cache, 'utf8')) as { sources: { skills: { id: string; installed: boolean; signed: boolean; installedFrom: string | null }[] }[] }
+    const sk = cache.sources[0].skills.find((s) => s.id === 'p-skill-01')!
+    expect(sk.installed).toBe(false)
+    expect(sk.signed).toBe(false)
+    expect(sk.installedFrom).toBeNull()
+  })
+
+  it('uninstall flips EVERY row sharing the id — a duplicated id leaves no ghost twin (2026-10-05 open-design BUG)', () => {
+    const { ws, apply } = fresh()
+    apply('install', ['1.1'])
+    // The same id enumerated twice in one source (open-design ships
+    // dashboard under two paths): forge the twin into the cache.
+    const cachePath = ws.cache
+    const cache = JSON.parse(readFileSync(cachePath, 'utf8')) as { sources: { skills: { n: string; id: string; path: string; installed: boolean; signed: boolean; installedFrom: string | null }[] }[] }
+    const original = cache.sources[0].skills.find((s) => s.id === 'p-skill-01')!
+    cache.sources[0].skills.push({ ...original, n: '1.1b', path: 'pstack/pstack/skills/p-skill-01-twin' })
+    writeFileSync(cachePath, JSON.stringify(cache))
+    rmSync(join(ws.skillsDir, 'p-skill-01'), { recursive: true, force: true })
+    const out = apply('uninstall', ['p-skill-01'])
+    expect(out.ok).toBe(true)
+    const after = JSON.parse(readFileSync(cachePath, 'utf8')) as typeof cache
+    const rows = after.sources[0].skills.filter((s) => s.id === 'p-skill-01')
+    expect(rows).toHaveLength(2)
+    for (const row of rows) {
+      expect(row.installed).toBe(false)
+      expect(row.signed).toBe(false)
+      expect(row.installedFrom).toBeNull()
+    }
   })
 
   it('uninstall of an unsigned folder is a hard refusal', () => {

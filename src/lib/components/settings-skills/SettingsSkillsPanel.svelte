@@ -367,7 +367,14 @@
 				headers: { 'content-type': 'application/json' },
 				body: JSON.stringify({ ids: [id] })
 			});
+			const body = await res.json().catch(() => ({ ok: false }));
 			if (res.status === 409) note = t(m.skillsShelfUnsignedRefusal);
+			else if (!body.ok) {
+				// Never fail silently: a non-409 refusal (engine down, unknown
+				// id) must reach the operator, not just leave the row stuck.
+				const first = (body.results as { error?: string; ok?: boolean }[] | undefined)?.find((r) => !r.ok)?.error;
+				note = first ?? t(m.skillsShelfUnsignedRefusal);
+			}
 			await loadSnapshot();
 		} catch (e) {
 			note = String((e as Error).message);

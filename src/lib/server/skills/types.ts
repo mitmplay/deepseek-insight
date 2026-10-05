@@ -14,6 +14,7 @@ export interface ShelfSkill {
 	signed: boolean; // valid .dsi-provenance.json present (D5)
 	installedFrom: string | null; // source id from the signature
 	overview: string | null; // SKILL.md description/Overview text (installed only; null = unavailable)
+	dup?: boolean; // true when the source ships other paths under this id (dedupe kept this row)
 }
 
 export interface ShelfSource {

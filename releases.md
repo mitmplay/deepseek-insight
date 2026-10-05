@@ -1,5 +1,23 @@
 # Releases
 
+## v0.6.6
+
+Bumped from v0.6.5 — the Skill Shelf learns duplicate-id discipline: one id, one row, one folder, with an honest one-line warning when a source ships the same skill twice.
+
+### Features
+
+- **Duplicate-id dedupe in the shelf snapshot** (ea9eb3c, feat pair f214f06/49c1889) — when a source lists the same skill id at multiple paths (open-design shipping `blog-post` under two trees), the snapshot collapses to the canonical `skills/<id>` row, marks the kept row with the `(d)` shelf marker (`SettingsSkillsItem`), and emits a `source-duplicate-id` warning. The warning stays one line per source (162fdb9 — a 100-drop source no longer buries the shelf) and the panel prints the detail verbatim. Grounded in the open-design BUG analysis (2026-10-05): same-title cross-listed frames are distinct features (generate-from-spec vs bundled render), so only true id collisions dedupe. Tests: tests/unit/skill-shelf/dedupe.test.ts.
+
+### Bug fixes
+
+- **Apply flips every row sharing an id — ghost twins** (ec912b7) — toggling one row of a duplicate-id pair left its sibling stale in the UI; apply now flips every row sharing the id so the shelf never shows a ghost state. Tests: skill-shelf apply suite.
+- **Uninstall of a vanished installed folder reconciles** (cf8316c) — uninstalling a skill whose installed folder was already deleted deadlocked the reconciliation; it now reconciles the signature bookkeeping and reports honestly instead. Tests: skill-shelf roundtrip suite.
+- **Harvest progress sidecar restored** (21ad689, after revert b0b8ed0 and re-land ea9eb3c) — the repo-external engine move dropped the refresh progress sidecar; restored and pinned by tests/unit/skill-shelf/progress-sidecar.test.ts before the dedupe feature re-landed on top.
+
+### Housekeeping
+
+- Skills reference material moves to the parent folder (2b026bc) with reference paths updated (49606cd).
+
 ## v0.6.5
 
 Bumped from v0.6.4 — the composer's shelf finder learns to answer mid-draft and markdown documents keep their cards after an update.

@@ -27,12 +27,14 @@
 		badge: string | null;
 		/** SKILL.md overview text; null renders the muted fallback line. */
 		overview: string | null;
+		/** True when the source ships other paths under this id (dedupe kept this row). */
+		dup?: boolean;
 		/** Row-check intent — the panel bridges it to its selection set. */
 		ontoggle?: (n: string) => void;
 		/** Uninstall intent for this skill id. */
 		onuninstall?: () => void;
 	}
-	let { id, n, tier, checked, uninstallable, busy, badge, overview, ontoggle, onuninstall }: Props = $props();
+	let { id, n, tier, checked, uninstallable, busy, badge, overview, dup = false, ontoggle, onuninstall }: Props = $props();
 </script>
 
 <li class="shelf-card" data-testid={'shelf-row-' + id} class:checked>
@@ -40,7 +42,7 @@
 		<label class="shelf-row-main">
 			<input type="checkbox" aria-label={id} {checked} onchange={() => ontoggle?.(n)} />
 			<span class="shelf-n">{n}</span>
-			<span class="shelf-id">{id}</span>
+			<span class="shelf-id">{id}{dup ? '(d)' : ''}</span>
 		</label>
 		{#if tier}<span class="shelf-tier" data-testid="shelf-tier">{tier}</span>{/if}
 		{#if badge}

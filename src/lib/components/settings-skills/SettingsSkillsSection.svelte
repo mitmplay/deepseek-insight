@@ -20,6 +20,7 @@
 		installed: boolean;
 		signed: boolean;
 		overview: string | null;
+		dup?: boolean;
 	}
 	interface Props {
 		/** The source group's id — identity and collapse key. */
@@ -151,6 +152,7 @@
 					{busy}
 					badge={badgeFor(skill)}
 					overview={skill.overview}
+					dup={skill.dup ?? false}
 					ontoggle={(n) => ontoggle?.(n)}
 					onuninstall={() => onuninstall?.(skill.id)}
 				/>

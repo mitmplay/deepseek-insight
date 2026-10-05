@@ -297,17 +297,56 @@ async function harvestVersion(spec, src, fixtureRoot) {
   } catch { return null }
 }
 
-async function buildSnapshot(sourcesRaw, enums, skillsDir, fixtureRoot) {
+async function buildSnapshot(sourcesRaw, enums, skillsDir, fixtureRoot, hooks = {}) {
   const signed = readSignatures(skillsDir)
   const generatedAt = new Date().toISOString()
   const warnings = []
   const sources = []
+  // Overview fetches run five at a time (Reload Rememberer amendment).
+  const pool = async (items, fn) => {
+    let next = 0
+    const workers = Array.from({ length: Math.min(5, items.length) }, async () => {
+      while (next < items.length) { const it = items[next++]; await fn(it) }
+    })
+    await Promise.all(workers)
+  }
   for (let si = 0; si < sourcesRaw.length; si++) { const src = sourcesRaw[si]
     // Registry-gap warning (2026-09-21, revised): enumeration derives
     // from the SKR URL itself, so an empty list is a REAL anomaly and
     // the snapshot says why.
     const spec = specFor(src)
     const enumed = enums[si] || { skills: [], error: null }
+    // One id, one row, one folder: the shelf's model (id === folder name ===
+    // install/uninstall key) breaks when a source ships the same id at two
+    // paths — open-design lists blog-post/dashboard under design-templates/
+    // AND plugins/_official/examples/, so installing one row marked BOTH.
+    // Collapse duplicates to the first row and say so in the warnings.
+    // Prefix preference FIRST: the path under the source's declared prefix
+    // is the canonical twin, so it must win before seenIds keeps whichever
+    // stray enumeration order put first (extra/ sorts before skills/).
+    // Live GitHub paths carry the full prefix ('pstack/skills/x'), fixture
+    // walks are relative ('skills/x') - accept both shapes.
+    let ordered = enumed.skills
+    if (spec && spec.prefix) {
+      const roots = [spec.prefix, spec.prefix.split('/').slice(1).join('/')].filter((p) => p).map((p) => p + '/')
+      const canonical = enumed.skills.filter((sk) => roots.some((r) => sk.path.startsWith(r)))
+      if (canonical.length) ordered = [...canonical, ...enumed.skills.filter((sk) => !canonical.includes(sk))]
+    }
+    const seenIds = new Set()
+    const dupIds = new Set()
+    const deduped = []
+    for (const sk of ordered) {
+      if (seenIds.has(sk.id)) { dupIds.add(sk.id); continue }
+      seenIds.add(sk.id)
+      deduped.push(sk)
+    }
+    for (const sk of deduped) if (dupIds.has(sk.id)) sk.dup = true
+    enumed.skills = deduped
+    if (dupIds.size) {
+      // One short line per source — the panel prints details verbatim and
+      // upstream mirrors can drop hundreds of paths.
+      warnings.push({ code: 'source-duplicate-id', source: src.name, detail: 'source "' + src.name + '" has duplicate skill ids (kept first occurrence)' })
+    }
     if (!spec) {
       warnings.push({ code: 'source-no-repo', source: src.name, detail: 'source "' + src.name + '" has no github repo URL in the SKR - cannot enumerate' })
     } else if (enumed.error) {
@@ -318,16 +357,22 @@ async function buildSnapshot(sourcesRaw, enums, skillsDir, fixtureRoot) {
       warnings.push({ code: 'source-empty', source: src.name, detail: 'source "' + src.name + '" enumerated zero skills' + (spec.prefix ? ' under prefix "' + spec.prefix + '"' : '') + ' - upstream layout may have moved' })
     }
     const skills = []
+    // Overview: disk first, then the source repo's raw SKILL.md for
+    // uninstalled rows — prefetched five at a time (Reload Rememberer
+    // amendment; sequential fetching was the 341s harvest tail). Fixture
+    // mode never fetches (mock explosion guard stays).
+    const overviewCache = new Map()
+    if (spec && !fixtureRoot) {
+      const misses = enumed.skills.filter((sk) => !readOverview(skillsDir, sk.id, sk.entry))
+      await pool(misses, async (sk) => {
+        overviewCache.set(sk.id, await fetchOverview(spec.repo, sk.path, sk.entry))
+      })
+    }
     for (let ki = 0; ki < enumed.skills.length; ki++) {
       const sk = enumed.skills[ki]
       const installed = existsSync(join(skillsDir, sk.id))
-      // Overview: disk first, then the source repo's raw SKILL.md for
-      // uninstalled rows (sequential — gentle on raw.githubusercontent).
       let overview = readOverview(skillsDir, sk.id, sk.entry)
-      // Fixture-root mode (unit tests) enumerates from disk only — a
-      // per-skill raw.githubusercontent fetch here fired ~100 requests per
-      // refresh (mock explosion). Overview stays null; live mode unaffected.
-      if (!overview && spec && !fixtureRoot) overview = await fetchOverview(spec.repo, sk.path, sk.entry)
+      if (!overview && spec && !fixtureRoot) overview = overviewCache.get(sk.id) ?? null
       skills.push({
         n: (si + 1) + '.' + (ki + 1),
         id: sk.id,
@@ -336,11 +381,14 @@ async function buildSnapshot(sourcesRaw, enums, skillsDir, fixtureRoot) {
         installed,
         signed: signed.has(sk.id),
         installedFrom: signed.has(sk.id) ? signed.get(sk.id).source : null,
-        overview
+        overview,
+        ...(sk.dup ? { dup: true } : {})
       })
+      if (hooks.onSkillDone) hooks.onSkillDone()
     }
     const version = await harvestVersion(spec, src, fixtureRoot)
     sources.push({ id: src.name, name: src.name, author: src.author, authorUrl: src.authorUrl || null, version, repo: skrRepo(src), skills })
+    if (hooks.onSourceDone) hooks.onSourceDone(src.name)
   }
   return { v: CACHE_VERSION, generatedAt, sources, warnings }
 }
@@ -362,14 +410,73 @@ async function cmdRefresh(args) {
   const sourcesRaw = parseSkr(readFileSync(skrPath, 'utf8'))
   if (sourcesRaw.length === 0) fail(['SKR parsed to zero sources: ' + skrPath])
   const fixtureRoot = args['fixture-root'] ? resolve(args['fixture-root']) : null
-  const enums = []
-  for (const src of sourcesRaw) {
-    enums.push(fixtureRoot ? { skills: enumLocal(src, fixtureRoot), error: null } : await enumGitHub(src))
+  // --- progress sidecar (KB: the-progress-sidecar) ---
+  // The reload button polls GET /api/skills/progress which mirrors this
+  // file; absence = idle. Best-effort: a progress failure never fails
+  // the run. Env seam (SHELF_PROGRESS_PATH) matches the route's; the
+  // explicit flag wins. Only a --reload harvest writes it — plain
+  // refreshes (and the unit-test fixtures) stay sidecar-silent.
+  const progressPath = args['progress-path']
+    ? resolve(args['progress-path'])
+    : process.env.SHELF_PROGRESS_PATH
+      ? resolve(process.env.SHELF_PROGRESS_PATH)
+      : join(homedir(), '.dsi/resources/skr-progress.json')
+  const writeProgress = () => {
+    if (!args.reload && !args['progress-path'] && !process.env.SHELF_PROGRESS_PATH) return
+    try {
+      prog.updatedAt = new Date().toISOString()
+      mkdirSync(dirname(progressPath), { recursive: true })
+      writeFileSync(progressPath, JSON.stringify(prog))
+    } catch { /* best-effort */ }
   }
-  const snapshot = await buildSnapshot(sourcesRaw, enums, skillsDir, fixtureRoot)
-  mkdirSync(dirname(cachePath), { recursive: true })
-  writeFileSync(cachePath, JSON.stringify(snapshot, null, 2))
-  return { snapshot, reused: false }
+  const clearProgress = () => { try { rmSync(progressPath, { force: true }) } catch {} }
+  const prog = {
+    v: 1,
+    running: true,
+    done: 0,
+    total: sourcesRaw.length,
+    skillDone: 0,
+    skillTotal: 0,
+    sources: sourcesRaw.map((s) => ({ name: s.name, state: 'pending' })),
+    updatedAt: new Date().toISOString()
+  }
+  const hooks = {
+    onEnumStart(i) { prog.sources[i].state = 'working'; writeProgress() },
+    onEnumDone(i, count) { prog.skillTotal += count; writeProgress() },
+    onSkillDone() { prog.skillDone++; writeProgress() },
+    onSourceDone(name) {
+      const row = prog.sources.find((x) => x.name === name)
+      if (row) row.state = 'done'
+      prog.done++
+      writeProgress()
+    }
+  }
+  // Enumeration runs three sources at a time (Reload Rememberer: the
+  // full harvest was 341-378s sequential, 72-87s pooled).
+  const enums = new Array(sourcesRaw.length)
+  let enumNext = 0
+  const enumWorker = async () => {
+    while (enumNext < sourcesRaw.length) {
+      const i = enumNext++
+      hooks.onEnumStart(i)
+      const src = sourcesRaw[i]
+      const e = fixtureRoot ? { skills: enumLocal(src, fixtureRoot), error: null } : await enumGitHub(src)
+      enums[i] = e
+      hooks.onEnumDone(i, e.skills.length)
+    }
+  }
+  writeProgress()
+  try {
+    await Promise.all([enumWorker(), enumWorker(), enumWorker()])
+    const snapshot = await buildSnapshot(sourcesRaw, enums, skillsDir, fixtureRoot, hooks)
+    mkdirSync(dirname(cachePath), { recursive: true })
+    writeFileSync(cachePath, JSON.stringify(snapshot, null, 2))
+    return { snapshot, reused: false }
+  } finally {
+    // End of run — success, failure, or kill — absence means idle.
+    if (args['progress-keep']) writeProgress()
+    else clearProgress()
+  }
 }
 
 // --- signed apply (ADR D4 + D5) ---
@@ -492,7 +599,13 @@ async function cmdApply(args) {
     for (const id of targets) {
       const dir = join(skillsDir, id)
       const sigPath = join(dir, SIGNATURE_NAME)
-      if (!existsSync(dir)) { results.push({ id, ok: false, error: 'not installed: ' + id }); continue }
+      // A vanished folder (receipt and all) is ALREADY the requested end
+      // state - report success so the cached snapshot's flags flip and the
+      // row reconciles instead of deadlocking as an uninstallable ghost
+      // (2026-10-05: open-design rows uninstallable per cache, absent on
+      // disk, silently refused forever). D5 protects folders the shelf
+      // does not own; a missing folder owns nothing to protect.
+      if (!existsSync(dir)) { results.push({ id, ok: true, uninstalled: true, alreadyGone: true }); continue }
       if (!existsSync(sigPath)) { results.push({ id, ok: false, error: 'unsigned - not uninstallable via shelf (D5)' }); continue }
       try {
         const sig = JSON.parse(readFileSync(sigPath, 'utf8'))
@@ -513,10 +626,15 @@ async function cmdApply(args) {
     for (const r of results) {
       if (!r.ok) continue
       for (const src of snapshot.sources) {
-        const sk = src.skills.find((s) => s.id === (r.id ?? ''))
-        if (!sk) continue
-        if (action === 'install') { sk.installed = true; sk.signed = true; sk.installedFrom = src.id }
-        else { sk.installed = false; sk.signed = false; sk.installedFrom = null }
+        // A source can enumerate the SAME id twice (open-design ships
+        // dashboard at design-templates/ AND plugins/_official/examples/) -
+        // flipping only the first find() match leaves the twin as an
+        // uninstallable ghost (live-verified 2026-10-05). Flip every row.
+        for (const sk of src.skills) {
+          if (sk.id !== (r.id ?? '')) continue
+          if (action === 'install') { sk.installed = true; sk.signed = true; sk.installedFrom = src.id }
+          else { sk.installed = false; sk.signed = false; sk.installedFrom = null }
+        }
       }
     }
     writeFileSync(cachePath, JSON.stringify(snapshot, null, 2))
