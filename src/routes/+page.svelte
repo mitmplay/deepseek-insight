@@ -1104,6 +1104,17 @@ import {
 			const open = panels.find((p) => p.kind === 'skill-shelf');
 			if (open) {
 				selectedPanelId = open.id;
+				// BUG 2026-10-05: --reload already rebuilt the snapshot
+				// server-side, but dedupe-to-focus alone left the open panel
+				// showing its stale list — bump the session-only refresh
+				// token so the panel re-fetches.
+				if (request.reload) {
+					const idx = panels.indexOf(open);
+					panels = panels.with(idx, {
+						...(open as DsiSkillShelfPanel),
+						refresh: ((open as DsiSkillShelfPanel).refresh ?? 0) + 1
+					});
+				}
 				return;
 			}
 			const anchorIdx =
@@ -1122,6 +1133,14 @@ import {
 			const open = panels.find((p) => p.kind === 'plugin-rack');
 			if (open) {
 				selectedPanelId = open.id;
+				// Same refresh-token bump as the shelf's --reload dedupe.
+				if (request.reload) {
+					const idx = panels.indexOf(open);
+					panels = panels.with(idx, {
+						...(open as DsiPluginRackPanel),
+						refresh: ((open as DsiPluginRackPanel).refresh ?? 0) + 1
+					});
+				}
 				return;
 			}
 			const anchorIdx =
@@ -1784,6 +1803,7 @@ import {
 		     PanelColumn's chrome — the rack takes no onclose. -->
 		<div class="panel-manager-body" data-testid="panel-plugins">
 			<PluginManagerPanel
+				refreshToken={panel.refresh ?? 0}
 				initialTab={panel.tab ?? 'install'}
 				ontabchange={(v) => setRackTab(panel.id, v)}
 			/>
@@ -1794,6 +1814,7 @@ import {
 		     chrome — the shelf takes no onclose (2026-09-21). -->
 		<div class="panel-manager-body" data-testid="panel-skills">
 			<SettingsSkillsPanel
+				refreshToken={panel.refresh ?? 0}
 				initialTab={panel.tab ?? 'install'}
 				initialCollapsed={panel.collapsed ?? null}
 				initialSearch={panel.searchQ ?? ''}

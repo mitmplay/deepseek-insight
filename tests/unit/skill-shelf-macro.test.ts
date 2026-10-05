@@ -59,7 +59,10 @@ describe('/dsi-skills executor', () => {
 		const reloadIdx = calls.findIndex(([u]) => u === '/api/skills/reload');
 		expect(reloadIdx).toBeGreaterThanOrEqual(0);
 		expect(calls[reloadIdx][1]?.method).toBe('POST');
-		expect(added).toEqual([{ kind: 'skill-shelf', afterSessionId: 's1' }]);
+		// BUG 2026-10-05: the flag RIDES the add request — the floor bumps
+		// the open shelf's refresh token, else dedupe-to-focus shows a
+		// stale list.
+		expect(added).toEqual([{ kind: 'skill-shelf', afterSessionId: 's1', reload: true }]);
 	});
 	it('off-floor composer usage-errors honestly', async () => {
 		const notes: [boolean, string][] = [];

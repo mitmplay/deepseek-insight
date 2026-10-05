@@ -98,6 +98,7 @@ function walkLocal(root) {
   const out = []
   const walk = (dir) => {
     for (const entry of readdirSync(dir)) {
+      if (entry.startsWith('.')) continue // host mirrors (.agents/) are not skills
       const p = join(dir, entry)
       if (statSync(p).isDirectory()) walk(p)
       else if (entry === 'SKILL.md') out.push(dirname(p))
@@ -200,6 +201,11 @@ async function enumGitHub(src) {
     if (node.type !== 'blob') continue
     const parts = node.path.split('/')
     if (!ENTRY_FILES.includes(parts[parts.length - 1])) continue
+    // Host-mirror exclusion (BUG 2026-10-05): a prefix-less repo is scanned
+    // whole, which swept up .agents/skills/ host mirrors (DSI ships its
+    // slash-menu mirrors there) as duplicate rows — 12 rows for 9 skills.
+    // Dot-prefixed top dirs are host tooling, never published skills.
+    if (!spec.prefix && parts[0].startsWith('.')) continue
     if (spec.prefix && !node.path.startsWith(spec.prefix + '/')) continue
     const dirParts = parts.slice(0, -1)
     const id = dirParts[dirParts.length - 1]

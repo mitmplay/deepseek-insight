@@ -444,7 +444,9 @@ async function runPluginRack(
 	}
 	const added = addPanel({
 		kind: 'plugin-rack',
-		afterSessionId: ctx.sessionId
+		afterSessionId: ctx.sessionId,
+		// Same flag-rides rule as the shelf: an open rack must re-fetch.
+		...(reload ? { reload: true } : {})
 	});
 	if (!added) {
 		const note = '/dsi-plugins: the floor is not mounted';
@@ -489,7 +491,10 @@ async function runSkillShelf(
 	}
 	const added = addPanel({
 		kind: 'skill-shelf',
-		afterSessionId: ctx.sessionId
+		afterSessionId: ctx.sessionId,
+		// BUG 2026-10-05: the open shelf dedupes to FOCUS and never
+		// re-fetches — the flag must ride so the floor bumps its refresh.
+		...(reload ? { reload: true } : {})
 	});
 	if (!added) {
 		const note = '/dsi-skills: the floor is not mounted';

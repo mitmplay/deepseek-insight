@@ -18,13 +18,17 @@
 	import PluginManagerToolbar from './PluginManagerToolbar.svelte';
 
 	interface Props {
+		/** Session-only refresh token (BUG 2026-10-05, same contract as the
+		 *  shelf's): the floor bumps it on /dsi-plugins --reload dedupe so
+		 *  the open rack re-fetches the rebuilt snapshot. */
+		refreshToken?: number;
 		/** Persisted chrome (the explorer-tab pattern): the active pill tab.
 		 *  Junk sanitizes to 'install'. */
 		initialTab?: 'install' | 'uninstall';
 		/** Reports the active tab up to the panel entry (hard-reload survival). */
 		ontabchange?: (tab: 'install' | 'uninstall') => void;
 	}
-	let { initialTab = 'install', ontabchange }: Props = $props();
+	let { refreshToken = 0, initialTab = 'install', ontabchange }: Props = $props();
 
 	interface RackPlugin {
 		n: string;
@@ -175,6 +179,19 @@
 			busyId = null;
 		}
 	}
+
+	// The --reload-on-open-rack contract (BUG 2026-10-05): the floor bumps
+	// refreshToken after the server-side rebuild; the FIRST value is the
+	// mount itself (load in onMount), every CHANGE re-fetches.
+	// svelte-ignore state_referenced_locally -- intentional: the seed is the
+	// mount-time value; only later CHANGES re-fetch.
+	let lastRefreshToken = refreshToken;
+	$effect(() => {
+		if (refreshToken !== lastRefreshToken) {
+			lastRefreshToken = refreshToken;
+			void load();
+		}
+	});
 
 	onMount(() => {
 		void load();

@@ -125,6 +125,10 @@ export interface InjectedDocAddRequest {
 export interface SkillShelfPanelAddRequest {
 	kind: 'skill-shelf';
 	afterSessionId?: string;
+	/** The /dsi-skills --reload verb: the executor has ALREADY rebuilt the
+	 *  snapshot server-side; the floor must make the OPEN shelf re-fetch
+	 *  (dedupe-to-focus alone would show the stale list — BUG 2026-10-05). */
+	reload?: boolean;
 }
 /** The /dsi-plugins request (The Plugin Rack ADR, 2026-09-27, D1):
  *  aims the PluginManagerPanel - ONE live rack, the floor dedupes and
@@ -133,6 +137,8 @@ export interface SkillShelfPanelAddRequest {
 export interface PluginRackPanelAddRequest {
 	kind: 'plugin-rack';
 	afterSessionId?: string;
+	/** Same contract as the shelf's reload: the open rack must re-fetch. */
+	reload?: boolean;
 }
 
 export type AddPanelHandler = (request: PanelAddRequest) => void;

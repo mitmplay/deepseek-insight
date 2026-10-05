@@ -199,6 +199,10 @@
 	// stays null until the first snapshot seeds the ALL-COLLAPSED default
 	// (or the restored set arrives through initialCollapsed).
 	interface Props {
+		/** Session-only refresh token (BUG 2026-10-05): the floor bumps the
+		 *  panel entry's refresh counter when /dsi-skills --reload dedupes
+		 *  onto THIS open shelf — a change re-fetches the rebuilt snapshot. */
+		refreshToken?: number;
 		initialTab?: 'install' | 'uninstall';
 		initialCollapsed?: string[] | null;
 		initialSearch?: string;
@@ -212,6 +216,7 @@
 		onreloadchange?: (r: ReloadFeedback | null) => void;
 	}
 	let {
+		refreshToken = 0,
 		initialTab = 'install',
 		initialCollapsed = null,
 		initialSearch = '',
@@ -412,6 +417,19 @@
 			busy = false;
 		}
 	}
+
+	// The --reload-on-open-shelf contract (BUG 2026-10-05): the floor
+	// bumps refreshToken after the server-side rebuild; the FIRST value is
+	// the mount itself (loadSnapshot in onMount), every CHANGE re-fetches.
+	// svelte-ignore state_referenced_locally -- intentional: the seed is the
+	// mount-time value; only later CHANGES re-fetch.
+	let lastRefreshToken = refreshToken;
+	$effect(() => {
+		if (refreshToken !== lastRefreshToken) {
+			lastRefreshToken = refreshToken;
+			void loadSnapshot();
+		}
+	});
 
 	onMount(() => {
 		void loadSnapshot();

@@ -620,6 +620,11 @@ export interface DsiSkillShelfPanel {
 	 *  reload; a 'done' blob lives out its remaining 5s window (doneAt =
 	 *  ABSOLUTE expiry epoch ms, startedAt = run provenance). Absent = idle. */
 	reload?: ReloadFeedback | null;
+	/** Session-only refresh counter (BUG 2026-10-05): bumped by the floor
+	 *  when /dsi-skills --reload dedupes onto THIS open shelf so the panel
+	 *  re-fetches the rebuilt snapshot. Deliberately NOT persisted — the
+	 *  sanitizer strips it; a hard reload remounts the panel anyway. */
+	refresh?: number;
 }
 
 /** The plugin-rack branch (The Plugin Rack ADR, 2026-09-27, D1) — hosts
@@ -634,6 +639,9 @@ export interface DsiPluginRackPanel {
 	/** Persisted chrome (the explorer-tab pattern): the active pill tab.
 	 *  Junk sanitizes to 'install'. */
 	tab?: 'install' | 'uninstall';
+	/** Session-only refresh counter (BUG 2026-10-05, same contract as the
+	 *  shelf's): bumped by the floor on /dsi-plugins --reload dedupe. */
+	refresh?: number;
 }
 
 /** The conversation branch - renders one DSH session's transcript. */
