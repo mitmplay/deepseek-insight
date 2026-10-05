@@ -1,3 +1,8 @@
+---
+name: dsh-jump-prepare-fix
+description: Use when a DSH edition jump dies with "Cannot read properties of undefined (reading 'prepare')" on every tool call — one verified cause class (the scheduler-Symbol split between module copies) and one validated fix.
+---
+
 # DSH Jump Unstick — the `prepare` Scheduler-Symbol Split
 
 Every DSH edition jump that dies with `Cannot read properties of undefined
