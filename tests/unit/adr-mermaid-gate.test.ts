@@ -15,7 +15,7 @@ import { describe, it, expect } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-function adrFiles(dir, acc: string[] = []): string[] {
+function adrFiles(dir: string, acc: string[] = []): string[] {
 	for (const entry of readdirSync(dir)) {
 		const p = join(dir, entry);
 		if (statSync(p).isDirectory()) adrFiles(p, acc);

@@ -545,16 +545,17 @@ export interface QueryTerm {
 }
 
 /**
- * Split a `?`-search key into keyword terms (ADR S1): split on `;` and
- * whitespace, trim, drop empties, dedupe (case-insensitive, first spelling
- * wins). `load;skill;feature-spec` → [load, skill, feature-spec];
- * `load;;skill;` → [load, skill]; single term → array of one — the caller
- * decides which path runs. Empty/blank key → []. Pure; exported for tests.
+ * Split a `?`-search key into keyword terms (ADR S1; separator charset
+ * widened by ADR-0014 D2): split on `,`, `;`, `+`, or whitespace, trim,
+ * drop empties, dedupe (case-insensitive, first spelling wins).
+ * `adr, spec + task` → [adr, spec, task]; `load;;skill;` → [load, skill];
+ * single term → array of one — the caller decides which path runs.
+ * Empty/blank key → []. Pure; exported for tests.
  */
 export function splitQueryTerms(key: string): QueryTerm[] {
 	const seen = new Set<string>();
 	const terms: QueryTerm[] = [];
-	for (const frag of key.split(/[;\s]+/)) {
+	for (const frag of key.split(/[,;+\s]+/)) {
 		const raw = frag.trim();
 		if (!raw) continue;
 		const lower = raw.toLowerCase();

@@ -380,3 +380,174 @@ describe('FilesEditedCard (task 3.2-T, chip-default contract)', () => {
 		expect(target.isConnected).toBe(false);
 	});
 });
+
+/**
+ * The Markdown Cards (ADR-0013, tasks 1.1-T / 1.2-T): summary-derived
+ * md-created classification, grid before the list, totals header, and
+ * the onFileOpen seat (D5). The host forwards onFileOpen (test 1.2-T).
+ */
+const MD_SUMMARY = {
+	turn: 1,
+	total: 3,
+	added: 663,
+	deleted: 4,
+	files: [
+		{ path: 'dev/architectural-decission/ADR-0013.md', display: 'dev/architectural-decission/ADR-0013.md', added: 132, deleted: 0 },
+		{ path: 'dev/specs/PRD.md', display: 'dev/specs/PRD.md', added: 116, deleted: 0 },
+		{ path: 'src/lib/types.ts', display: 'src/lib/types.ts', added: 3, deleted: 4 }
+	]
+};
+
+describe('FilesEditedCard — the markdown cards (ADR-0013)', () => {
+	it('md-created turn: grid FIRST, two-per-row, totals header, basename and directory', async () => {
+		vi.stubGlobal('fetch', vi.fn(() => new Response(JSON.stringify({ ok: true, summary: MD_SUMMARY }), { status: 200 })));
+		const { target, cleanup } = mountCard({ sessionId: 's1', turn: 1, seq: 5 });
+		expand(target);
+		await vi.waitFor(() => {
+			expect(target.querySelector('[data-testid="files-edited-md-grid"]')).not.toBeNull();
+		});
+		const card = target.querySelector('[data-testid="files-edited-card"]')!;
+		const grid = target.querySelector('[data-testid="files-edited-md-grid"]') as HTMLElement;
+		expect(grid.nextElementSibling?.tagName).toBe('UL'); // grid seats before the list
+		expect(grid.className).toContain('grid-cols-2'); // two per row
+		const cards = [...grid.querySelectorAll('[data-testid="files-edited-md-card"]')];
+		expect(cards).toHaveLength(2);
+		expect(cards[0]!.textContent).toContain('ADR-0013.md');
+		expect(cards[0]!.textContent).toContain('dev/architectural-decission');
+		expect(cards[0]!.textContent).toContain('+132');
+		expect(card.textContent).toContain('+663'); // totals header
+		expect(card.textContent).toContain('−4');
+		expect(card.querySelector('ul')?.textContent).toContain('ADR-0013.md'); // list keeps everything
+		cleanup();
+	});
+
+	it('clicking a card emits onFileOpen with the display path (D5 seat, task 1.2-T)', async () => {
+		vi.stubGlobal('fetch', vi.fn(() => new Response(JSON.stringify({ ok: true, summary: MD_SUMMARY }), { status: 200 })));
+		const { target, cleanup } = mountCard({ sessionId: 's1', turn: 1, seq: 5 });
+		expand(target);
+		await vi.waitFor(() => {
+			expect(target.querySelector('[data-testid="files-edited-md-grid"]')).not.toBeNull();
+		});
+		// no seat passed — the click is inert, never throws
+		(target.querySelector('[data-testid="files-edited-md-card"]') as HTMLElement).dispatchEvent(
+			new MouseEvent('click', { bubbles: true })
+		);
+		flushSync();
+		cleanup();
+
+		const seen: string[] = [];
+		const target2 = document.body.appendChild(document.createElement('div'));
+		const comp = mount(FilesEditedHost, { target: target2, props: { sessionId: 's1', turn: 1, seq: 5, onFileOpen: (p: string) => seen.push(p) } });
+		expand(target2);
+		await vi.waitFor(() => {
+			expect(target2.querySelector('[data-testid="files-edited-md-grid"]')).not.toBeNull();
+		});
+		(target2.querySelector('[data-testid="files-edited-md-card"]') as HTMLElement).dispatchEvent(
+			new MouseEvent('click', { bubbles: true })
+		);
+		flushSync();
+		expect(seen).toEqual(['dev/architectural-decission/ADR-0013.md']);
+		unmount(comp);
+		target2.remove();
+	});
+
+	it('edit-only turn: no grid, totals header still present', async () => {
+		const { target, cleanup } = mountCard({ sessionId: 's1', turn: 7, seq: 41 });
+		expand(target);
+		await vi.waitFor(() => {
+			expect(target.querySelector('[data-testid="files-edited-card"]')).not.toBeNull();
+		});
+		expect(target.querySelector('[data-testid="files-edited-md-grid"]')).toBeNull();
+		const card = target.querySelector('[data-testid="files-edited-card"]')!;
+		expect(card.textContent).toContain('+12');
+		expect(card.textContent).toContain('−3');
+		cleanup();
+	});
+
+	it('UPDATED markdown rides the grid too (ADR-0013 v2): added 40 / deleted 12 → card with +40 and −12', async () => {
+		vi.stubGlobal('fetch', vi.fn(() =>
+			new Response(JSON.stringify({
+				ok: true,
+				summary: {
+					turn: 1, total: 2, added: 43, deleted: 12,
+					files: [
+						{ path: 'docs/guide.md', display: 'docs/guide.md', added: 40, deleted: 12 },
+						{ path: 'src/a.ts', display: 'src/a.ts', added: 3, deleted: 0 }
+					]
+				}
+			}), { status: 200 })
+		));
+		const { target, cleanup } = mountCard({ sessionId: 's1', turn: 1, seq: 5 });
+		expand(target);
+		await vi.waitFor(() => {
+			expect(target.querySelector('[data-testid="files-edited-md-grid"]')).not.toBeNull();
+		});
+		const cards = [...target.querySelectorAll('[data-testid="files-edited-md-card"]')];
+		expect(cards).toHaveLength(1);
+		expect(cards[0]!.textContent).toContain('guide.md');
+		expect(cards[0]!.textContent).toContain('+40');
+		expect(cards[0]!.textContent).toContain('−12');
+		cleanup();
+	});
+
+	it('pure-deletion markdown (added 0 / deleted 6) is a real content change → card with −6 and no + chip (ADR-0013 v2)', async () => {
+		vi.stubGlobal('fetch', vi.fn(() =>
+			new Response(JSON.stringify({
+				ok: true,
+				summary: {
+					turn: 1, total: 1, added: 0, deleted: 6,
+					files: [{ path: 'docs/old.md', display: 'docs/old.md', added: 0, deleted: 6 }]
+				}
+			}), { status: 200 })
+		));
+		const { target, cleanup } = mountCard({ sessionId: 's1', turn: 1, seq: 5 });
+		expand(target);
+		await vi.waitFor(() => {
+			expect(target.querySelector('[data-testid="files-edited-md-grid"]')).not.toBeNull();
+		});
+		const cards = [...target.querySelectorAll('[data-testid="files-edited-md-card"]')];
+		expect(cards).toHaveLength(1);
+		expect(cards[0]!.textContent).toContain('old.md');
+		expect(cards[0]!.textContent).toContain('−6');
+		expect(cards[0]!.textContent).not.toContain('+0');
+		cleanup();
+	});
+
+	it('metadata-only markdown row (added 0 / deleted 0) still yields NO card (ADR-0013 v2)', async () => {
+		vi.stubGlobal('fetch', vi.fn(() =>
+			new Response(JSON.stringify({
+				ok: true,
+				summary: {
+					turn: 1, total: 1, added: 0, deleted: 0,
+					files: [{ path: 'docs/touched.md', display: 'docs/touched.md', added: 0, deleted: 0 }]
+				}
+			}), { status: 200 })
+		));
+		const { target, cleanup } = mountCard({ sessionId: 's1', turn: 1, seq: 5 });
+		expand(target);
+		await vi.waitFor(() => {
+			expect(target.querySelector('[data-testid="files-edited-card"]')).not.toBeNull();
+		});
+		expect(target.querySelector('[data-testid="files-edited-md-grid"]')).toBeNull();
+		cleanup();
+	});
+
+	it('binary .md never becomes a card (D4)', async () => {
+		vi.stubGlobal('fetch', vi.fn(() =>
+			new Response(JSON.stringify({
+				ok: true,
+				summary: {
+					turn: 1, total: 1, added: 5, deleted: 0,
+					files: [{ path: 'notes.md', display: 'notes.md', added: 5, deleted: 0, binary: true as const }]
+				}
+			}), { status: 200 })
+		));
+		const { target, cleanup } = mountCard({ sessionId: 's1', turn: 1, seq: 5 });
+		expand(target);
+		await vi.waitFor(() => {
+			expect(target.querySelector('[data-testid="files-edited-card"]')).not.toBeNull();
+		});
+		expect(target.querySelector('[data-testid="files-edited-md-grid"]')).toBeNull();
+		cleanup();
+	});
+});

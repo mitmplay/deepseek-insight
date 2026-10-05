@@ -136,7 +136,7 @@ Output a checklist of ALL tasks for the current wave, INCLUDING the behavioral c
    [ ]  Unit tests pass (npx node --test or npm test) — MANDATORY, not optional
    [ ]  Type-check zero new errors: if `npm run check` exits non-zero from pre-existing errors, grep output for this wave's exact new file paths — 0 hits satisfies the gate ONLY when the error count also matches the wave-start check counts. When the wave adds or changes a field on a shared type (interface/type alias), pre-existing object-literal fixtures typed as that interface break in files outside the wave list: the wave-file grep returns 0 hits while the count rises, so adjudicate every count delta by listing diagnostics per file (`--output machine`); errors naming the changed type are this wave's lockstep obligation — extend the fixture in-wave; prove the rest pre-existing via `git log --oneline -- <file>` (last-touch commit predates the wave) plus empty `git diff --stat HEAD -- <file>`. The same git-log proof settles a hit in a different file sharing a name substring; fall back to `git stash` → re-run check → confirm same hit on clean baseline → `git stash pop` only when history is ambiguous. Never judge by raw error-count deltas against a `git stash -u` baseline: `-u` also stashes new untracked test files, and the fix itself may resolve pre-existing errors — current < baseline is normal and proves nothing. A stash baseline only adjudicates files tracked in both states: plain `git stash` leaves this wave's untracked new files in the worktree, so they compile against the reverted tracked code and the baseline sprouts phantom errors in this wave's own files (e.g. missing-export errors the stash itself created) — classify those baseline hits as stash artifacts and settle them by grepping the intact worktree instead
 <!-- RCA: 2026-08-16 openclaw-insight ControlRail Wave 1 — adding required `deleted_at` to the shared Feature interface broke the untouched wave-prompt.test.ts fixture; wave-file grep said 0 hits while 26e→27e. Delta adjudication via machine diagnostics fixed the lockstep fixture in-wave; git-log + empty-diff proved the sibling sessionKey/TaskData errors pre-existing. -->
-   [ ]  Playwright regression: zero failures vs baseline ⊘ (skip if no Playwright)
+   [ ]  Playwright regression: zero failures vs baseline — SCOPED: only specs exercising the touched surface (e.g. suggest-strip / prompt-macro / typed-run for composer-parser waves); full suite only when the wave itself adds e2e tests ⊘ (skip if no relevant spec)
    [ ]  User acknowledged completion
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
@@ -265,7 +265,7 @@ Before declaring a wave complete, output the final checklist with ALL items chec
 
 If any `[ ]` remains: fix it, do NOT proceed to next wave.
 
-If Playwright tests are part of the wave: run `npx playwright test --reporter=list` and show results.
+If Playwright tests are part of the wave: run `npx playwright test --reporter=list` and show results. Otherwise run only the existing specs that exercise the touched surface (adjudicate every failure against a stash baseline: fails-without-the-diff = pre-existing, document, do not rewrite) — a wave that changes no DOM contract never owes the full default suite. RCA 2026-10-05 deepseek-insight Line Trigger W1: a parser-pure wave ran the full suite; minutes of port-orphan flakiness surfaced zero feature regressions while the scoped specs were green in seconds.
 <!-- RCA: AI-Research/Troubleshooting/2026-06-11 - ADDITIONAL_PAGES Three Generations Same Bug - RCA.md -->
 
 ---

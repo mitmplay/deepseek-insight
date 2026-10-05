@@ -413,6 +413,22 @@ describe('splitQueryTerms', () => {
 		]);
 		expect(splitQueryTerms('   ')).toEqual([]);
 	});
+
+	it('splits on , and + too (ADR-0014 D2), parity with client splitKey fixture', () => {
+		expect(splitQueryTerms('adr, spec + task')).toEqual([
+			{ raw: 'adr', lower: 'adr' },
+			{ raw: 'spec', lower: 'spec' },
+			{ raw: 'task', lower: 'task' }
+		]);
+		expect(splitQueryTerms('load,skill')).toEqual([
+			{ raw: 'load', lower: 'load' },
+			{ raw: 'skill', lower: 'skill' }
+		]);
+		expect(splitQueryTerms('a,,+ b')).toEqual([
+			{ raw: 'a', lower: 'a' },
+			{ raw: 'b', lower: 'b' }
+		]);
+	});
 });
 
 describe('fuzzy math (server-local exports)', () => {

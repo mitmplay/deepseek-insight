@@ -19,7 +19,11 @@
 	 * {@html} sink (BC-12).
 	 */
 
-	let { turn, seq }: { turn: number; seq: number } = $props();
+	let {
+		turn,
+		seq,
+		onFileOpen
+	}: { turn: number; seq: number; onFileOpen?: (path: string) => void } = $props();
 
 	interface EditedFile {
 		path: string;
@@ -92,6 +96,41 @@
 		}
 	}
 
+	// ── The Markdown Cards (ADR-0013, v2): files that LOOK written-and-changed
+	// — a .md path with a REAL content change (added > 0 OR deleted > 0),
+	// neither binary nor oversized — rank first as a two-per-row card grid.
+	// Created AND updated markdown ride the same grid (v2 amendment: the
+	// deleted === 0 rule buried updated docs — the Updated Markdown
+	// Incident). Summary-derived heuristic — not host truth (D1); title
+	// basename, description directory (D2); grid seats before the list
+	// (D3); clicking opens the file through the onFileOpen seat — the
+	// transcript's file-link pipeline (D5).
+	interface MdCard {
+		path: string;
+		title: string;
+		dir: string;
+		added: number;
+		deleted: number;
+	}
+	const mdCards = $derived.by<MdCard[]>(() => {
+		if (summary === null) return [];
+		const cards: MdCard[] = [];
+		for (const f of summary.files) {
+			if (!f.path.endsWith('.md')) continue;
+			if (f.added <= 0 && f.deleted <= 0) continue;
+			if (f.binary === true || f.oversized === true) continue;
+			const cut = f.display.lastIndexOf('/');
+			cards.push({
+				path: f.display,
+				title: cut === -1 ? f.display : f.display.slice(cut + 1),
+				dir: cut === -1 ? '' : f.display.slice(0, cut),
+				added: f.added,
+				deleted: f.deleted
+			});
+		}
+		return cards;
+	});
+
 	// ── Hover-diff (highlight immediately, diff after 1s — shortened from
 	// the DSH 2s parity value, operator request 2026-09-25) ──
 	const HOVER_DIFF_MS = 1000;
@@ -160,13 +199,51 @@
 				class="my-1 rounded-lg bg-slate-50 px-2.5 py-1.5 text-[11px] ring-1 ring-slate-200"
 				data-testid="files-edited-card"
 			>
-				<div class="mb-1 font-medium text-slate-600">
-					{#if s.total === 1}
-						{t(m.editedFilesTitleOne)}
-					{:else}
-						{t(() => m.editedFilesTitle({ count: s.total }))}
-					{/if}
+				<div class="mb-1 flex items-center gap-2 font-medium text-slate-600">
+					<span>
+						{#if s.total === 1}
+							{t(m.editedFilesTitleOne)}
+						{:else}
+							{t(() => m.editedFilesTitle({ count: s.total }))}
+						{/if}
+					</span>
+					<span class="font-mono text-[10px]">
+						<span class="text-emerald-600">+{s.added}</span>
+						<span class="text-red-500"> −{s.deleted}</span>
+					</span>
 				</div>
+				{#if mdCards.length > 0}
+					<!-- The Markdown Cards (ADR-0013 D3): documents first, two per row. -->
+					<div class="mb-1.5 grid grid-cols-2 gap-1.5" data-testid="files-edited-md-grid">
+						{#each mdCards as card (card.path)}
+							<button
+								type="button"
+								class="flex items-start gap-1.5 rounded-md bg-white px-1.5 py-1 text-left ring-1 ring-slate-200
+									transition-colors hover:ring-accent-purple/40 hover:bg-accent-purple/5 cursor-pointer"
+								data-testid="files-edited-md-card"
+								title={card.path}
+								onclick={() => onFileOpen?.(card.path)}
+							>
+								<span
+									class="shrink-0 rounded bg-accent-purple/15 px-1 py-px text-[9px] font-bold text-accent-purple"
+									aria-hidden="true">MD</span
+								>
+								<span class="min-w-0 flex-1">
+									<span class="block truncate font-medium text-slate-700">{card.title}</span>
+									{#if card.dir !== ''}
+										<span class="block truncate text-[10px] text-slate-400">{card.dir}</span>
+									{/if}
+								</span>
+								{#if card.added > 0}
+									<span class="shrink-0 font-mono text-[10px] text-emerald-600">+{card.added}</span>
+								{/if}
+								{#if card.deleted > 0}
+									<span class="shrink-0 font-mono text-[10px] text-red-500">−{card.deleted}</span>
+								{/if}
+							</button>
+						{/each}
+					</div>
+				{/if}
 				<ul class="space-y-0.5">
 					{#each s.files as file, i (file.path)}
 						<li

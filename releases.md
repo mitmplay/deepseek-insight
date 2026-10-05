@@ -1,5 +1,18 @@
 # Releases
 
+## v0.6.5
+
+Bumped from v0.6.4 — the composer's shelf finder learns to answer mid-draft and markdown documents keep their cards after an update.
+
+### Features
+
+- **The Line Trigger** (e960f19, ADR-0014) — the composer's `?` shelf finder fires at the start of ANY line, not only line one, so boilerplate can be pulled from the shelf below typed prose (`?adr, spec + task`); the term splitter accepts `,` and `+` alongside `;` and whitespace, client and server in lockstep. Run mode (`!`) stays draft-scoped by design. Tests: tests/unit/prompt-trigger.test.ts (ADR-0014 describe), tests/unit/prompts-db.test.ts (widened parity fixture).
+- **The Markdown Cards** (b1bb0b6, ADR-0013) — inside the expanded FilesEditedCard, created markdown renders first as a two-per-row card grid (MD badge, basename, directory, counts) before the flat list; clicking opens the file through the transcript's file-link pipeline. Tests: tests/unit/files-edited-card.test.ts.
+
+### Bug fixes
+
+- **Updated markdown keeps its card — The Updated Markdown Incident** (67fa90b, ADR-0013 v2) — the original `deleted === 0` heuristic dropped a markdown file from the card grid on any turn that edited it after creation, burying the most recently changed document in the flat list. Amended rule: a card is a `.md` path with a real content change (added > 0 OR deleted > 0); the card now shows symmetric +/− count chips. Tests: the "UPDATED markdown rides the grid too" / "pure-deletion markdown" / "metadata-only" block in tests/unit/files-edited-card.test.ts (shown red before the fix).
+
 ## v0.6.4
 
 Bumped from v0.6.3 — the turn-usage surface stops under-counting: the provider's exact total becomes the headline and the detail rows always sum to it (The Exact Total, ADR-0012).

@@ -67,7 +67,8 @@
 		ontoggleChip,
 		ontogglePeek,
 		autoThinkId = null,
-		autoPlanId = null
+		autoPlanId = null,
+		onFileOpen = undefined
 	}: {
 		/** The run's entries, wire order (splitRuns chips branch) — chips
 		 *  and the context injections the open turn absorbed. */
@@ -92,6 +93,9 @@
 		/** Auto-opened current-plan entry id (STICKY — survives newer
 		 *  thinks and turn end until superseded or collapsed). */
 		autoPlanId?: string | null;
+		/** Page-owned file-open seat (ADR-0013 D5): the markdown cards'
+		 *  click lands here — the transcript's file-link pipeline. */
+		onFileOpen?: (path: string) => void;
 	} = $props();
 
 	/** Effective open of ONE chip: the manual pick, or its auto slot. */
@@ -249,7 +253,7 @@
 			<!-- Edited-Files Card (ADR 2026-09-25, D1): a turn-level
 			     announcement, not a tool call — renders as its own card,
 			     never a chip. sessionId rides session context. -->
-			<FilesEditedCard turn={entry.turn} seq={entry.seq} />
+			<FilesEditedCard turn={entry.turn} seq={entry.seq} {onFileOpen} />
 		{:else if entry.kind === 'unknown-event'}
 			<ToolCallChip
 				kind="unknown"

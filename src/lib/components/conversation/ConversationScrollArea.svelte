@@ -64,6 +64,7 @@
 		/** File Link Intent (ADR 2026-09-25 D2): forwarded to assistant markdown
 		 *  anchors — the route supplies the gated explorer opener. */
 		onFileLink = undefined,
+		onFileOpen = undefined,
 		sessionId,
 		title = null,
 		agentPreset = null,
@@ -101,6 +102,8 @@
 		settledCards: AnswerView[];
 		onanswer: (rpcId: string, payload: Record<string, unknown>) => void;
 		onFileLink?: (href: string) => void;
+		/** Page-owned file-open seat for the markdown cards (ADR-0013 D5). */
+		onFileOpen?: (path: string) => void;
 		sessionId: string;
 		/** Live title — the fork-here child's best-effort " (fork)" rename
 		 *  seed (the header fork button reads the same value). */
@@ -365,6 +368,7 @@
 								ontogglePeek={() => ontogglepeek(escKey)}
 								{autoThinkId}
 								{autoPlanId}
+								{onFileOpen}
 							/>
 						{/if}
 						{#if openTurns.has(group.key)}
@@ -382,6 +386,7 @@
 										ontogglePeek={() => ontogglepeek(run.key)}
 										{autoThinkId}
 										{autoPlanId}
+										{onFileOpen}
 									/>
 								{/if}
 							{/each}
@@ -400,6 +405,7 @@
 									ontogglePeek={() => ontogglepeek(run.key)}
 									{autoThinkId}
 									{autoPlanId}
+									{onFileOpen}
 								/>
 							{/if}
 						{/each}
@@ -423,6 +429,7 @@
 									ontogglePeek={() => ontogglepeek(run.key)}
 									{autoThinkId}
 									{autoPlanId}
+									{onFileOpen}
 								/>
 							{/if}
 						{/each}

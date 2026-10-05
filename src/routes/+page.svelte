@@ -1891,6 +1891,7 @@ import {
 				panelId={floorPanelId}
 				sessionId={p.sessionId}
 				onFileLink={(href) => void openFileLinkFromMarkdown(p.sessionId, href)}
+				onFileOpen={(path) => void openFileLinkFromMarkdown(p.sessionId, path)}
 				title={panelTitleFor(p.sessionId)}
 				workspace={panelWorkspaceFor(p.sessionId)}
 				workspaces={spineWorkspaces}
@@ -1922,6 +1923,7 @@ import {
 					panelId={floorPanelId}
 					sessionId={p.sessionId}
 					onFileLink={(href) => void openFileLinkFromMarkdown(p.sessionId, href)}
+				onFileOpen={(path) => void openFileLinkFromMarkdown(p.sessionId, path)}
 					title={panelTitleFor(p.sessionId)}
 					workspace={panelWorkspaceFor(p.sessionId)}
 					workspaces={spineWorkspaces}

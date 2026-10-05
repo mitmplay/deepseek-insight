@@ -43,9 +43,9 @@ describe('getTrigger — activation (ADR §4)', () => {
 		expect(getTrigger('?', 1)).toBeNull();
 	});
 
-	it('newline in before-caret text kills the trigger (single-line finder)', () => {
+	it('a span without a trigger char after a newline is inert', () => {
 		expect(getTrigger('?a\nb', 4)).toBeNull();
-		expect(getTrigger('hello\n?load', 11)).toBeNull();
+		expect(getTrigger('hello\nload', 10)).toBeNull();
 	});
 
 	it('caret sensitivity: only text before the caret counts', () => {
@@ -73,9 +73,9 @@ describe('getTrigger — activation (ADR §4)', () => {
 		expect(getTrigger('!', 1)).toBeNull();
 	});
 
-	it('newline in before-caret text kills the bang trigger (single-line finder)', () => {
-		expect(getTrigger('!a\nb', 4)).toBeNull();
-		expect(getTrigger('hello\n!oci', 10)).toBeNull();
+	it('run stays draft-scoped (ADR-0014 D3): a mid-draft ! span is inert', () => {
+		expect(getTrigger('!a\nb', 4)).toBeNull(); // span "b" carries no trigger
+		expect(getTrigger('hello\n!oci', 10)).toBeNull(); // ! never fires mid-draft
 	});
 
 	it('caret sensitivity: only text before the caret counts', () => {
@@ -90,6 +90,30 @@ describe('getTrigger — activation (ADR §4)', () => {
 	it('spaces allowed — multi-keyword bang queries work', () => {
 		expect(getTrigger('!new code', 9)).toBe('!new code');
 	});
+	});
+
+	describe('getTrigger — the line trigger (ADR-0014 D1/D3)', () => {
+		it('"?"-led spans activate on ANY line of the draft', () => {
+			const text = 'prose line one\n?adr, spec + task';
+			expect(getTrigger(text, text.length)).toBe('?adr, spec + task');
+			expect(getTrigger('a\n\n?load', 8)).toBe('?load');
+		});
+
+		it('mid-line "?" is still not a trigger (line-start rule holds)', () => {
+			expect(getTrigger('see screenshot#2 ?adr', 21)).toBeNull();
+		});
+
+		it('the span is line-scoped: text after the caret never counts', () => {
+			expect(getTrigger('para\n?load trailing', 10)).toBe('?load');
+		});
+
+		it('bare "?" on a later line stays inactive (MIN_QUERY_LEN)', () => {
+			expect(getTrigger('para\n?', 6)).toBeNull();
+		});
+
+		it('"!" on a later line stays inactive (run is draft-scoped, D3)', () => {
+			expect(getTrigger('para\n!oci', 9)).toBeNull();
+		});
 	});
 
 	describe('triggerMode / TRIGGER_CHARS (D1)', () => {
@@ -145,6 +169,12 @@ describe('splitKey — ";"/whitespace AND semantics (ADR §4)', () => {
 		expect(splitKey('single-term')).toEqual(['single-term']);
 		expect(splitKey('')).toEqual([]);
 		expect(splitKey(';;;')).toEqual([]);
+	});
+
+	it('splits on "," and "+" too (ADR-0014 D2): the operator spelling works', () => {
+		expect(splitKey('adr, spec + task')).toEqual(['adr', 'spec', 'task']);
+		expect(splitKey('load,skill')).toEqual(['load', 'skill']);
+		expect(splitKey('a,,+ b')).toEqual(['a', 'b']);
 	});
 });
 

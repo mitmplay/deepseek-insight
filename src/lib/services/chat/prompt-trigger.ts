@@ -60,20 +60,24 @@ export function triggerMode(query: string): TriggerMode {
 
 /**
  * Extract the finder trigger from input text + caret position.
- * Active when the text before the caret starts with a trigger char
- * ("?" find, "!" run — identical rules) and carries at least one more
- * character, with no newline in the before-caret slice (the finder is
- * single-line). Spaces are fine — multi-keyword queries are the
- * ";"-and-whitespace AND search.
+ * The query span is the slice from the start of the caret's LINE to the
+ * caret (ADR-0014 The Line Trigger D1): "?"-led spans activate on ANY
+ * line, so mid-draft shelf lookups work. "!"-led spans (run) stay
+ * first-line-only (D3): run-accept clears the whole draft, so a run
+ * trigger mid-draft would destroy the prose above it. The span never
+ * contains a newline by construction. Spaces are fine — multi-keyword
+ * queries are the ";"/","/"+"-and-whitespace AND search.
  * Returns the query including the trigger char, or null when inactive.
  */
 export function getTrigger(text: string, caret: number): string | null {
 	const before = text.slice(0, caret);
-	const lead = before[0];
+	const lineStart = before.lastIndexOf('\n') + 1;
+	const span = before.slice(lineStart);
+	const lead = span[0];
 	if (lead !== '?' && lead !== '!') return null;
-	if (before.length < 1 + MIN_QUERY_LEN) return null;
-	if (before.includes('\n')) return null; // finder stays single-line
-	return before;
+	if (span.length < 1 + MIN_QUERY_LEN) return null;
+	if (lead === '!' && lineStart > 0) return null; // run stays draft-scoped (D3)
+	return span;
 }
 
 /** Query-less search key sent to the server ("?load" → "load"; "!oci"
@@ -83,17 +87,17 @@ export function searchKey(query: string): string {
 }
 
 /**
- * Split a search key into keyword terms (AND semantics): split on ";" and
- * whitespace, trim, drop empties, dedupe case-insensitively (first
- * spelling wins). Mirrors the server-side splitQueryTerms in prompts/db.ts
- * — a shared unit test pins the parity (a single source would cross the
- * server/client boundary). `?load;skill;feature-spec` → ["load", "skill",
- * "feature-spec"].
+ * Split a search key into keyword terms (AND semantics): split on ";",
+ * ",", "+", or whitespace, trim, drop empties, dedupe case-insensitively
+ * (first spelling wins). Mirrors the server-side splitQueryTerms in
+ * prompts/db.ts — a shared unit test pins the parity (a single source
+ * would cross the server/client boundary). `?adr, spec + task` →
+ * ["adr", "spec", "task"] (ADR-0014 D2).
  */
 export function splitKey(key: string): string[] {
 	const seen = new Set<string>();
 	const terms: string[] = [];
-	for (const frag of key.split(/[;\s]+/)) {
+	for (const frag of key.split(/[,;+\s]+/)) {
 		const raw = frag.trim();
 		if (!raw) continue;
 		const lower = raw.toLowerCase();

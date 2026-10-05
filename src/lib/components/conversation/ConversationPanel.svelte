@@ -92,7 +92,9 @@ import { appConfig } from '$lib/services/config/app-config.svelte';
 		onOpenExplorer = undefined,
 		/** File Link Intent (ADR 2026-09-25 D1/D2): transcript file links become
 		 *  explorer intents — the route supplies the gated handler. */
-		onFileLink = undefined
+		onFileLink = undefined,
+		/** Page-owned file-open seat for the markdown cards (ADR-0013 D5). */
+		onFileOpen = undefined
 	}: {
 		/** Owning floor panel's id (the /new successor swap targets it; null
 		 * outside a floor — /new then reports it cannot run here). */
@@ -180,6 +182,8 @@ import { appConfig } from '$lib/services/config/app-config.svelte';
 		 *  ADR D4) — pass-through to the header's identity cluster. */
 		onOpenExplorer?: (sessionId: string, workspace: string) => void;
 		onFileLink?: (href: string) => void;
+		/** Page-owned file-open seat for the markdown cards (ADR-0013 D5). */
+		onFileOpen?: (path: string) => void;
 	} = $props();
 
 	// Embedded mode (OCI panel-context port, 2026-08-24 — the per-panel
@@ -936,6 +940,7 @@ import { appConfig } from '$lib/services/config/app-config.svelte';
 		{settledCards}
 		onanswer={(rpcId, payload) => void onanswer(rpcId, payload)}
 		onFileLink={onFileLink}
+		onFileOpen={onFileOpen}
 			sessionId={store.sessionId}
 		{title}
 		agentPreset={agent}
