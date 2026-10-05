@@ -1,6 +1,18 @@
 # Releases
 
-## v0.6.6
+## v0.6.7
+
+Bumped from v0.6.6 — the Skill Shelf tells the truth on --reload, counts skills honestly, and lets the operator uninstall anything installed.
+
+### Features
+
+- **Uninstall rides every installed row — the foreign badge informs, it no longer gates** (e9cb1a1) — operator decision superseding Skill Shelf ADR D5 (signed-only uninstall): a foreign (unsigned / hand-copied / other-host) skill shows its badge AND its Uninstall button, and the engine removes the folder. A signed folder still proves its id before deletion (the id-mismatch guard survives). `uninstallableIds` is installed-only; the panel, routes, and e2e fixtures pin the new contract. Tests: tests/unit/skill-shelf/apply.test.ts (foreign removal + mismatch refusal), settings-skills-panel, server/skills/routes, tests/e2e/skill-shelf.spec.ts.
+
+### Bug fixes
+
+- **`/dsi-skills --reload` refreshed the cache but never the open panel** (720d037) — the rebuild landed in `skr-cache.json`, then the floor's one-live-shelf dedupe only FOCUSED the already-open SettingsSkillsPanel, whose snapshot loads on mount alone — the operator stared at a stale list. The `reload` flag now rides the panel-add request (`SkillShelfPanelAddRequest.reload`, same contract for `/dsi-plugins`); the floor bumps a session-only refresh counter on the open entry and the panel re-fetches on change. The counter is deliberately sanitizer-stripped — a hard reload remounts and fetches anyway. Tests: tests/unit/skill-shelf-macro.test.ts (flag-rides lockstep).
+- **Engine counted host-mirror dirs as skills — DSI shipped 12 rows for 9 skills** (720d037) — a prefix-less SKR URL made the engine scan the whole git tree, sweeping up `.agents/skills/` host mirrors (`dsi-ov-setup`, `dsi-plugin-rack`, `dsi-skill-shelf`) as duplicate rows. Dot-prefixed top dirs are now skipped in the GitHub tree scan and `walkLocal`. Live-verified: the deepseek-insight source enumerates 9 (was 12). Tests: tests/unit/skill-shelf/ suites green on the fixtures.
+- **dsh-jump-prepare-fix shipped without its SKILL.md frontmatter** (3e95bd5) — the skill had no `name:`/`description:` header, so hosts could not match it and its shelf row rendered "No overview in SKILL.md". Frontmatter added following the dsi-adr pattern.
 
 Bumped from v0.6.5 — the Skill Shelf learns duplicate-id discipline: one id, one row, one folder, with an honest one-line warning when a source ships the same skill twice.
 
