@@ -24,7 +24,7 @@ const req = (body: unknown) => new Request('http://x/', { method: 'POST', body: 
 beforeEach(() => setEngineRunner(null));
 
 describe('GET /api/skills/snapshot', () => {
-  it('builds when absent, returns uninstallable signed-only list', async () => {
+  it('builds when absent, returns the uninstallable installed-only list (2026-10-05: foreign no longer gated)', async () => {
     const calls: string[][] = [];
     setEngineRunner(async (_p: string, args: string[]) => {
       calls.push(args);
@@ -35,7 +35,7 @@ describe('GET /api/skills/snapshot', () => {
     const body = await res.json();
     expect(body.ok).toBe(true);
     expect(body.reused).toBe(false);
-    expect(body.uninstallable).toEqual(['signed-one']);
+    expect(body.uninstallable).toEqual(['signed-one', 'unsigned-one']);
     expect(calls.some((a) => a[0] === 'refresh')).toBe(true);
   });
 
@@ -65,7 +65,7 @@ describe('POST /api/skills/install', () => {
 });
 
 describe('POST /api/skills/uninstall', () => {
-  it('unsigned target maps to 409 with results (D5)', async () => {
+  it('engine ok:false with per-target results maps to 409 (route contract; kept even though the engine no longer refuses unsigned)', async () => {
     setEngineRunner(async () => JSON.stringify({ v: 1, ok: false, results: [{ id: 'unsigned-one', ok: false, error: 'unsigned - not uninstallable via shelf (D5)' }] }));
     const res = await postUninstall({ request: req({ ids: ['unsigned-one'] }) } as never);
     expect(res.status).toBe(409);

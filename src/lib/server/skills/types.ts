@@ -102,7 +102,10 @@ export class EngineCancelledError extends Error {
 	}
 }
 
-/** Uninstallable = on disk AND signed (ADR D5 control matrix). */
+/** Uninstallable = on disk (operator override 2026-10-05: the foreign
+ *  badge informs, it no longer gates — D5's signed-only uninstall is
+ *  superseded by operator decision; signed folders still prove their id
+ *  in the engine before deletion). */
 export function uninstallableIds(snapshot: ShelfSnapshot): string[] {
-	return snapshot.sources.flatMap((s) => s.skills.filter((k) => k.installed && k.signed).map((k) => k.id));
+	return snapshot.sources.flatMap((s) => s.skills.filter((k) => k.installed).map((k) => k.id));
 }

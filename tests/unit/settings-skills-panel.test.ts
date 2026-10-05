@@ -2,7 +2,9 @@
  * SettingsSkillsPanel tests — The Shelf Chrome tab contract (2.1-T):
  * install tab lists only uninstalled skills, uninstall tab only
  * installed ones, uninstall verb gated by the uninstallable set
- * (Skill Shelf D5), counts interpolate, reload is install-tab-only.
+ * (2026-10-05 operator override: foreign/unsigned rows are uninstallable
+ * too — the badge informs, it no longer gates), counts interpolate,
+ * reload is install-tab-only.
  */
 import { flushSync } from 'svelte';
 import { mount } from 'svelte';
@@ -12,7 +14,7 @@ import SettingsSkillsPanelHost from './SettingsSkillsPanelHost.svelte';
 const SNAP = {
 	ok: true,
 	reused: true,
-	uninstallable: ['signed-one'],
+	uninstallable: ['signed-one', 'unsigned-one'],
 	stars: { pstack: 1829 },
 	snapshot: {
 		generatedAt: '2026-09-20T00:00:00Z',
@@ -80,7 +82,7 @@ describe('SettingsSkillsPanel', () => {
 		expect(target.querySelector('[data-testid="shelf-generated"]')!.textContent).toContain('2026-09-20T00:00:00Z');
 	});
 
-	it('uninstall tab: only installed rows; uninstall verb ONLY on the signed row (D5); reload hidden', async () => {
+	it('uninstall tab: only installed rows; uninstall verb on EVERY installed row (foreign included, 2026-10-05); reload hidden', async () => {
 		stubFetch((input) => Promise.resolve(new Response(JSON.stringify(SNAP), { headers: { 'content-type': 'application/json' } })));
 		const { target } = mountPanel();
 		await vi.waitFor(() => {
@@ -100,9 +102,9 @@ describe('SettingsSkillsPanel', () => {
 		expect(target.querySelector('[data-testid="shelf-row-absent-one"]')).toBeNull();
 		expect(target.querySelector('[data-testid="shelf-row-signed-one"]')).not.toBeNull();
 		expect(target.querySelector('[data-testid="shelf-row-unsigned-one"]')).not.toBeNull();
-		// D5 gate: signed row has the verb, unsigned row does not
+		// 2026-10-05: the verb rides every installed row — foreign included.
 		expect(target.querySelector('[data-testid="shelf-uninstall-signed-one"]')).not.toBeNull();
-		expect(target.querySelector('[data-testid="shelf-uninstall-unsigned-one"]')).toBeNull();
+		expect(target.querySelector('[data-testid="shelf-uninstall-unsigned-one"]')).not.toBeNull();
 		// D3: reload is an acquisition verb — install tab only
 		expect(target.querySelector('[data-testid="shelf-reload"]')).toBeNull();
 	});

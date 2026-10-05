@@ -612,10 +612,14 @@ async function cmdApply(args) {
       // disk, silently refused forever). D5 protects folders the shelf
       // does not own; a missing folder owns nothing to protect.
       if (!existsSync(dir)) { results.push({ id, ok: true, uninstalled: true, alreadyGone: true }); continue }
-      if (!existsSync(sigPath)) { results.push({ id, ok: false, error: 'unsigned - not uninstallable via shelf (D5)' }); continue }
+      // Operator override (2026-10-05): foreign (unsigned) skills are
+      // uninstallable via the shelf too — the badge informs, it no longer
+      // gates. A signed folder still proves its id before deletion.
       try {
-        const sig = JSON.parse(readFileSync(sigPath, 'utf8'))
-        if (sig.skillId !== id) { results.push({ id, ok: false, error: 'signature id mismatch' }); continue }
+        if (existsSync(sigPath)) {
+          const sig = JSON.parse(readFileSync(sigPath, 'utf8'))
+          if (sig.skillId !== id) { results.push({ id, ok: false, error: 'signature id mismatch' }); continue }
+        }
         rmSync(dir, { recursive: true, force: true })
         results.push({ id, ok: true, uninstalled: true })
       } catch (e) {

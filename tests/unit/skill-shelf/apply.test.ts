@@ -1,4 +1,4 @@
-// 1.3-T — signed apply: atomic install-or-nothing, unsigned uninstall refusal, tier rule, collisions.
+// 1.3-T — signed apply: atomic install-or-nothing, uninstall (foreign included since 2026-10-05), tier rule, collisions.
 import { describe, expect, it, afterEach } from 'vitest'
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -34,12 +34,32 @@ describe('signed apply', () => {
     expect(sig.v).toBe(1)
   })
 
-  it('uninstall removes folder + signature only when signed (D5)', () => {
+  it('uninstall removes the signed folder + signature', () => {
     const { ws, apply } = fresh()
     apply('install', ['1.1'])
     const out = apply('uninstall', ['p-skill-01'])
     expect(out.ok).toBe(true)
     expect(existsSync(join(ws.skillsDir, 'p-skill-01'))).toBe(false)
+  })
+
+  it('uninstall removes a FOREIGN (unsigned) folder too — the badge informs, it no longer gates (2026-10-05 operator override)', () => {
+    const { ws, apply } = fresh()
+    apply('install', ['1.1'])
+    // Forge a foreign row: drop the signature, keep the folder on disk.
+    rmSync(join(ws.skillsDir, 'p-skill-01', '.dsi-provenance.json'))
+    const out = apply('uninstall', ['p-skill-01'])
+    expect(out.ok).toBe(true)
+    expect(out.results[0]).toMatchObject({ id: 'p-skill-01', ok: true, uninstalled: true })
+    expect(existsSync(join(ws.skillsDir, 'p-skill-01'))).toBe(false)
+  })
+
+  it('uninstall still refuses when a signed folder proves a DIFFERENT id (id-mismatch guard survives the override)', () => {
+    const { ws, apply } = fresh()
+    apply('install', ['1.1'])
+    writeFileSync(join(ws.skillsDir, 'p-skill-01', '.dsi-provenance.json'), JSON.stringify({ v: 1, skillId: 'someone-else' }))
+    const out = apply('uninstall', ['p-skill-01'])
+    expect(out.results[0]).toMatchObject({ id: 'p-skill-01', ok: false, error: 'signature id mismatch' })
+    expect(existsSync(join(ws.skillsDir, 'p-skill-01'))).toBe(true)
   })
 
   it('uninstall of a vanished cached-installed folder reconciles: ok + flags flip (2026-10-05 ghost-row BUG)', () => {
@@ -79,14 +99,14 @@ describe('signed apply', () => {
     }
   })
 
-  it('uninstall of an unsigned folder is a hard refusal', () => {
+  it('uninstall of a hand-copied (unsigned) folder now REMOVES it — foreign informs, never gates (2026-10-05 operator override)', () => {
     const { ws, apply } = fresh()
     mkdirSync(join(ws.skillsDir, 'p-skill-01'), { recursive: true })
     writeFileSync(join(ws.skillsDir, 'p-skill-01', 'SKILL.md'), 'hand copied')
     const out = apply('uninstall', ['p-skill-01'])
-    expect(out.ok).toBe(false)
-    expect(out.results[0].error).toContain('unsigned')
-    expect(existsSync(join(ws.skillsDir, 'p-skill-01'))).toBe(true)
+    expect(out.ok).toBe(true)
+    expect(out.results[0]).toMatchObject({ id: 'p-skill-01', ok: true, uninstalled: true })
+    expect(existsSync(join(ws.skillsDir, 'p-skill-01'))).toBe(false)
   })
 
   it('unstable tier requires explicit --allow-unstable; stable install unaffected', () => {

@@ -24,7 +24,7 @@ test.afterAll(async () => {
 const SNAP = {
 	ok: true,
 	reused: true,
-	uninstallable: ['shelf-signed-skill'],
+	uninstallable: ['shelf-signed-skill', 'shelf-foreign-skill'],
 	snapshot: {
 		v: 1,
 		generatedAt: '2026-09-20T12:00:00.000Z',
@@ -54,7 +54,7 @@ const VOICE_FIXTURE = {
   }
 };
 
-test('the skill shelf: macro opens the panel, badges render, uninstall is signed-only', async ({ page }) => {
+test('the skill shelf: macro opens the panel, badges render, uninstall rides every installed row', async ({ page }) => {
 	// Mock ONLY the shelf data plane; the DSH stub host handles the rest.
 	await page.route('**/api/skills/snapshot', (route) => route.fulfill({ json: SNAP }));
 	await page.route('**/api/skills/reload', (route) => route.fulfill({ json: { ...SNAP, reused: false } }));
@@ -84,8 +84,8 @@ test('the skill shelf: macro opens the panel, badges render, uninstall is signed
 	await expect(page.getByTestId('shelf-row-shelf-signed-skill')).toHaveCount(0);
 
 	// The uninstall tab holds the installed rows: badges render; the
-	// foreign row still shows a badge but carries NO uninstall button
-	// (D5 - signed-only).
+	// foreign row keeps its badge AND carries the uninstall button
+	// (2026-10-05 operator override — the badge informs, it no longer gates).
 	await page.getByTestId('shelf-tab-uninstall').click();
 	const signedRow = page.getByTestId('shelf-row-shelf-signed-skill');
 	await expect(signedRow.getByTestId('shelf-badge')).toBeVisible();
@@ -93,7 +93,7 @@ test('the skill shelf: macro opens the panel, badges render, uninstall is signed
 
 	const foreignRow = page.getByTestId('shelf-row-shelf-foreign-skill');
 	await expect(foreignRow.getByTestId('shelf-badge')).toBeVisible();
-	await expect(foreignRow.locator('[data-testid^="shelf-uninstall"]')).toHaveCount(0);
+	await expect(foreignRow.getByTestId('shelf-uninstall-shelf-foreign-skill')).toBeVisible();
 
 	// Back to the install tab: the absent row is installable - checkbox
 	// select + Install posts it.
