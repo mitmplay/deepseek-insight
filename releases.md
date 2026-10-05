@@ -1,5 +1,14 @@
 # Releases
 
+## v0.6.8
+
+Bumped from v0.6.7 — the published package ships its skills again.
+
+### Bug fixes
+
+- **Published package mirrored zero skills after the skills move** (0f7bc5c) — commit 2b026bc relocated the six dsi-* skills from `.agents/skills/` to `skills/`, but the packaging manifest kept listing only `.agents`, so an npm tarball carried no `skills/` tree and a fresh-install `dsi` mirror found an empty source for them. `package.json` `files` now ships BOTH sources — `.agents` (dsi-ov-setup, dsi-plugin-rack, dsi-skill-shelf, what the installer mirrors first) and `skills` (the six dsi-* docs/skills) — verified by `npm pack --dry-run` listing all 16 skill files. The runtime mirror source in `bin/dsi.mjs` stays `.agents/skills` by operator decision. Tests: tests/unit/dsi-cli.test.ts ('files includes both skill sources' + the six-directory SKILL.md check against `skills/`).
+- **Bundled template seed DB refreshed** (355c1a2) — `template/.dsi/prompts.sqlite` re-synced with the live schema/rows so a fresh operator home seeds current state.
+
 ## v0.6.7
 
 Bumped from v0.6.6 — the Skill Shelf tells the truth on --reload, counts skills honestly, and lets the operator uninstall anything installed.

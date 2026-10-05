@@ -1,6 +1,6 @@
 {
 	"name": "@deepseek-insight/dsi",
-	"version": "0.6.7",
+	"version": "0.6.8",
 	"description": "See your multiple agents run on the floor (agent, sub-agent, etc), each conversation on the floor are updated instantly.",
 	"keywords": [
 		"Deepseek",
@@ -45,6 +45,7 @@
 	},
 	"files": [
 		".agents",
+		"skills",
 		"bin",
 		"build",
 		"template",

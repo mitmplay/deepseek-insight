@@ -36,14 +36,15 @@ describe('dsi.mjs — Skill Mirror wiring (Wave 2)', () => {
 });
 
 describe('package.json — the skill source ships (D3)', () => {
-	it('files includes .agents', () => {
+	it('files includes both skill sources', () => {
 		expect(manifest.files).toContain('.agents');
+		expect(manifest.files).toContain('skills');
 	});
 
 	it('the repo carries the six skill directories, each with a SKILL.md', () => {
 		const skills = ['dsi-adr', 'dsi-i18n-migrate', 'dsi-release', 'dsi-spcheck', 'dsi-spec', 'dsi-task'];
 		for (const name of skills) {
-			const entry = join(repoRoot, '.agents', 'skills', name, 'SKILL.md');
+			const entry = join(repoRoot, 'skills', name, 'SKILL.md');
 			expect(existsSyncHard(entry), name).toBe(true);
 		}
 	});
