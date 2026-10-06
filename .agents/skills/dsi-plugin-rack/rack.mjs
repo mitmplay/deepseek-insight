@@ -64,7 +64,13 @@ export function parseReff(text) {
  *  install gate. Returns the recorded dep key (the remove target) or null. */
 export function findDepKey(manifest, id, repo) {
 	if (manifest.deps[id] !== undefined) return id;
-	const tail = String(repo || '').replace(/\\.git$/, '').replace(/\/+$/, '').split('/').slice(-2).join('/');
+	const tail = String(repo || '')
+		.replace(/\/tree\/[^/]+(\/|$)/, '/') // a github /tree/<ref>/ browse URL is the same repo, not a distinct plugin
+		.replace(/\.git$/, '')
+		.replace(/\/+$/, '')
+		.split('/')
+		.slice(-2)
+		.join('/');
 	if (!tail) return null;
 	for (const [key, value] of Object.entries(manifest.deps)) {
 		if (typeof value === 'string' && value.includes(tail)) return key;
