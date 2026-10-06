@@ -1,5 +1,5 @@
 allowBuilds:
-  esbuild: set this to true or false
+  esbuild: true
   node-pty: true
 minimumReleaseAgeExclude:
   - '@inlang/paraglide-js@2.25.2'
