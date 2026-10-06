@@ -88,6 +88,102 @@ import FileTypeIcon from '$lib/components/panels/FileTypeIcon.svelte';
 	/** Mermaid runtime, lazy — the heavy chunk loads on first diagram only. */
 	let mermaidMod: Promise<typeof import('mermaid')> | null = null;
 	let mermaidReady = false;
+
+	/** Zed-style palette (2026-10-06): every flowchart box gets its own
+	 *  pastel fill + saturated border instead of the flat neutral gray.
+	 *  Implemented as injected classDef/class statements so the author's
+	 *  own classDef/style/class lines always win — injection is skipped
+	 *  the moment the source styles itself. Pure string work: no mermaid
+	 *  import at module scope, unit-testable without the runtime. */
+	const MERMAID_PALETTE = [
+		['#DBEAFE', '#3B82F6'], // blue
+		['#CCFBF1', '#14B8A6'], // teal
+		['#EDE9FE', '#8B5CF6'], // violet
+		['#DCFCE7', '#22C55E'], // green
+		['#FEF3C7', '#F59E0B'], // amber
+		['#FCE7F3', '#EC4899'], // pink
+		['#FEE2E2', '#EF4444'], // red
+		['#E2E8F0', '#64748B'] // slate
+	] as const;
+
+	/** Sequence-diagram half of the Zed palette (2026-10-06): mermaid has
+	 *  NO classDef for sequence participants — their boxes take the theme's
+	 *  single actorBkg, so the injected flowchart classes can't reach them
+	 *  (the operator's follow-up complaint: every actor box rendered gray).
+	 *  Fix: paint the RENDERED SVG instead — the runtime emits one
+	 *  rect.actor per participant; cycle the same palette over them and
+	 *  darken the matching labels. Runs after innerHTML lands, before the
+	 *  capture button could ever snapshot the box. */
+	function paintSequenceColors(host: HTMLElement): void {
+		const boxes = host.querySelectorAll<SVGRectElement>('svg rect.actor');
+		if (boxes.length === 0) return;
+		// Mermaid renders EACH PARTICIPANT TWICE — a header box and a footer
+		// box on the same lifeline (the operator's follow-up: top and bottom
+		// of one column came out different colors, which reads as two
+		// different things). Identity = horizontal position: boxes on the
+		// same lifeline share the same center x. Group by that, and assign
+		// one color per COLUMN, not per rect.
+		const columnColor = new Map<number, readonly [string, string]>();
+		const columnOf = (r: SVGRectElement) =>
+			Math.round(r.getBBox().x + r.getBBox().width / 2);
+		let next = 0;
+		for (const rect of boxes) {
+			const cx = columnOf(rect);
+			if (!columnColor.has(cx)) {
+				columnColor.set(cx, MERMAID_PALETTE[next % MERMAID_PALETTE.length]);
+				next++;
+			}
+			const [fill, stroke] = columnColor.get(cx)!;
+			rect.style.fill = fill;
+			rect.style.stroke = stroke;
+		}
+		host.querySelectorAll<SVGTextElement>('svg text.actor').forEach((text) => {
+			const bb = text.getBBox();
+			const cx = Math.round(bb.x + bb.width / 2);
+			// A label may sit a few px off its rect's exact center; snap to
+			// the nearest known column.
+			let best: number | null = null;
+			let bestDist = Infinity;
+			for (const cxKey of columnColor.keys()) {
+				const d = Math.abs(cxKey - cx);
+				if (d < bestDist) {
+					bestDist = d;
+					best = cxKey;
+				}
+			}
+			if (best === null) return;
+			text.style.fill = columnColor.get(best)![1];
+			text.style.fontWeight = '600';
+		});
+	}
+
+	function colorizeMermaid(source: string): string {
+		// Respect diagrams that style themselves.
+		if (/^\s*(classDef|style|class)\s/m.test(source)) return source;
+		if (!/^\s*(flowchart|graph)\b/m.test(source)) return source;
+		const ids = new Set<string>();
+		for (const line of source.split('\n')) {
+			const t = line.trim();
+			if (!t || /^(flowchart|graph|subgraph|end|direction|%%)/.test(t)) continue;
+			// Node declarations and both ends of an edge: an id followed by
+			// a shape opener ([ ( { >). Quoted labels are stripped first, so
+			// words inside label text ("host process (dsh web)") are never
+			// mistaken for node ids.
+			const bare = t.replace(/"[^"]*"/g, '');
+			for (const m of bare.matchAll(/(?:^|[\s;])([A-Za-z][A-Za-z0-9_]*)\s*(?=[\[(>{])/g)) {
+				ids.add(m[1]);
+			}
+		}
+		if (ids.size === 0) return source;
+		const defs = MERMAID_PALETTE.map(
+			([fill, stroke], i) => 'classDef zc' + i + ' fill:' + fill + ',stroke:' + stroke + ',color:#1E293B;'
+		).join('\n');
+		const assigns = Array.from(ids)
+			.map((id, i) => 'class ' + id + ' zc' + (i % MERMAID_PALETTE.length) + ';')
+			.join('\n');
+		return source + '\n' + defs + '\n' + assigns;
+	}
+
 	/** Mounted per-element copy buttons — unmounted on every content change
 	 *  (the {@html} swap discards their host DOM; Svelte must hear it). */
 	let copyDisposers: (() => void)[] = [];
@@ -324,9 +420,20 @@ import FileTypeIcon from '$lib/components/panels/FileTypeIcon.svelte';
 			if (!mermaidReady) {
 				mermaid.initialize({
 					startOnLoad: false,
-					theme: 'neutral',
-					securityLevel: 'strict',
-					fontFamily: 'ui-monospace, monospace'
+					// 'base' + variables (2026-10-06): lets the injected
+					// Zed-style classDefs show through, keeps the canvas
+					// transparent over any surface, and drops the mono
+					// diagram font for the app's own sans stack.
+					theme: 'base',
+					themeVariables: {
+						background: 'transparent',
+						primaryColor: '#E2E8F0',
+						primaryBorderColor: '#64748B',
+						primaryTextColor: '#1E293B',
+						lineColor: '#64748B',
+						fontFamily: 'ui-sans-serif, system-ui, sans-serif'
+					},
+					securityLevel: 'strict'
 				});
 				mermaidReady = true;
 			}
@@ -339,8 +446,11 @@ import FileTypeIcon from '$lib/components/panels/FileTypeIcon.svelte';
 				);
 				try {
 					const id = `mmd-${Math.random().toString(36).slice(2, 8)}`;
-					const { svg } = await mermaid.render(id, source);
+					// Zed-style per-box colors: inject the palette classDefs
+					// just before render (a no-op for self-styled diagrams).
+					const { svg } = await mermaid.render(id, colorizeMermaid(source));
 					el.innerHTML = svg;
+					paintSequenceColors(el);
 					el.setAttribute('data-processed', 'true');
 				} catch (err) {
 					el.innerHTML = `<div class="text-xs text-red-600 p-2 border border-red-500/30 rounded bg-red-500/10">Mermaid render error: ${String(err).split('\n')[0]}</div>`;

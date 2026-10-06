@@ -1,5 +1,25 @@
 # Releases
 
+## v0.6.9
+
+Bumped from v0.6.8 — agent-preset templates survive the dsh 0.2.1 contract, file-link and canvas capture fixes, and a fresh RCA standard note.
+
+### Features
+
+- **Agent-preset templates** (1a7cd6a) — `template/dsh-app-dev-preset/` and `template/dsh-research-preset/` ship ready-to-mount `cordis.patch.yml` preset recipes (app-dev full builder; research read-only investigator), with KB/ADR companions and the template seed resources. Both templates verified against the running dsh 0.2.1-alpha.1 contract (see the RCA below).
+- **dsi-rca skill joins the shelf** (5e3fec7, f0a2fd4) — the dsi-rca skill (narrative RCAs: operator quotes, layman glossary, mermaid flow + sequence diagrams, carry-forward rules) moved under `skills/` beside the other dsi skills after a live-mirrored copy proved the slash menu could not see repo-local skills.
+
+### Bug fixes
+
+- **app-dev preset dead on dsh 0.2.1-alpha.1 — two contract drifts** (356ac8f, RCA: dev/kb/rca/2026-10-06 — The Preset That Photographed an Older Harness) — the preset still mounted `@deepseek-ai/dsh-workflow-worker-thread`, renamed to `dsh-workflow-ptc` in 0.2.1 (row never started → "Failed to load" badge), and kept `command-compact`/`tool-result-pruner` outside the compaction group whose isolate realm they consume (join rejected with `agent-preset/invalid: Preset services require isolate realms`). Both fixed in `template/dsh-app-dev-preset/cordis.patch.yml` and the live `~/agentic-ai/app-dev-preset`; the honest `broken` reason was recovered from the `agentPresets/list` RPC the UI summarizes away.
+- **File-link deep fallback missed bare links under a root subdirectory** (279e338, KB 4a9af97) — the fallback chain resolved bare links only at the root, not under a root subdirectory; documented the full resolution + debugging order in `dev/kb/`.
+- **Canvas Copy full-mode captures ignored nested scroll offsets** (d17f2a4) — captures clipped content scrolled inside nested containers; offsets now compose.
+- **Anchor popup shell inflated to the column cap** (b0b3853) — `w-max` + nowrap rows made the popup grow to the longest prompt (583px box, ~350px of text); fixed `w-96` restores the old footprint. Playwright-probed (583→384px) with unit tests green.
+
+### Docs
+
+- Layman KB rewrite for the renderer with Zed-style mermaid colors and wrap-down tables (b6fa807); per-participant sequence diagram colors in the render path (5e3fec7); "The Life of a File Link" KB (4a9af97); term-pill terminology retired across dev docs (fda57b5); RCA — The Preset That Photographed an Older Harness (356ac8f); plugins-reff gains superpowers-dsh and sandbase-harness references (356ac8f).
+
 ## v0.6.8
 
 Bumped from v0.6.7 — the published package ships its skills again.

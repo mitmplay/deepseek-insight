@@ -56,6 +56,45 @@
 	let _maxCanvasSide: number | null = null;
 
 	/**
+	 * Nested-scroll compensation for FULL-mode captures (2026-10-06).
+	 *
+	 * html-to-image clones content at every scroller's ORIGIN — a table
+	 * scrolled right, a code block scrolled down, any overflow pane inside
+	 * the capture renders its top-left corner, not what the operator sees
+	 * (the WorkspaceFilePanel KB-page flaw: the capture always "scrolls to
+	 * the top first"). renderVisible already compensates its own scrollers;
+	 * full mode never did.
+	 *
+	 * During the render, every child of every scroller inside the capture
+	 * shifts by that scroller's live scrollTop/scrollLeft (transforms don't
+	 * affect layout), then everything is restored. Returns the undo fn.
+	 */
+	function compensateNestedScrollers(root: HTMLElement): () => void {
+		const CLIPPING = new Set(['auto', 'scroll', 'hidden', 'clip']);
+		const moved: { el: HTMLElement; prev: string }[] = [];
+		const candidates = [root, ...root.querySelectorAll<HTMLElement>('*')];
+		for (const el of candidates) {
+			const st = el.scrollTop;
+			const sl = el.scrollLeft;
+			if (st === 0 && sl === 0) continue;
+			const cs = getComputedStyle(el);
+			const clipsY = CLIPPING.has(cs.overflowY) && st !== 0;
+			const clipsX = CLIPPING.has(cs.overflowX) && sl !== 0;
+			if (!clipsY && !clipsX) continue;
+			for (const child of el.children) {
+				if (!(child instanceof HTMLElement)) continue;
+				moved.push({ el: child, prev: child.style.transform });
+				const prev = child.style.transform;
+				child.style.transform = `translate(${-sl}px, ${-st}px)` + (prev ? ` ${prev}` : '');
+			}
+		}
+		return () => {
+			for (const m of moved) m.el.style.transform = m.prev;
+		};
+	}
+
+
+	/**
 	 * Probe the browser's true max canvas dimension via binary search.
 	 * Chrome ≈ 32,767 · Safari ≈ 16,384 · Firefox ≈ 32,767.
 	 * Cached after first call.
@@ -92,6 +131,22 @@
 	 * at runtime, not hardcoded).
 	 */
 	async function renderElement(el: HTMLElement): Promise<Blob> {
+		// Full mode renders the WHOLE content, so the outer scroller's own
+		// position is irrelevant — but nested overflow panes inside the
+		// content must show their live scroll offset, not their origin
+		// (2026-10-06 WorkspaceFilePanel flaw). Compensated for the render,
+		// restored after.
+		const restoreScrollers = compensateNestedScrollers(el);
+		try {
+			return await renderElementInner(el);
+		} finally {
+			restoreScrollers();
+		}
+	}
+
+	/** The historic tiling renderer — body unchanged, now wrapped by
+	 *  renderElement for nested-scroll compensation. */
+	async function renderElementInner(el: HTMLElement): Promise<Blob> {
 		const rect = el.getBoundingClientRect();
 		const w = rect.width;
 		const h = rect.height;

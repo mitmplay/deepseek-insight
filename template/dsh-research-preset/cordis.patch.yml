@@ -1,0 +1,118 @@
+- insert:
+    - id: preset-research
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: research
+        name: Research
+        description: >-
+          Read-only research agent: web search, codebase search/read, skills, todos,
+          and goals. No shell, no editing, no subagents — built for investigation and
+          cited synthesis.
+        order: 20
+        plugins:
+          # The `research` agent preset: a read-and-report research agent.
+          #
+          # Deliberately tool-poor: NO shell, NO file editing, NO plan mode, NO
+          # delegation — only web search and read-only filesystem inspection plus
+          # todos and goals. Long context is its laboratory, so compaction stays.
+          #
+          # AGENT-PLANE composition: mounted once per process under a standing scope.
+          # Rows that only register tools need no realm; this preset mounts no service
+          # groups at all.
+
+          # ── identity ────────────────────────────────────────────────────────────────
+
+          - id: persona
+            name: '@deepseek-ai/dsh-persona'
+            config:
+              prefix: >-
+                You are research, an investigation and synthesis agent powered by the
+                {{model}} model. Your working directory is {{cwd}}.
+
+                You answer questions by reading source and searching the web — never by
+                guessing. Read files first; search the web for anything the workspace
+                cannot answer. Cite what you use: file paths for code, URLs for web
+                findings. Distinguish clearly between what you verified and what you
+                infer. Summarize for a newcomer: define terms, keep a running structure,
+                and end with concrete next steps. You cannot edit files or run commands;
+                when a task needs them, say so and recommend the app-dev or main agent.
+
+          - id: agent-instructions
+            name: '@deepseek-ai/dsh-agent-instructions'
+            config:
+              maxBytes: 65536
+
+          # ── filesystem (read-oriented search only) ──────────────────────────────────
+
+          # tool-fs-search is glob/grep-style search; tool-fs adds read/write file
+          # access. Research keeps both minimal: search plus read. Writing is gated by
+          # the host approval stack anyway, but the catalog simply omits heavy edit
+          # affordances here.
+          - id: tool-fs-search
+            name: '@deepseek-ai/dsh-tool-fs-search'
+            config:
+              sampleOverCapGlobResults: false
+
+          - id: tool-fs
+            name: '@deepseek-ai/dsh-tool-fs'
+
+          # ── web ─────────────────────────────────────────────────────────────────────
+
+          # The web service and its search provider stay in the host composition; only
+          # the model-facing tool is per-session. This is research's primary tool.
+          - id: tool-web
+            name: '@deepseek-ai/dsh-tool-web'
+            config:
+              fetch: false
+              searchTimeoutMs: 60000
+
+          # ── skills ──────────────────────────────────────────────────────────────────
+
+          - id: skill-filesystem
+            name: '@deepseek-ai/dsh-skill-filesystem'
+
+          - id: tool-skill
+            name: '@deepseek-ai/dsh-tool-skill'
+
+          # ── goals ───────────────────────────────────────────────────────────────────
+
+          - id: tool-goal
+            name: '@deepseek-ai/dsh-tool-goal'
+
+          # ── background jobs ────────────────────────────────────────────────────────
+
+          - id: tool-jobs
+            name: '@deepseek-ai/dsh-tool-jobs'
+
+          # ── todos & interaction ─────────────────────────────────────────────────────
+
+          - id: tool-todo
+            name: '@deepseek-ai/dsh-tool-todo'
+            config:
+              allowParallelInProgress: true
+
+          - id: tool-ask-user
+            name: '@deepseek-ai/dsh-tool-ask-user'
+
+          # ── compaction ──────────────────────────────────────────────────────────────
+
+          # Research sessions run long; keep summarization with the pruner in one realm.
+          - id: compaction
+            name: cordis:group
+            group: true
+            isolate:
+              compaction: true
+              toolResultPruner: true
+            config:
+              - id: compaction-basic
+                name: '@deepseek-ai/dsh-compaction-basic'
+
+              - id: command-compact
+                name: '@deepseek-ai/dsh-command-compact'
+
+              - id: tool-result-pruner
+                name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
+                config:
+                  thresholdChars: 8192
+                  headChars: 4096
+                  tailChars: 1024

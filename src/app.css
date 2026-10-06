@@ -141,7 +141,34 @@ body {
 	overflow: hidden;
 	display: block;
 	overflow-x: auto;
+	/* Wrap-down (2026-10-06): long cell prose wraps like Zed's markdown
+	 * tables instead of forcing one line per cell. The block+overflow-x
+	 * pair stays: a table whose COLUMNS are too many still scrolls
+	 * horizontally rather than blowing out the page (the 2026-08-22 width
+	 * fix this block exists for). nowrap was the wrong member of that
+	 * trio — it forced every cell onto a single line, which is why the
+	 * glossary table scrolled instead of wrapping. */
+	white-space: normal;
+}
+.md-content table th,
+.md-content table td {
+	white-space: normal;
+	/* word-break: NORMAL is the point: the .md-content-level
+	 * 'word-break: break-word' inherits into cells and splits words
+	 * anywhere ('registr y', 'person a') once auto layout squeezes the
+	 * narrow first column. overflow-wrap alone still catches genuinely
+	 * unbreakable tokens (long paths/urls) at the emergency point, like
+	 * Zed's tables: words stay whole, prose wraps between words. */
+	word-break: normal;
+	overflow-wrap: break-word;
+}
+/* The lead column is a term, not prose: keep it on one line and let the
+ * description column absorb all squeezing (Zed's look). min-width:0
+ * would fight this; width:1% collapses it to its natural word width. */
+.md-content table th:first-child,
+.md-content table td:first-child {
 	white-space: nowrap;
+	width: 1%;
 }
 
 /* Markdown content — OCI app.css block, verbatim port (2026-08-22).
@@ -151,8 +178,9 @@ body {
  * disc/decimal lists, spacing, headings, tables, and code skins.
  * NOTE: table rules live ONCE above — that block merges OCI's verbatim
  * base with DSI's wide-table horizontal-scroll behavior (display:block +
- * overflow-x + nowrap, 2026-08-22 width fix); the OCI-verbatim restatement
- * that used to sit below did not reset those three properties. */
+ * overflow-x, 2026-08-22 width fix). nowrap left the trio 2026-10-06:
+ * cells wrap down Zed-style; the scroll fallback only kicks in when a
+ * table's COLUMNS exceed the container, not its cell text. */
 .md-content p {
 	margin-top: 0.5em;
 	margin-bottom: 0.25em;
