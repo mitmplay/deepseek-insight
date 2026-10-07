@@ -1,13 +1,11 @@
 <script lang="ts">
 	import { t } from '$lib/services/locale/locale-state.svelte';
 	import * as m from '$lib/paraglide/messages';
-	import CanvasCopyButton from '$lib/components/common/buttons/CanvasCopyButton.svelte';
 
 	/**
 	 * SettingsSkillsToolbar — the shelf's first chrome row (The Shelf
 	 * Chrome ADR, D2): LEFT the snapshot timestamp ("Snapshot taken: …",
-	 * the PromptManagerToolbar path-label slot); RIGHT the search input
-	 * and the panel capture. The collapse/expand fold pill moved to the
+	 * the PromptManagerToolbar path-label slot); RIGHT the search input. The collapse/expand fold pill moved to the
 	 * header, after the reload verb (2026-09-21 operator order).
 	 *
 	 * Presentational: the panel owns searchQ ($bindable — the box owns
@@ -17,13 +15,10 @@
 		/** The snapshot's generatedAt — the left label's payload. */
 		generatedAt,
 		/** Search text — $bindable, the panel owns the value. */
-		searchQ = $bindable(''),
-		/** The capture target: the shelf panel's root element. */
-		container
+		searchQ = $bindable('')
 	}: {
 		generatedAt: string;
 		searchQ?: string;
-		container: HTMLElement | null | undefined;
 	} = $props();
 </script>
 
@@ -40,9 +35,6 @@
 			bind:value={searchQ}
 			data-testid="shelf-search"
 		/>
-		<span class="copy-slot">
-			<CanvasCopyButton {container} mode="visible" title={t(m.copyPanelAsImage)} size={12} />
-		</span>
 	</div>
 </div>
 
@@ -78,9 +70,5 @@
 		background: var(--color-surface, #f8f9fa);
 		font-size: 0.6875rem;
 		padding: 0.15rem 0.35rem;
-	}
-	.copy-slot {
-		display: inline-flex;
-		align-items: center;
 	}
 </style>

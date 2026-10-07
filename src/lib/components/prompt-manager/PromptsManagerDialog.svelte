@@ -87,18 +87,18 @@
 		   floor matches the full-density state (sticky header + head row +
 		   ~10 body rows) and yields on short viewports. */
 		min-height: min(28rem, 80vh);
-		max-height: 80vh;
+		max-height: 95vh;
 		display: flex;
 		flex-direction: column;
 		background: var(--color-surface-elevated, #fff);
 		border: 1px solid var(--color-surface-border, #dee2e6);
 		border-radius: 0.5rem;
-		padding: 0 1rem 1rem 1rem; /* no top padding — header is flush */
 	}
 
 	.mgr-dialog-header {
 		display: flex;
 		align-items: center;
+		padding-left: 0.5rem;
 		gap: 0.5rem;
 		flex: none; /* header never scrolls — only the body does */
 	}

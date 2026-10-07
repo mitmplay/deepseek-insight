@@ -107,6 +107,7 @@
 	"weekdaySa": "Sá",
 	"newFile": "— archivo nuevo",
 	"sending": "Enviando…",
+	"turnInFlight": "Turno en curso…",
 	"allowOnce": "Permitir una vez",
 	"reject": "Rechazar",
 	"approvedResolved": "Solicitud aprobada resuelta — tú {label}.",

@@ -1,5 +1,21 @@
 # Releases
 
+## v0.6.12
+
+Bumped from v0.6.11 — canvas-copy capture lands in the panel floor, and the type/test/coverage gates all come back green.
+
+### Features
+
+- **StreamingIndicator while a turn is in flight** (18d6f28) — sub-agent streaming state now shows an indicator in the conversation surface; its title copy routes through the paraglide `turnInFlight` key in en/es/zh/id.
+- **CanvasCopyButton on the panel floor** (577af42, 1b19c62, cbf68c2) — PanelHeader gains a canvas-copy capture button placed before the panel-close button, with the zoom-scale right-side cutoff fixed by measuring layout size (`offsetWidth/offsetHeight`, transform-blind) instead of the scaled `getBoundingClientRect`; toolbar copies were deduped so the PanelHeader floor button is the single capture entry point.
+- **Prompt-manager dialog refresh** (ef9113c) — dialog box styling/structure updated.
+
+### Bug fixes
+
+- **16 svelte-check errors cleared** (4a2cc91) — dead CSS in `PluginManagerPanel.svelte` (8 unused selectors after markup moved to child components), stale `rack.d.mts` type surface (added `repoIdentity` export, `gardenRepo`/`sources` on `buildSnapshot`), and stale test types in `settings-skills-item` / `plugin-manager-rack-row` tests. `pnpm check` exits 0.
+- **6 failing tests fixed** (c8fd76a) — canvas-copy tests still stubbed the pre-577af42 `getBoundingClientRect` sizing, so jsdom measured 0×0 (collapsed tiling, phantom clipboard write); stubs now pin `offsetWidth/offsetHeight`. Hardcoded `title="Turn in flight…"` violated the verify-ui-i18n gate — copy moved to locale dictionaries. `pnpm test` 4676 passed / 0 failed.
+- **TerminalTabHeader coverage gate** (07bd0ca) — new `tests/unit/terminal-tab-header.test.ts` (mount with/without `actions` snippet, children render, `role=tablist`) lifts the file from 50% to above the 80% per-file floor; `pnpm test:coverage` exits 0.
+
 ## v0.6.11
 
 Bumped from v0.6.10 — every file clears the 80% per-file coverage floor, and 13 silently-failing tests come back green.

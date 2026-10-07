@@ -9,18 +9,33 @@ import { flushSync, mount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import SettingsSkillsItem from '../../src/lib/components/settings-skills/SettingsSkillsItem.svelte';
 
-const BASE = {
+/** Mirror of SettingsSkillsItem.svelte Props (incl. the optional dup/callback slots). */
+interface ItemProps {
+	id: string;
+	n: string;
+	tier: string | null;
+	checked: boolean;
+	uninstallable: boolean;
+	busy: boolean;
+	badge: string | null;
+	overview: string | null;
+	dup?: boolean;
+	ontoggle?: (n: string) => void;
+	onuninstall?: () => void;
+}
+
+const BASE: ItemProps = {
 	id: 'my-skill',
 	n: '1.2',
-	tier: null as string | null,
+	tier: null,
 	checked: false,
 	uninstallable: false,
 	busy: false,
-	badge: null as string | null,
-	overview: null as string | null
+	badge: null,
+	overview: null
 };
 
-function mountItem(props: Partial<typeof BASE> & Record<string, unknown> = {}) {
+function mountItem(props: Partial<ItemProps> = {}) {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
 	const ontoggle = vi.fn();
@@ -72,9 +87,12 @@ describe('SettingsSkillsItem', () => {
 		void onuninstall;
 		const target = document.createElement('div');
 		document.body.appendChild(target);
-		const props: Record<string, unknown> = { ...rest };
+		const props: Partial<ItemProps> = { ...rest };
 		delete props.id;
-		mount(SettingsSkillsItem, { target, props });
+		// mount() demands the full Props shape; the Partial-forgiving alias
+		// exists only to exercise the component's nullish-id fallback arm.
+		const Item = SettingsSkillsItem as unknown as import('svelte').Component<Partial<ItemProps>>;
+		mount(Item, { target, props });
 		flushSync();
 		expect(q(target, '.shelf-id')!.textContent).toBe('');
 	});

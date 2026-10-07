@@ -1,23 +1,19 @@
 <script lang="ts">
 	/**
 	 * WorkspaceExplorerButtons — the toolbar's action cluster, extracted
-	 * from WorkspaceExplorerToolbar (2026-09-13): Refresh, Collapse-all,
-	 * and the panel-column PNG capture button. INTENT ONLY (Module
+	 * from WorkspaceExplorerToolbar (2026-09-13): Refresh and
+	 * Collapse-all. INTENT ONLY (Module
 	 * Communication Map): the buttons emit onRefresh / onCollapseAll —
 	 * the panel owns the state the intents act on.
 	 */
 	import { ChevronsDownUp, RefreshCw } from '@lucide/svelte';
 	import { t } from '$lib/services/locale/locale-state.svelte';
 	import * as m from '$lib/paraglide/messages';
-	import CanvasCopyButton from '$lib/components/common/buttons/CanvasCopyButton.svelte';
 
 	let {
-		container,
 		onRefresh,
 		onCollapseAll
 	}: {
-		/** PNG capture target — the toolbar-resolved panel-column element (null before mount = no-op). */
-		container: HTMLElement | null;
 		/** Refresh intent — the panel re-fetches its levels and re-probes. */
 		onRefresh: () => void;
 		/** Collapse-all intent — the owner empties the expanded list. */
@@ -44,14 +40,6 @@
 		>
 			<ChevronsDownUp size={12} aria-hidden="true" />
 		</button>
-		<!-- Capture the whole panel column (the toolbar's nearest
-			data-testid="panel-column" ancestor) as a PNG: click copies,
-			Shift+Click saves. Null container before mount = no-op. -->
-		<CanvasCopyButton
-			container={container}
-			title={t(m.copyPanelColumn)}
-			size={12}
-		/>
 	</div>
 
 <style>

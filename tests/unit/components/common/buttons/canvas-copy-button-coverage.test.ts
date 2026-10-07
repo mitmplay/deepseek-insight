@@ -245,10 +245,10 @@ describe('CanvasCopyButton — tiled render for tall elements', () => {
 		const ctx = stubCanvas2d();
 		const container = document.createElement('div');
 		const { target, instance } = mountButton({ container });
-		vi.spyOn(container, 'getBoundingClientRect').mockReturnValue({
-			width: 100,
-			height: 16000
-		} as DOMRect);
+		// 577af42: the component measures LAYOUT size (offsetWidth/Height,
+		// transform-blind), not the scaled rect — pin those
+		Object.defineProperty(container, 'offsetWidth', { value: 100, configurable: true });
+		Object.defineProperty(container, 'offsetHeight', { value: 16000, configurable: true });
 		toCanvasMock.mockResolvedValue({ width: 200, height: 15800 });
 		toBlobMock.mockResolvedValue(PNG());
 		click(target);
@@ -276,10 +276,10 @@ describe('CanvasCopyButton — tiled render for tall elements', () => {
 		const ctxSpy = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
 		const container = document.createElement('div');
 		const { target, instance } = mountButton({ container });
-		vi.spyOn(container, 'getBoundingClientRect').mockReturnValue({
-			width: 100,
-			height: 16000
-		} as DOMRect);
+		// 577af42: the component measures LAYOUT size (offsetWidth/Height,
+		// transform-blind), not the scaled rect — pin those
+		Object.defineProperty(container, 'offsetWidth', { value: 100, configurable: true });
+		Object.defineProperty(container, 'offsetHeight', { value: 16000, configurable: true });
 		toCanvasMock.mockResolvedValue({ width: 200, height: 15800 });
 		click(target);
 		await vi.waitFor(() => {
@@ -327,10 +327,9 @@ describe('CanvasCopyButton — visible mode', () => {
 			duringTransforms = [rowA.style.transform, rowB.style.transform];
 			return PNG();
 		});
-		vi.spyOn(container, 'getBoundingClientRect').mockReturnValue({
-			width: 300,
-			height: 200
-		} as DOMRect);
+		// 577af42: visible mode crops to LAYOUT size (offsetWidth/Height)
+		Object.defineProperty(container, 'offsetWidth', { value: 300, configurable: true });
+		Object.defineProperty(container, 'offsetHeight', { value: 200, configurable: true });
 		click(target);
 		await vi.waitFor(() => {
 			expect(target.querySelector('.text-green-500')).not.toBeNull();
@@ -357,10 +356,9 @@ describe('CanvasCopyButton — visible mode', () => {
 		const restore = spyComputedStyle();
 		const { target, instance } = mountButton({ container, mode: 'visible' });
 		toBlobMock.mockResolvedValue(null);
-		vi.spyOn(container, 'getBoundingClientRect').mockReturnValue({
-			width: 300,
-			height: 200
-		} as DOMRect);
+		// 577af42: visible mode crops to LAYOUT size (offsetWidth/Height)
+		Object.defineProperty(container, 'offsetWidth', { value: 300, configurable: true });
+		Object.defineProperty(container, 'offsetHeight', { value: 200, configurable: true });
 		click(target);
 		// settle = the live DOM is back to its pre-render shape (the busy
 		// spinner may never paint — the failure path can resolve within a

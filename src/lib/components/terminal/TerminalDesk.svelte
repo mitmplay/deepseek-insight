@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
-	import CanvasCopyButton from '$lib/components/common/buttons/CanvasCopyButton.svelte';
 	import TerminalPanel from './TerminalPanel.svelte';
 	import TerminalTabHeader from './TerminalTabHeader.svelte';
 	import TerminalTabButton from './TerminalTabButton.svelte';
@@ -44,14 +43,10 @@
 	} = $props();
 
 	/** The desk's root — the anchor for finding the hosting PanelColumn,
-	 *  the CanvasCopyButton capture target (2026-09-25): the button copies
-	 *  the WHOLE column (the panel floor slot the desk lives in), not just
+		 *  the WHOLE column (the panel floor slot the desk lives in), not just
 	 *  the terminal. Absent column (bare mounts) = null — the button's
 	 *  documented no-op. */
 	let deskEl = $state<HTMLElement | null>(null);
-	const captureEl = $derived(
-		deskEl?.closest<HTMLElement>('[data-testid="panel-column"]') ?? null
-	);
 
 	let nextKey = 1;
 	const mkKey = (): number => nextKey++;
@@ -250,14 +245,6 @@ the rows. Restoring shows a quiet placeholder until the ladder settles.
 					onClose={() => closeTab(i)}
 				/>
 			{/each}
-			{#snippet actions()}
-				<CanvasCopyButton
-					container={captureEl}
-					mode="visible"
-					title={t(m.copyPanelAsImage)}
-					size={12}
-				/>
-			{/snippet}
 		</TerminalTabHeader>
 		{#each tabs as tab, i (tab.key)}
 			<TerminalTabContainer index={i} visible={i === selectedTab}>

@@ -367,7 +367,6 @@
 		selectedCount={selected.size}
 		{vocabulary}
 		dbPath={appConfig().prompts.dbPath}
-		container={rootEl}
 		{tagFilter}
 		{sortState}
 		bind:textMode

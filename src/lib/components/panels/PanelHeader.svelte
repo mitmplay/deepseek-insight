@@ -28,6 +28,12 @@
 	import { Check, ChevronLeft, ChevronRight, Copy, X } from '@lucide/svelte';
 	import { movePanelFromRegistry } from '$lib/services/panels/panel-registry';
 	import { copyWithFeedback } from '$lib/utils/clipboard';
+	import CanvasCopyButton from '$lib/components/common/buttons/CanvasCopyButton.svelte';
+	import { workspacePanelCopy as copy } from './workspace-panel-copy';
+
+	// The canvas-copy capture target: the header's PARENT — PanelColumn
+	// renders the header as its first child, so the parent IS the column.
+	let headerEl = $state<HTMLDivElement>();
 
 	let {
 		panelId,
@@ -86,7 +92,7 @@
 	}
 </script>
 
-<div class="panel-header" class:selected data-testid="panel-header" title={label ?? sessionId}>
+<div class="panel-header" class:selected data-testid="panel-header" title={label ?? sessionId} bind:this={headerEl}>
 	<span class="label" data-testid={labelTestId ?? 'panel-header-label'}>
 		{#if copyValue !== undefined || label === undefined}
 			<button
@@ -134,6 +140,19 @@
 			>
 				<ChevronRight size={12} aria-hidden="true" />
 			</button>
+		{/if}
+		<!-- Capture the owning panel column as a PNG: click copies,
+		     Shift+Click saves (SettingsHomeToolbar grammar). A floor verb —
+		     inert in lens mode (the loupe renders the header whole but its
+		     floor-identity verbs disabled; ADR D8). -->
+		{#if !lens}
+			<CanvasCopyButton
+				container={headerEl?.parentElement}
+				mode="visible"
+				title={copy.common.copyColumn}
+				size={14}
+				class="inline-flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded transition-colors hover:bg-surface-hover"
+			/>
 		{/if}
 		{#if onremove || lens}
 			<button
@@ -218,10 +237,6 @@
 		color: var(--color-text-primary, #212529);
 	}
 
-	/* Lens disable (The Panel Loupe ADR D8, 2026-09-04): the house
-	   disabled grammar's values (ForkButton's disabled:opacity-50
-	   disabled:cursor-not-allowed) in this file's scoped idiom — a
-	   floor mount (never disabled) renders byte-identical to before. */
 	.hdr-btn:disabled {
 		opacity: 0.5;
 		cursor: not-allowed;

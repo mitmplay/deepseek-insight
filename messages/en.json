@@ -107,6 +107,7 @@
 	"weekdaySa": "Sa",
 	"newFile": "— new file",
 	"sending": "Sending…",
+	"turnInFlight": "Turn in flight…",
 	"allowOnce": "Allow once",
 	"reject": "Reject",
 	"approvedResolved": "Approved request resolved — you {label}.",

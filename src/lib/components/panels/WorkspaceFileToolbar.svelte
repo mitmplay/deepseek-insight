@@ -116,7 +116,8 @@
 		<CanvasCopyButton
 			container={columnEl}
 			title={copy.common.copyColumn}
-			size={12}
+			size={18}
+			class="shrink-0 rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
 		/>
 	</span>
 </div>

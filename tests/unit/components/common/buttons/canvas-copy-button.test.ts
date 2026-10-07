@@ -56,11 +56,17 @@ const stateIcon = (target: HTMLElement): string => {
 	return 'idle';
 };
 
-/** Element with a controllable box (happy-dom lays out nothing). */
+/** Element with a controllable box (happy-dom lays out nothing).
+ *  Both boxes are pinned: getBoundingClientRect (historic) AND
+ *  offsetWidth/offsetHeight — since 577af42 (2026-10-07 PanelsZoom
+ *  right-side-cutoff fix) the component reads LAYOUT size, which is
+ *  0 in happy-dom unless stubbed. */
 function sizedEl(w: number, h: number): HTMLElement {
 	const el = document.createElement('div');
 	el.getBoundingClientRect = () =>
 		({ width: w, height: h, top: 0, left: 0, right: w, bottom: h, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect;
+	Object.defineProperty(el, 'offsetWidth', { configurable: true, value: w });
+	Object.defineProperty(el, 'offsetHeight', { configurable: true, value: h });
 	return el;
 }
 

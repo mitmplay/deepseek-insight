@@ -442,7 +442,6 @@
 	<SettingsSkillsToolbar
 		generatedAt={snapshot?.generatedAt ?? ''}
 		bind:searchQ
-		container={rootEl}
 	/>
 
 	<SettingsSkillsHeader

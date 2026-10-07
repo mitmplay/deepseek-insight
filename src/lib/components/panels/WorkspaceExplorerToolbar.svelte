@@ -80,7 +80,7 @@
 			{t(m.gitEyeTabChanges)}
 		</button>
 	</div>
-	<WorkspaceExplorerButtons container={columnEl} {onRefresh} {onCollapseAll} />
+	<WorkspaceExplorerButtons {onRefresh} {onCollapseAll} />
 </div>
 
 <style>

@@ -24,8 +24,7 @@
 		vocabulary,
 		tagFilter,
 		dbPath,
-		container,
-		sortState,
+			sortState,
 		loading,
 		hasRows,
 		addingNew,
@@ -45,8 +44,7 @@
 		/** The prompts.sqlite full path — the toolbar row's left label. */
 		dbPath: string;
 		/** The panel root element — the canvas-copy capture target. */
-		container: HTMLElement | null | undefined;
-		/** Active filter words — the chips mirror the box's +tokens. */
+			/** Active filter words — the chips mirror the box's +tokens. */
 		tagFilter: string[];
 		sortState: { col: 'uses' | 'last_used' | 'display'; dir: 'asc' | 'desc' } | null;
 		loading: boolean;
@@ -76,7 +74,7 @@
      row, no gaps, stays pinned while the table body scrolls. -->
 <div class="mgr-header">
 	<!-- First child: the path/copy toolbar row (2026-09-19). -->
-	<PromptManagerToolbar {dbPath} {container} />
+	<PromptManagerToolbar {dbPath} />
 
 	<div class="mgr-header-bar">
 		<button

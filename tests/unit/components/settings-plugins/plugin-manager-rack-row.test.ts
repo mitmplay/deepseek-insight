@@ -18,6 +18,7 @@ type RowPlugin = Parameters<typeof PluginManagerRackRow>[0] extends never ? neve
 	repo: string;
 	author: string | null;
 	authorUrl?: string | null;
+	description?: string | null;
 	installed: boolean;
 };
 
@@ -34,7 +35,7 @@ function mountRow(overrides: Partial<RowPlugin> = {}, props: Record<string, unkn
 	const target = document.createElement('div');
 	document.body.appendChild(target);
 	const onapply = vi.fn();
-	const onselect = (props.onselect as unknown) ?? undefined;
+	const onselect = props.onselect as ((n: string) => void) | undefined;
 	const instance = mount(PluginManagerRackRow, {
 		target,
 		props: {

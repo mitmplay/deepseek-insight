@@ -107,6 +107,7 @@
 	"weekdaySa": "六",
 	"newFile": "— 新文件",
 	"sending": "发送中…",
+	"turnInFlight": "回合进行中…",
 	"allowOnce": "允许一次",
 	"reject": "拒绝",
 	"approvedResolved": "已批准的请求已处理 — 由你{label}。",

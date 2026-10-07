@@ -14,7 +14,7 @@
 	(computed oklab tints) stays in the SVG overlay.
 -->
 <script lang="ts">
-	import { ImageIcon as CaptureIcon, Check, Loader2 } from '@lucide/svelte';
+	import { CameraIcon as CaptureIcon, Check, Loader2 } from '@lucide/svelte';
 	import { toBlob, toCanvas } from 'html-to-image';
 
 	let {
@@ -147,9 +147,14 @@
 	/** The historic tiling renderer — body unchanged, now wrapped by
 	 *  renderElement for nested-scroll compensation. */
 	async function renderElementInner(el: HTMLElement): Promise<Blob> {
-		const rect = el.getBoundingClientRect();
-		const w = rect.width;
-		const h = rect.height;
+		// LAYOUT size, not getBoundingClientRect: PanelsZoom scales the
+		// panel row with transform: scale(zoom) (transform-true rect), but
+		// html-to-image's clone renders at the element's layout size —
+		// pinning the clone to the scaled rect cut the right side off the
+		// Plugin Rack capture (2026-10-07). offsetWidth/offsetHeight are
+		// transform-blind, so the canvas matches the clone's geometry.
+		const w = el.offsetWidth;
+		const h = el.offsetHeight;
 
 		// Composite canvas ratio: as close to 2× as the browser allows
 		const maxSide = getMaxCanvasSide();
@@ -308,14 +313,18 @@
 			overlays.push(track);
 		}
 		try {
-			const rect = container.getBoundingClientRect();
+			// Layout size for the same transform-scale reason as full mode
+			// (PanelsZoom zoomed the visible box while the clone renders
+			// unscaled — 2026-10-07 Plugin Rack capture bug).
+			const w = container.offsetWidth;
+			const h = container.offsetHeight;
 			const blob = await toBlob(container, {
 				pixelRatio: DESIRED_RATIO,
 				backgroundColor: CAPTURE_BACKING,
 				skipAutoScale: true,
-				width: Math.ceil(rect.width),
-				height: Math.ceil(rect.height),
-				style: { width: `${rect.width}px`, maxWidth: 'none' }
+				width: w,
+				height: h,
+				style: { width: `${w}px`, maxWidth: 'none' }
 			});
 			if (!blob) throw new Error('toBlob returned null');
 			return blob;
@@ -366,6 +375,6 @@
 	{:else if state === 'busy'}
 		<Loader2 {size} class="animate-spin" />
 	{:else}
-		<CaptureIcon {size} />
+		<CaptureIcon {size} class="text-red-500" />
 	{/if}
 </button>

@@ -31,6 +31,7 @@
 	import { invalidateSessionAttachmentUrls } from '$lib/services/conversation/attachment-urls.svelte';
 	import ConversationError from '$lib/components/conversation/ConversationError.svelte';
 	import StickToBottomToggle from '$lib/components/composer/sibling/StickToBottomToggle.svelte';
+	import StreamingIndicator from '$lib/components/composer/sibling/StreamingIndicator.svelte';
 	import ConversationFooter from '$lib/components/conversation/ConversationFooter.svelte';
 	import ConversationHeader from '$lib/components/conversation/ConversationHeader.svelte';
 	import ConversationScrollArea from '$lib/components/conversation/ConversationScrollArea.svelte';
@@ -38,7 +39,7 @@
 	import A2aChipStack from '$lib/components/conversation/A2aChipStack.svelte';
 	import ConversationStatsBar from '$lib/components/conversation/ConversationStatsBar.svelte';
 	import { deriveSessionStats, statsFromLedger } from '$lib/services/conversation/session-stats';
-import { appConfig } from '$lib/services/config/app-config.svelte';
+	import { appConfig } from '$lib/services/config/app-config.svelte';
 	import { setPanelMode } from '$lib/services/conversation/panel-context.svelte';
 	import { setConversationSession } from '$lib/services/conversation/session-context.svelte';
 	import { getCurrentModel } from '$lib/services/conversation/current-model';
@@ -1081,6 +1082,9 @@ import { appConfig } from '$lib/services/config/app-config.svelte';
 	{#if subagent}
 		<div class="floating-stick" data-testid="floating-stick-toggle">
 			<StickToBottomToggle {stick} ontoggle={onStickToggle} />
+			{#if store.isStreaming}
+				<StreamingIndicator title={m.turnInFlight()} />
+			{/if}
 		</div>
 	{/if}
 </div>
@@ -1125,5 +1129,12 @@ import { appConfig } from '$lib/services/config/app-config.svelte';
 		border-radius: 8px;
 		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
 		padding: 0.125rem;
+	}
+	/* Scoped StreamingIndicator nudge for this panel only (base values live
+	   in StreamingIndicator.svelte: bottom 1rem, right 0.25rem; the Composer
+	   host keeps its defaults). translateY(50%) stays inherited. */
+	.floating-stick :global(.streaming-indicator) {
+		bottom: calc(1rem - 2px);
+		right: calc(0.25rem + 27px);
 	}
 </style>

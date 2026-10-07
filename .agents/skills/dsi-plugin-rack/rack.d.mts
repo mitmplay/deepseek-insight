@@ -29,7 +29,15 @@ export function parseReff(text: string): { plugins: { id: string; repo: string; 
 export function findDepKey(manifest: { deps: Record<string, string> }, id: string, repo?: string): string | null;
 export function readManifest(path: string): { deps: Record<string, string>; bundles: string[]; missing: boolean };
 export function isInstalled(manifest: { deps: Record<string, string> }, id: string, repo?: string): boolean;
-export function buildSnapshot(args: { reffPath?: string; manifestPath?: string; gardenPath?: string; profile?: string }): { snapshot: { v: number; generatedAt: string; profile: string; plugins: RackRow[] }; warnings: { code: string; detail: string }[] };
+export interface RackSource {
+	id: string;
+	name: string;
+	author: string | null;
+	repo: string;
+	plugins: RackRow[];
+}
+export function buildSnapshot(args: { reffPath?: string; manifestPath?: string; gardenPath?: string; gardenRepo?: string; profile?: string }): { snapshot: { v: number; generatedAt: string; profile: string; sources: RackSource[]; plugins: RackRow[] }; warnings: { code: string; detail: string }[] };
 export function toInstallSpec(repo: string): string;
 export function installOwned(manifestPath: string, row: { id: string; installSpec: string }): string;
+export function repoIdentity(url: string | undefined | null): string;
 export function restoreClobberedBundles(manifestPath: string, preOwnedRows: { id: string; installSpec?: string; pkg?: string | null }[]): boolean;
