@@ -19,19 +19,40 @@
 			repo: string;
 			author: string | null;
 			authorUrl?: string | null;
+			group?: 'owned' | 'external';
+			description?: string | null;
+			version?: string | null;
 			installed: boolean;
 		};
+		/** Shelf selection grammar (3.3): set membership by row n; click toggles. */
+		selected?: boolean;
+		onselect?: (n: string) => void;
 		/** GitHub stargazers per plugin id (best-effort; absent when unfetched). */
 		stars: Record<string, number>;
 		busyId: string | null;
 		floorBounce: boolean;
 		onapply: (action: 'install' | 'remove', id: string) => void;
 	}
-	let { plugin, busyId, floorBounce, stars, onapply }: Props = $props();
+	let { plugin, busyId, floorBounce, stars, selected, onselect, onapply }: Props = $props();
 	const disabled = $derived(busyId !== null || floorBounce);
 </script>
 
-<li class="rack-row" data-testid={'rack-row-' + plugin.id}>
+<li
+		class="rack-row"
+		class:rack-row-selected={selected}
+		data-testid={'rack-row-' + plugin.id}
+		data-selected={selected ? 'true' : undefined}>
+	{#if onselect && !plugin.installed}
+		<button
+			type="button"
+			class="rack-select"
+			data-testid={'rack-select-' + plugin.n}
+			aria-pressed={selected ? 'true' : 'false'}
+			onclick={() => onselect(plugin.n)}
+		>
+			{selected ? '☑' : '☐'}
+		</button>
+	{/if}
 	<span class="rack-n">{plugin.n}.</span>
 	<span class="rack-id">
 		{plugin.id}
@@ -41,6 +62,9 @@
 			</span>
 		{/if}
 	</span>
+	{#if plugin.description}
+		<span class="rack-desc">{plugin.description}</span>
+	{/if}
 	{#if plugin.author}
 		<span class="rack-author">{t(m.pluginRackBy)} {plugin.author}</span>
 	{/if}
@@ -61,7 +85,7 @@
 					{t(m.pluginRackUninstall)}
 				{/if}
 			</button>
-		{:else}
+		{:else if !onselect}
 			<button
 				type="button"
 				data-testid={'rack-install-' + plugin.id}
@@ -119,7 +143,7 @@
 <style>
 	.rack-row {
 		display: grid;
-		grid-template-columns: auto 1fr auto auto auto auto;
+		grid-template-columns: auto auto minmax(0, 1fr) auto auto auto;
 		align-items: center;
 		gap: 0.35rem;
 		padding: 0.12rem 0.4rem;

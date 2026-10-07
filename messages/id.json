@@ -420,5 +420,9 @@
 	"pluginRackStars": "Bintang GitHub",
 	"pluginRackInstallEmpty": "Semua plugin di rak sudah terpasang.",
 	"pluginRackSearch": "Cari plugin",
-	"pluginRackUninstallEmpty": "Belum ada yang terpasang - instal plugin dari tab instal."
+	"pluginRackUninstallEmpty": "Belum ada yang terpasang - instal plugin dari tab instal.",
+	"pluginRackGroupOwned": "Plugin milik sendiri",
+	"pluginRackGroupExternal": "Rak eksternal",
+	"pluginRackExpandAll": "Buka semua",
+	"pluginRackCollapseAll": "Lipat semua"
 }

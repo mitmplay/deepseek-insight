@@ -55,8 +55,8 @@ describe('PluginManagerPanel edges', () => {
 		// junk initialTab sanitizes to install
 		const junk = mountPanel({ initialTab: 'nonsense' as 'uninstall' });
 		await vi.waitFor(() => {
-			expect(target.querySelector('[data-testid="rack-rows"]')).toBeTruthy();
-			expect(junk.target.querySelector('[data-testid="rack-rows"]')).toBeTruthy();
+			expect(target.querySelector('[data-testid="rack-rows-b-beta"]')).toBeTruthy();
+			expect(junk.target.querySelector('[data-testid="rack-rows-a-alpha"]')).toBeTruthy();
 		});
 		// uninstall tab was honored: only the installed plugin is listed
 		expect(target.querySelector('[data-testid="rack-row-beta"]')).toBeTruthy();
@@ -74,7 +74,7 @@ describe('PluginManagerPanel edges', () => {
 		const fetchMock = stubFetch(() => Promise.resolve(jsonRes(SNAP)));
 		vi.stubGlobal('fetch', fetchMock);
 		const { target } = mountPanel();
-		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-rows"]')).toBeTruthy());
+		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-rows-a-alpha"]')).toBeTruthy());
 		const input = target.querySelector('[data-testid="rack-search"]') as HTMLInputElement;
 
 		const setSearch = (q: string) => {
@@ -97,7 +97,7 @@ describe('PluginManagerPanel edges', () => {
 		expect(target.textContent).not.toContain('Retry');
 		// whitespace-only query behaves as no query
 		setSearch('   ');
-		expect(target.querySelector('[data-testid="rack-rows"]')).toBeTruthy();
+		expect(target.querySelector('[data-testid="rack-rows-a-alpha"]')).toBeTruthy();
 	});
 
 	it('a rejected snapshot load shows the failed note and retry recovers', async () => {
@@ -108,7 +108,7 @@ describe('PluginManagerPanel edges', () => {
 		// recover: retry hits a healthy snapshot
 		fetchMock.mockImplementation(() => Promise.resolve(jsonRes(SNAP)));
 		(target.querySelector('[data-testid="rack-load-failed"] button') as HTMLButtonElement).click();
-		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-rows"]')).toBeTruthy());
+		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-rows-a-alpha"]')).toBeTruthy());
 	});
 
 	it('an apply network failure records the network error row', async () => {
@@ -118,8 +118,10 @@ describe('PluginManagerPanel edges', () => {
 		});
 		vi.stubGlobal('fetch', fetchMock);
 		const { target } = mountPanel();
-		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-rows"]')).toBeTruthy());
-		(target.querySelector('[data-testid="rack-install-alpha"]') as HTMLButtonElement).click();
+		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-rows-a-alpha"]')).toBeTruthy());
+		(target.querySelector('[data-testid="rack-select-Alpha Plugin"]') as HTMLButtonElement).click();
+		flushSync();
+		(target.querySelector('[data-testid="rack-install"]') as HTMLButtonElement).click();
 		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-errors"]')?.textContent).toContain('alpha: network'));
 	});
 
@@ -130,10 +132,12 @@ describe('PluginManagerPanel edges', () => {
 		});
 		vi.stubGlobal('fetch', fetchMock);
 		const { target } = mountPanel();
-		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-rows"]')).toBeTruthy());
-		(target.querySelector('[data-testid="rack-install-alpha"]') as HTMLButtonElement).click();
+		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-rows-a-alpha"]')).toBeTruthy());
+		(target.querySelector('[data-testid="rack-select-Alpha Plugin"]') as HTMLButtonElement).click();
+		flushSync();
+		(target.querySelector('[data-testid="rack-install"]') as HTMLButtonElement).click();
 		// no results array -> no diagnostic rows; the panel stays on the rack
-		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-rows"]')).toBeTruthy());
+		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-rows-a-alpha"]')).toBeTruthy());
 		expect(target.querySelector('[data-testid="rack-errors"]')).toBeNull();
 	});
 
@@ -146,8 +150,10 @@ describe('PluginManagerPanel edges', () => {
 		});
 		vi.stubGlobal('fetch', fetchMock);
 		const { target } = mountPanel();
-		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-rows"]')).toBeTruthy());
-		(target.querySelector('[data-testid="rack-install-alpha"]') as HTMLButtonElement).click();
-		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-errors"]')?.textContent).toContain('alpha:'));
+		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-rows-a-alpha"]')).toBeTruthy());
+		(target.querySelector('[data-testid="rack-select-Alpha Plugin"]') as HTMLButtonElement).click();
+		flushSync();
+		(target.querySelector('[data-testid="rack-install"]') as HTMLButtonElement).click();
+		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-errors"]')?.textContent).toContain('Alpha Plugin: '));
 	});
 });

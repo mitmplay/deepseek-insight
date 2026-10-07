@@ -1,5 +1,18 @@
 # Releases
 
+## v0.6.10
+
+Bumped from v0.6.9 — the Plugin Garden joins the rack (owned enumeration, wire v2, shelf-exact grouped panel) and one repository can no longer appear twice.
+
+### Features
+
+- **Plugin Garden enumeration** (d1e36f6, 063a252, d8e9b17, 72076d1) — the rack reads the checkout's own `plugins/` directory: each child with a `package.json` wiring `dsh.bundle.patch` becomes an owned row installed as a link dep; the reff is demoted to the external catalog; snapshot wire moves to v2 (ADR "The Plugin Garden").
+- **Shelf-exact grouped panel UX** (d8e9b17, 72076d1, da05f02) — grouped source cards with selection bar, fold pill and per-row install verbs; panel suites migrated to the grouped head/source testids (`tests/unit/plugin-rack/panel*`).
+
+### Bug fixes
+
+- **Duplicate rack group for one repository** (e1ae7c9) — a reff line pointing at a `/tree/...` browse URL of the garden's own repo rendered the repository twice ("1. deepseek-insight" and "3. by deepseek-insight"). Root cause: snapshot sources grouped by raw URL. Fix: `repoIdentity()` owner/repo identity, external rows colliding with an owned row shadowed with a `reff-shadowed-by-garden` warning, `sources[]` grouped by identity (ADR-0016). Pinned by `tests/unit/plugin-rack/repo-identity.test.ts` and `tests/unit/plugin-rack/reff-shadow.test.ts`.
+
 ## v0.6.9
 
 Bumped from v0.6.8 — agent-preset templates survive the dsh 0.2.1 contract, file-link and canvas capture fixes, and a fresh RCA standard note.

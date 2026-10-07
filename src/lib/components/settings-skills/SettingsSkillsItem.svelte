@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { t } from '$lib/services/locale/locale-state.svelte';
 	import * as m from '$lib/paraglide/messages';
+	import SettingsSkillsUninstall from './SettingsSkillsUninstall.svelte';
 
 	/**
 	 * SettingsSkillsItem - ONE skill card of a shelf source group
@@ -48,9 +49,7 @@
 		{#if badge}
 			<span class="shelf-badge" data-testid="shelf-badge">{badge}</span>
 		{/if}
-		{#if uninstallable}
-			<button type="button" class="shelf-uninstall" data-testid={'shelf-uninstall-' + id} onclick={() => onuninstall?.()} disabled={busy}>{t(m.skillsShelfUninstall)}</button>
-		{/if}
+		{#if uninstallable}<SettingsSkillsUninstall {id} {busy} {onuninstall} />{/if}
 	</div>
 	{#if overview}
 		<p class="shelf-overview" data-testid="shelf-overview">{overview}</p>
@@ -115,9 +114,6 @@
 		border-radius: 999px;
 		background: color-mix(in srgb, #27ae60 18%, transparent);
 		color: #27ae60;
-	}
-	.shelf-uninstall {
-		font-size: 0.7rem;
 	}
 	.shelf-overview {
 		margin: 0;

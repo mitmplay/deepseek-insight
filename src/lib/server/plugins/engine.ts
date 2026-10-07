@@ -13,6 +13,7 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 
+import { RACK_WIRE_VERSION } from './types';
 import {
 	RackEngineFailedError,
 	RackEngineMissingError,
@@ -23,6 +24,14 @@ import {
 } from './types';
 
 const execFileP = promisify(execFile);
+/** The Plugin Garden (ADR 2026-10-07): owned plugins enumerate from the
+ *  checkout's plugins/ directory. Dev runs from the repo root; override
+ *  with RACK_GARDEN_PATH / RACK_GARDEN_REPO when the checkout lives elsewhere. */
+function gardenArgs(): string[] {
+	const gardenPath = process.env.RACK_GARDEN_PATH ?? join(process.cwd(), 'plugins');
+	const gardenRepo = process.env.RACK_GARDEN_REPO ?? 'https://github.com/mitmplay/deepseek-insight';
+	return existsSync(gardenPath) ? ['--garden', gardenPath, '--garden-repo', gardenRepo] : [];
+}
 /** Refresh is a local parse (no network harvest like the shelf) — one
  *  ceiling serves every verb. */
 const ENGINE_TIMEOUT_MS = 120_000;
@@ -66,7 +75,7 @@ async function run(args: string[], timeoutMs?: number): Promise<RackEnginePayloa
 	} catch {
 		throw new RackEngineFailedError('rack engine emitted non-JSON output', null);
 	}
-	if (payload.v !== 1) throw new RackEngineFailedError('rack engine wire version mismatch: v=' + payload.v, payload);
+	if (payload.v !== RACK_WIRE_VERSION) throw new RackEngineFailedError('rack engine wire version mismatch: v=' + payload.v + ' (expected ' + RACK_WIRE_VERSION + ')', payload);
 	return payload;
 }
 
@@ -78,13 +87,13 @@ export function getRackEngine() {
 		},
 
 		async refresh(reload: boolean, extraArgs: string[] = []): Promise<{ snapshot: RackSnapshot; reused: boolean; errors?: string[] }> {
-			const p = await run(['refresh', ...(reload ? ['--reload'] : []), ...extraArgs]);
+			const p = await run(['refresh', ...(reload ? ['--reload'] : []), ...gardenArgs(), ...extraArgs]);
 			if (!p.snapshot) throw new RackEngineFailedError('rack refresh returned no snapshot', p);
 			return { snapshot: p.snapshot, reused: Boolean(p.reused), ...(p.errors ? { errors: p.errors } : {}) };
 		},
 
 		async apply(action: 'install' | 'remove', targets: string[], extraArgs: string[] = []): Promise<RackApplyItem[]> {
-			const p = await run(['apply', action, ...targets, ...extraArgs]);
+			const p = await run(['apply', action, ...targets, ...gardenArgs(), ...extraArgs]);
 			if (!p.results) throw new RackEngineFailedError('rack apply returned no results', p);
 			return p.results;
 		}

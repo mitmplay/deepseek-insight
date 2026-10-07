@@ -15,13 +15,15 @@
 		loading: boolean;
 		floorBounce: boolean;
 		onreload: () => void;
+		oncollapseall: () => void;
+		onexpandall: () => void;
 	}
-	let { tab, ontabchange, loading, floorBounce, onreload }: Props = $props();
+	let { tab, ontabchange, loading, floorBounce, onreload, oncollapseall, onexpandall }: Props = $props();
 </script>
 
 <div class="rack-head" data-testid="rack-header">
 	<PluginManagerHeaderTabs {tab} ontabchange={ontabchange} />
-	<PluginManagerHeaderActions {loading} {floorBounce} {onreload} />
+	<PluginManagerHeaderActions {loading} {floorBounce} {onreload} {oncollapseall} {onexpandall} />
 </div>
 
 <style>

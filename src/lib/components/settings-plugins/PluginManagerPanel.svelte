@@ -12,10 +12,13 @@
 	import { onMount } from 'svelte';
 	import { t } from '$lib/services/locale/locale-state.svelte';
 	import * as m from '$lib/paraglide/messages';
-	import { LoaderCircle } from '@lucide/svelte';
+	import { Check, ChevronDown, ChevronRight, LoaderCircle, Star } from '@lucide/svelte';
 	import PluginManagerRackRow from './PluginManagerRackRow.svelte';
 	import PluginManagerHeader from './PluginManagerHeader.svelte';
 	import PluginManagerToolbar from './PluginManagerToolbar.svelte';
+	import PluginManagerUninstall from './PluginManagerUninstall.svelte';
+	import PluginManagerInstall from './PluginManagerInstall.svelte';
+	import PluginManagerStars from './PluginManagerStars.svelte';
 
 	interface Props {
 		/** Session-only refresh token (BUG 2026-10-05, same contract as the
@@ -33,14 +36,28 @@
 	interface RackPlugin {
 		n: string;
 		id: string;
+		group?: 'owned' | 'external'; // v2 wire: owned = plugins/ scan, external = reff
+		description?: string | null;
+		version?: string | null;
+		dn?: string; // display number, e.g. 1.1 (source number . row number)
+		authorUrl?: string | null;
 		repo: string;
 		author: string | null;
 		installed: boolean;
 	}
+	interface RackSource {
+		n?: string;
+		name?: string;
+		id: string;
+		author: string | null;
+		repo: string;
+		plugins: RackPlugin[];
+	}
 	interface RackSnapshot {
 		generatedAt: string;
 		profile: string;
-		plugins: RackPlugin[];
+		sources?: RackSource[]; // v2: grouped by repository (Shelf Chrome grammar)
+		plugins: RackPlugin[]; // flat derived copy (v1 back-compat)
 	}
 	interface ErrorRow {
 		id: string;
@@ -169,7 +186,7 @@
 			if (!body.ok) {
 				errors = (body.results ?? [])
 					.filter((r: { ok: boolean }) => !r.ok)
-					.map((r: { id?: string; error?: string }) => ({ id: r.id ?? id, error: r.error ?? '' }));
+					.map((r: { id?: string; n?: string; error?: string }) => ({ id: r.id ?? id, error: r.error ?? '' }));
 			} else {
 				await load();
 			}
@@ -193,6 +210,105 @@
 		}
 	});
 
+
+	// Shelf selection grammar (3.3): one Set keyed by row n; the bottom bar
+	// applies ALL selected rows in ONE POST, then clears and reloads.
+	let selected = $state<ReadonlySet<string>>(new Set());
+	// Shelf Chrome: sources ship COLLAPSED; the chevron or the expand-all
+	// verb opens one repo's rows.
+	let collapsedGroups = $state<ReadonlySet<string>>(new Set());
+	const visibleSources = $derived.by(() => {
+		const q = searchQ.trim().toLowerCase();
+		let rows = snapshot?.plugins ?? [];
+		rows = rows.filter((p) => (tab === 'install' ? !p.installed : p.installed));
+		if (q) rows = rows.filter((p) => [p.n, p.id, p.repo, p.author ?? '', p.description ?? ''].some((x) => x.toLowerCase().includes(q)));
+		const srcs = snapshot?.sources ?? [];
+		if (srcs.length > 0) {
+			// v2 wire: sources are authoritative; filter their rows by the tab/search.
+			return srcs
+				.map((src, si) => ({
+					...src,
+					n: String(si + 1),
+					plugins: rows.filter((p) => src.plugins.some((sp) => sp.n === p.n)).map((p, ri) => ({ ...p, dn: (si + 1) + '.' + (ri + 1) }))
+				}))
+				.filter((src) => src.plugins.length > 0);
+		}
+		// v1 back-compat: group the flat rows by repo tail (Plugin Garden ADR, D1).
+		const groups = new Map<string, { id: string; n: string; name?: string; author: string | null; repo: string; plugins: RackPlugin[] }>();
+		for (const p of rows) {
+			const tail = p.repo.replace(/\.git$/, '').replace(/\/+$/, '').split('/').slice(-2).join('/');
+			const gid = tail || p.repo;
+			if (!groups.has(gid)) groups.set(gid, { id: gid, n: String(groups.size + 1), name: gid.split('/').pop(), author: p.author ?? null, repo: p.repo, plugins: [] });
+			groups.get(gid)!.plugins.push(p);
+		}
+		return [...groups.values()];
+	});
+	function toggleGroup(id: string): void {
+		const next = new Set(collapsedGroups);
+		if (next.has(id)) next.delete(id);
+		else next.add(id);
+		collapsedGroups = next;
+	}
+	function collapseAll(): void {
+		collapsedGroups = new Set(visibleSources.map((src) => src.id));
+	}
+	function expandAll(): void {
+		collapsedGroups = new Set();
+	}
+	const installCount = $derived(
+		visibleSources.flatMap((src) => src.plugins).filter((p) => !p.installed && selected.has(p.n)).length
+	);
+	function toggleSelect(n: string): void {
+		const next = new Set(selected);
+		if (next.has(n)) next.delete(n);
+		else next.add(n);
+		selected = next;
+	}
+	async function runInstall(): Promise<void> {
+		if (installCount === 0 || floorBounce) return;
+		const targets = [...selected];
+		const idByN = new Map(visibleSources.flatMap((src) => src.plugins).filter((p) => selected.has(p.n)).map((p) => [p.n, p.id]));
+		busyId = targets[0] ?? null;
+		errors = [];
+		try {
+			const res = await fetch('/api/plugins/apply', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ action: 'install', targets })
+			});
+			const body = await res.json();
+			if (body.ok && body.restarting) {
+				// D5: the chain kills this very server — announce the bounce, ride
+				// it out, and let the panel refresh ITSELF when the floor returns.
+				floorBounce = true;
+				busyId = null;
+				selected = new Set();
+				void waitFloorBack().then(async (back) => {
+					if (back) await load();
+					else loadFailed = true;
+					floorBounce = false;
+				});
+				return;
+			}
+			if (!body.ok) {
+				const results = body.results ?? [];
+				errors = results.length
+					? results
+							.filter((r: { ok: boolean }) => !r.ok)
+							.map((r: { id?: string; n?: string; error?: string }) => ({ id: r.id ?? idByN.get(String(r.n)) ?? targets[0], error: r.error ?? '' }))
+					: [{ id: idByN.get(targets[0]) ?? targets[0], error: '' }];
+				selected = new Set();
+			} else {
+				selected = new Set();
+				await load();
+			}
+		} catch {
+			errors = targets.map((n) => ({ id: idByN.get(n) ?? n, error: 'network' }));
+		} finally {
+			busyId = null;
+		}
+	}
+
 	onMount(() => {
 		void load();
 	});
@@ -200,47 +316,257 @@
 
 <div class="rack" bind:this={rootEl} data-testid="rack-body">
 	<PluginManagerToolbar generatedAt={snapshot?.generatedAt ?? ''} bind:searchQ container={rootEl} />
-	<PluginManagerHeader {tab} {loading} {floorBounce} ontabchange={setTab} onreload={() => void runReload()} />
+	<PluginManagerHeader {tab} {loading} {floorBounce} ontabchange={setTab} onreload={() => void runReload()} oncollapseall={collapseAll} onexpandall={expandAll} />
 
-	{#if floorBounce}
-		<div class="rack-banner" data-testid="rack-bounce" role="status">{t(m.pluginRackApplying)}</div>
-	{:else if loading}
-		<div class="rack-note"><span class="spin"><LoaderCircle size={14} /></span></div>
-	{:else if loadFailed || !snapshot}
-		<div class="rack-note" data-testid="rack-load-failed">
-			{t(m.pluginRackLoadFailed)}
-			<button type="button" onclick={() => void load()}>{t(m.pluginRackRetry)}</button>
-		</div>
-	{:else if snapshot.plugins.length === 0}
-		<div class="rack-note" data-testid="rack-empty">{t(m.pluginRackEmpty)}</div>
-	{:else if visiblePlugins.length === 0}
-		<div class="rack-note" data-testid="rack-tab-empty">
-			{tab === 'install' ? t(m.pluginRackInstallEmpty) : t(m.pluginRackUninstallEmpty)}
-		</div>
-	{:else}
-		<ul class="rack-rows" data-testid="rack-rows">
-			<!-- keyed by the engine row number, not id: the catalog can list two
-			     distinct plugins under one id (e.g. dsh-deepresearch by two authors) -->
-			{#each visiblePlugins as plugin (plugin.n)}
-				<PluginManagerRackRow {plugin} {busyId} {floorBounce} {stars} onapply={(action, id) => void apply(action, id)} />
+		{#if floorBounce}
+			<div class="rack-banner" data-testid="rack-bounce" role="status">{t(m.pluginRackApplying)}</div>
+		{:else if loading}
+			<div class="rack-note"><span class="spin"><LoaderCircle size={14} /></span></div>
+		{:else if loadFailed || !snapshot}
+			<div class="rack-note" data-testid="rack-load-failed">
+				{t(m.pluginRackLoadFailed)}
+				<button type="button" onclick={() => void load()}>{t(m.pluginRackRetry)}</button>
+			</div>
+		{:else if snapshot.plugins?.length === 0}
+			<div class="rack-note" data-testid="rack-empty">{t(m.pluginRackEmpty)}</div>
+		{:else if visibleSources.length === 0}
+			<div class="rack-note" data-testid="rack-tab-empty">
+				{tab === 'install' ? t(m.pluginRackInstallEmpty) : t(m.pluginRackUninstallEmpty)}
+			</div>
+		{:else}
+			{#each visibleSources as source (source.id + source.repo)}
+				<div class="rack-source" data-testid={'rack-source-' + source.id.replace(/[^a-zA-Z0-9-]/g, '-')}>
+					<button
+						type="button"
+						class="rack-source-head"
+						data-testid={'rack-source-head-' + source.id.replace(/[^a-zA-Z0-9-]/g, '-')}
+						aria-expanded={collapsedGroups.has(source.id) ? 'false' : 'true'}
+						onclick={() => toggleGroup(source.id)}
+					>
+						<span class="rack-source-chevron">{#if collapsedGroups.has(source.id)}<ChevronRight size={12} aria-hidden="true" />{:else}<ChevronDown size={12} aria-hidden="true" />{/if}</span>
+						<span class="rack-source-num">{source.n}.</span>
+						{#if source.author}
+						<span class="rack-source-author">by {source.author}</span>
+						{:else}
+						<span class="rack-source-name">{source.name ?? source.id}</span>
+						{/if}
+						<PluginManagerStars id={source.id} repo={source.repo} author={source.author} plugins={source.plugins} stars={stars} />
+					</button>
+					{#if !collapsedGroups.has(source.id)}
+						<ul class="rack-rows" data-testid={'rack-rows-' + source.id.replace(/[^a-zA-Z0-9-]/g, '-')}>
+							{#each source.plugins as plugin (plugin.n)}
+								<li class="rack-row" class:rack-row-selected={selected.has(plugin.n)} data-testid={'rack-row-' + plugin.id}>
+									{#if tab === 'install' && !plugin.installed}
+										<input
+											type="checkbox"
+											class="rack-check"
+											data-testid={'rack-select-' + plugin.n}
+											checked={selected.has(plugin.n)}
+											onchange={() => toggleSelect(plugin.n)}
+										/>
+									{/if}
+									<span class="rack-n">{plugin.dn}</span>
+									<span class="rack-id">
+										{plugin.id}
+										{#if plugin.installed}
+											<span class="rack-badge" data-testid={'rack-badge-' + plugin.id} role="status" aria-label={t(m.pluginRackInstalled)}>
+												<Check size={11} aria-hidden="true" /> {t(m.pluginRackInstalled)}
+											</span>
+										{/if}
+									</span>
+									{#if plugin.description}
+										<span class="rack-desc">{plugin.description}</span>
+									{/if}
+									<PluginManagerUninstall {plugin} {busyId} {floorBounce} onremove={(id) => void apply('remove', id)} />
+								</li>
+							{/each}
+						</ul>
+					{/if}
+				</div>
 			{/each}
-		</ul>
-		{#if errors.length > 0}
-			<ul class="rack-errors" data-testid="rack-errors">
-				{#each errors as e (e.id)}
-					<li class="rack-error">{e.id}: {e.error}</li>
-				{/each}
-			</ul>
+			{#if errors.length > 0}
+				<ul class="rack-errors" data-testid="rack-errors">
+					{#each errors as e (e.id)}
+						<li class="rack-error">{e.id}: {e.error}</li>
+					{/each}
+				</ul>
+			{/if}
+			{#if tab === 'install'}<PluginManagerInstall count={installCount} {floorBounce} oninstall={() => void runInstall()} />{/if}
 		{/if}
-	{/if}
 </div>
-
 <style>
 	.rack {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		flex: 1;
+		min-height: 0;
+		height: 100%;
+		box-sizing: border-box;
+		gap: 0.25rem;
+		font-size: 0.85rem;
+		padding-bottom: 3.2rem;
+	}
+	.rack-toolbar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem;
+		padding: 0.25rem 0.5rem;
+		border-bottom: 1px solid var(--color-surface-border, #dee2e6);
+	}
+	.rack-generated-label {
+		font-size: 0.6875rem;
+		color: var(--color-text-muted, #888);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		min-width: 0;
+	}
+	.rack-toolbar-actions {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+		flex: 1;
+		min-width: 0;
+	}
+	.rack-search {
+		flex: 1;
+		min-width: 6rem;
+		border: 1px solid var(--color-surface-border, #dee2e6);
+		border-radius: 0.25rem;
+		background: var(--color-surface, #f8f9fa);
+		font-size: 0.6875rem;
+		padding: 0.15rem 0.35rem;
+	}
+	.rack-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem;
+		padding: 0.25rem 0.5rem;
+	}
+	.rack-source {
+		display: flex;
+		flex-direction: column;
+	}
+	.rack-source-head {
+		display: flex;
+		align-items: center;
+		gap: 0.3rem;
+		white-space: nowrap;
+		width: 100%;
+		background: none;
+		border: 0;
+		padding: 0.15rem 0.3rem;
+		cursor: pointer;
+		color: inherit;
+		font-weight: 600;
+		text-align: left;
+	}
+	.rack-source-head:hover {
+		background: color-mix(in srgb, currentcolor 6%, transparent);
+	}
+	.rack-source-chevron {
+		display: inline-flex;
+		align-items: center;
+	}
+	.rack-source-chevron :global(svg) {
+		display: block;
+	}
+	.rack-source-num {
+		opacity: 0.55;
+		font-variant-numeric: tabular-nums;
+		padding-right: 0.15rem;
+	}
+	.rack-source-name {
+		display: inline;
+	}
+	.rack-source-author {
+		display: inline;
+		font-weight: 400;
+		opacity: 0.75;
+	}
+	.rack-rows {
+		list-style: none;
+		margin: 0;
+		padding: 0 0 0 1.1rem;
 		display: flex;
 		flex-direction: column;
 		gap: 0.25rem;
-		font-size: 0.85rem;
+	}
+	.rack-row {
+		display: flex;
+		align-items: center;
+		gap: 0.35rem;
+		padding: 0.12rem 0.4rem;
+		border-radius: 6px;
+	}
+	.rack-row:hover {
+		background: color-mix(in srgb, currentcolor 6%, transparent);
+	}
+	.rack-row-selected,
+	.rack-row:has(.rack-check:checked) {
+		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 10%, transparent);
+	}
+	.rack-check {
+		appearance: none;
+		width: 0.9rem;
+		height: 0.9rem;
+		margin: 0;
+		border: 1.5px solid var(--color-surface-border, #8b949e);
+		border-radius: 3px;
+		background: var(--color-surface, #fff);
+		cursor: pointer;
+		flex-shrink: 0;
+		display: inline-block;
+		vertical-align: middle;
+	}
+	.rack-check:checked {
+		background: var(--color-accent-blue, #3b82f6);
+		border-color: var(--color-accent-blue, #3b82f6);
+		box-shadow: inset 0 0 0 2px var(--color-surface, #fff);
+	}
+	.rack-n {
+		opacity: 0.55;
+		font-variant-numeric: tabular-nums;
+		padding-right: 0.15rem;
+	}
+	.rack-id {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		min-width: 0;
+	}
+	.rack-desc {
+		color: var(--color-text-muted, #888);
+		font-size: 0.78rem;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		flex: 1;
+		min-width: 0;
+	}
+	.rack-author {
+		opacity: 0.75;
+	}
+	.rack-badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.15rem;
+		padding: 0.05rem 0.3rem;
+		border-radius: 999px;
+		background: color-mix(in srgb, #1a7f37 14%, transparent);
+		color: #1a7f37;
+		font-size: 0.68rem;
+	}
+	.rack-group-head {
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--color-text-muted, #888);
+		font-size: 0.72rem;
+		font-weight: 600;
+		margin-top: 0.5rem;
 	}
 	.rack-note {
 		display: flex;
@@ -254,14 +580,6 @@
 		border-radius: 6px;
 		background: color-mix(in srgb, orange 18%, transparent);
 	}
-	.rack-rows {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		display: flex;
-		flex-direction: column;
-		gap: 0.25rem;
-	}
 	.rack-errors {
 		list-style: none;
 		margin: 0;
@@ -270,6 +588,17 @@
 		background: color-mix(in srgb, red 12%, transparent);
 		font-size: 0.75rem;
 		overflow-wrap: anywhere;
+	}
+	.rack-collapse {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		background: none;
+		border: 0;
+		padding: 0.25rem;
+		cursor: pointer;
+		color: inherit;
+		border-radius: 0.25rem;
 	}
 	.spin {
 		display: inline-flex;

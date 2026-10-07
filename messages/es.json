@@ -420,5 +420,9 @@
 	"pluginRackStars": "Estrellas de GitHub",
 	"pluginRackInstallEmpty": "Todo en el rack está instalado.",
 	"pluginRackSearch": "Buscar plugins",
-	"pluginRackUninstallEmpty": "Nada instalado todavía: instala un plugin desde la pestaña de instalación."
+	"pluginRackUninstallEmpty": "Nada instalado todavía: instala un plugin desde la pestaña de instalación.",
+	"pluginRackGroupOwned": "Plugins propios",
+	"pluginRackGroupExternal": "Rack externo",
+	"pluginRackExpandAll": "Expandir todo",
+	"pluginRackCollapseAll": "Plegar todo"
 }

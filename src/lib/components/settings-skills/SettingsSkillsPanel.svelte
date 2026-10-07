@@ -21,6 +21,7 @@
 	import SettingsSkillsContainer from './SettingsSkillsContainer.svelte';
 	import SettingsSkillsHeader from './SettingsSkillsHeader.svelte';
 	import SettingsSkillsSection from './SettingsSkillsSection.svelte';
+	import SettingsSkillsInstall from './SettingsSkillsInstall.svelte';
 	import {
 		reduceReload,
 		visiblePhase,
@@ -492,13 +493,7 @@
 				<p class="shelf-note" data-testid="shelf-empty">—</p>
 			{/if}
 		</SettingsSkillsContainer>
-		{#if tab === 'install'}
-			<div class="shelf-install-bar">
-				<button type="button" class="shelf-install" data-testid="shelf-install" onclick={runInstall} disabled={busy || installCount === 0}>
-					{t(m.skillsShelfInstall)} ({installCount})
-				</button>
-			</div>
-		{/if}
+		{#if tab === 'install'}<SettingsSkillsInstall count={installCount} {busy} oninstall={runInstall} />{/if}
 	{/if}
 </div>
 
@@ -520,37 +515,5 @@
 	}
 	.shelf-warn {
 		color: #b45309;
-	}
-	.shelf-install-bar {
-		position: sticky;
-		bottom: 0;
-		padding: 0.5rem;
-		background: var(--panel-bg, inherit);
-	}
-	/* The NewChatButton pastel-blue identity: the app's blue accent as
-	   a pastel field with the navy-deepened text/border grammar; hover
-	   deepens field and text together. */
-	.shelf-install {
-		width: 100%;
-		border: 1px solid color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, #1e3a8a);
-		border-radius: 0.375rem;
-		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 15%, #fff);
-		color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, #1e3a8a);
-		padding: 0.375rem 0.75rem;
-		font-size: 0.75rem;
-		font-weight: 500;
-		cursor: pointer;
-		transition:
-			background-color 0.15s ease,
-			border-color 0.15s ease;
-	}
-	.shelf-install:not(:disabled):hover {
-		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 22%, #fff);
-		border-color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 65%, #1e3a8a);
-		color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 55%, #1e3a8a);
-	}
-	.shelf-install:disabled {
-		cursor: default;
-		opacity: 0.6;
 	}
 </style>

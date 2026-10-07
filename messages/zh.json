@@ -420,5 +420,9 @@
 	"pluginRackStars": "GitHub 星标",
 	"pluginRackInstallEmpty": "插件架上的插件都已安装。",
 	"pluginRackSearch": "搜索插件",
-	"pluginRackUninstallEmpty": "尚未安装任何插件 - 请在安装标签页中安装。"
+	"pluginRackUninstallEmpty": "尚未安装任何插件 - 请在安装标签页中安装。",
+	"pluginRackGroupOwned": "自有插件",
+	"pluginRackGroupExternal": "外部插件架",
+	"pluginRackExpandAll": "全部展开",
+	"pluginRackCollapseAll": "全部折叠"
 }

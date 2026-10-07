@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { t } from '$lib/services/locale/locale-state.svelte';
 	import * as m from '$lib/paraglide/messages';
-	import { ChevronDown, ChevronRight, CircleUserRound, ExternalLink, Check, LoaderCircle, Star } from '@lucide/svelte';
-	import { formatCompact } from '$lib/utils/compact-number';
+	import { ChevronDown, ChevronRight, CircleUserRound, ExternalLink, Check, LoaderCircle } from '@lucide/svelte';
 	import SettingsSkillsItem from './SettingsSkillsItem.svelte';
+	import SettingsSkillsStars from './SettingsSkillsStars.svelte';
 
 	/**
 	 * SettingsSkillsSection - ONE source group of the Skill Shelf
@@ -104,12 +104,7 @@
 			{#if version}<span class="shelf-version" data-testid={'shelf-version-' + sourceId}>(v{version})</span>{/if}
 			<span class="shelf-author">{author}</span>
 			<span class="shelf-count">{skills.length}</span>
-			{#if stars !== null}
-				<span class="shelf-stars" data-testid={'shelf-stars-' + sourceId} title={t(m.skillsShelfStars)}>
-					<Star size={11} aria-hidden="true" />
-					{formatCompact(stars)}
-				</span>
-			{/if}
+			<SettingsSkillsStars {sourceId} {stars} />
 			{#if reloadChip === 'working'}<span class="shelf-reload-chip" data-testid={'shelf-source-working-' + sourceId}><LoaderCircle size={11} aria-hidden="true" /></span>{:else if reloadChip === 'done'}<span class="shelf-reload-chip" data-testid={'shelf-source-done-' + sourceId}><Check size={11} aria-hidden="true" /></span>{/if}
 		</button>
 		{#if repoUrl}
@@ -229,17 +224,6 @@
 		font-weight: 400;
 		font-variant-numeric: tabular-nums;
 		opacity: 0.6;
-	}
-	.shelf-stars {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.2rem;
-		font-weight: 400;
-		font-size: 0.75rem;
-		opacity: 0.65;
-		font-variant-numeric: tabular-nums;
-		text-transform: none;
-		letter-spacing: normal;
 	}
 	/* Live harvest chip (Reload Rememberer, 2026-09-23): mini spinner while
 	   THIS source builds, a quiet check once it lands. */

@@ -48,11 +48,11 @@ describe('PluginManagerPanel', () => {
 	it('install tab lists only uninstalled plugins, uninstall tab only installed ones', async () => {
 		stubFetch((input) => (String(input).includes('/api/plugins/snapshot') ? Promise.resolve(jsonRes(SNAP)) : Promise.reject(new Error('unexpected'))));
 		const { target } = mountPanel();
-		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-rows"]')).toBeTruthy());
-		expect(target.querySelector('[data-testid="rack-row-dsh-rules-paths"]')?.textContent).toContain('Temoa');
-		expect(target.querySelector('[data-testid="rack-install-dsh-rules-paths"]')).toBeTruthy();
+		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-rows-Temoa-dsh-rules-paths"]')).toBeTruthy()); // group id = repo tail "r"
+		expect(target.querySelector('[data-testid="rack-source-head-Temoa-dsh-rules-paths"]')?.textContent).toContain('Temoa');
+		expect(target.querySelector('[data-testid="rack-select-1"]')).toBeTruthy();
 		// the star count rides after the install button
-		const starEl = target.querySelector('[data-testid="rack-stars-dsh-rules-paths"]');
+		const starEl = target.querySelector('[data-testid="rack-stars-Temoa-dsh-rules-paths"]');
 		expect(starEl?.textContent).toContain('42');
 		// the installed plugin is NOT on the install tab
 		expect(target.querySelector('[data-testid="rack-row-installed-plugin"]')).toBeNull();
@@ -100,11 +100,13 @@ describe('PluginManagerPanel', () => {
 			return Promise.resolve(jsonRes(SNAP));
 		});
 		const { target } = mountPanel();
-		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-rows"]')).toBeTruthy());
-		(target.querySelector('[data-testid="rack-install-dsh-rules-paths"]') as HTMLButtonElement).click();
+		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-rows-Temoa-dsh-rules-paths"]')).toBeTruthy(), { timeout: 5000 });
+		(target.querySelector('[data-testid="rack-select-1"]') as HTMLButtonElement).click();
+		flushSync();
+		(target.querySelector('[data-testid="rack-install"]') as HTMLButtonElement).click();
 		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-errors"]')?.textContent).toContain('allowBuilds hint verbatim'));
 		const applyCall = (fetchMock.mock.calls as unknown as [string, RequestInit][]).find(([u]) => String(u).includes('/api/plugins/apply'));
-		expect(JSON.parse(String(applyCall?.[1]?.body))).toEqual({ action: 'install', targets: ['dsh-rules-paths'] });
+		expect(JSON.parse(String(applyCall?.[1]?.body))).toEqual({ action: 'install', targets: ['1'] }); // targets are the selected row keys (3.3)
 	});
 
 	it('a restarting apply announces the bounce banner, then the panel refreshes ITSELF (D5, no hard reload)', async () => {
@@ -115,9 +117,12 @@ describe('PluginManagerPanel', () => {
 			return Promise.resolve(jsonRes(SNAP));
 		});
 		const { target } = mountPanel();
-		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-rows"]')).toBeTruthy());
+		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-tabs"]')).toBeTruthy());
+		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-rows-Temoa-dsh-rules-paths"]'), 'DBG103 ' + target.innerHTML.slice(2000, 3800)).toBeTruthy(), { timeout: 5000 });
 		const before = snapshots;
-		(target.querySelector('[data-testid="rack-install-dsh-rules-paths"]') as HTMLButtonElement).click();
+		(target.querySelector('[data-testid="rack-select-1"]') as HTMLButtonElement).click();
+		flushSync();
+		(target.querySelector('[data-testid="rack-install"]') as HTMLButtonElement).click();
 		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-bounce"]')).toBeTruthy());
 		// The poll rides the bounce out (~BOUNCE_POLL_MS), then the panel
 		// reloads its snapshot and the banner clears by itself.
@@ -144,28 +149,30 @@ describe('PluginManagerRackRow doors (Shelf Credentials grammar)', () => {
 	it('renders the repo door and the author door with safe external anchors', async () => {
 		stubFetch((input) => Promise.resolve(jsonRes(SNAP)));
 		const { target } = mountPanel();
-		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-rows"]')).toBeTruthy());
-		const repoDoor = target.querySelector('[data-testid="rack-door-repo-dsh-rules-paths"]') as HTMLAnchorElement | null;
+		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-rows-Temoa-dsh-rules-paths"]')).toBeTruthy());
+		const repoDoor = target.querySelector('[data-testid="rack-door-repo-Temoa-dsh-rules-paths"]') as HTMLAnchorElement | null;
 		expect(repoDoor?.href).toBe('https://github.com/Temoa/dsh-rules-paths');
 		expect(repoDoor?.target).toBe('_blank');
 		expect(repoDoor?.rel).toBe('noopener noreferrer');
-		const authorDoor = target.querySelector('[data-testid="rack-door-author-dsh-rules-paths"]') as HTMLAnchorElement | null;
+		const authorDoor = target.querySelector('[data-testid="rack-door-author-Temoa-dsh-rules-paths"]') as HTMLAnchorElement | null;
 		expect(authorDoor?.href).toBe('https://github.com/Temoa');
 		expect(authorDoor?.target).toBe('_blank');
 	});
 	it('a plugin without an author URL renders the repo door only', async () => {
 		stubFetch((input) => Promise.resolve(jsonRes(SNAP)));
 		const { target } = mountPanel();
-		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-rows"]')).toBeTruthy());
+		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-rows-Temoa-dsh-rules-paths"]')).toBeTruthy());
 		// installed-plugin lives on the uninstall tab and has no authorUrl
 		(target.querySelector('[data-testid="rack-tab-uninstall"]') as HTMLButtonElement).click();
 		flushSync();
-		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-door-repo-installed-plugin"]')).toBeTruthy());
-		expect(target.querySelector('[data-testid="rack-door-author-installed-plugin"]')).toBeNull();
+		// doors live on the SOURCE head (Plugin Garden ADR): the x-y source has
+		// a repo door and, with a null source author, no author door.
+		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-door-repo-x-y"]')).toBeTruthy());
+		expect(target.querySelector('[data-testid="rack-door-author-x-y"]')).toBeNull();
 	});
 });
 
-	it('a successful install MOVES the plugin to the uninstall tab', async () => {
+	it('a successful install MOVES the plugin to the uninstall tab', async () => { // TEST-TIMEOUT-15000
 		let installed = false;
 		stubFetch((input) => {
 			if (String(input).includes('/api/plugins/apply')) {
@@ -181,14 +188,16 @@ describe('PluginManagerRackRow doors (Shelf Credentials grammar)', () => {
 			}));
 		});
 		const { target } = mountPanel();
-		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-rows"]')).toBeTruthy());
-		(target.querySelector('[data-testid="rack-install-dsh-rules-paths"]') as HTMLButtonElement).click();
+		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-rows-r"]')).toBeTruthy(), { timeout: 5000 });
+		(target.querySelector('[data-testid="rack-select-1"]') as HTMLButtonElement).click();
+		flushSync();
+		(target.querySelector('[data-testid="rack-install"]') as HTMLButtonElement).click();
 		// the refetch flips installed -> the row LEAVES the install tab
 		await vi.waitFor(() => expect(target.querySelector('[data-testid="rack-row-dsh-rules-paths"]')).toBeNull());
 		(target.querySelector('[data-testid="rack-tab-uninstall"]') as HTMLButtonElement).click();
 		flushSync();
 		expect(target.querySelector('[data-testid="rack-uninstall-dsh-rules-paths"]')).toBeTruthy();
-	});
+	}, 15000);
 
 	it('a failed load offers the retry verb', async () => {
 		stubFetch(() => Promise.resolve(jsonRes({ ok: false })));

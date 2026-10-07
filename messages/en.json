@@ -420,5 +420,9 @@
 	"pluginRackStars": "GitHub stars",
 	"pluginRackInstallEmpty": "Everything on the rack is installed.",
 	"pluginRackSearch": "Search plugins",
-	"pluginRackUninstallEmpty": "Nothing installed yet - install a plugin from the install tab."
+	"pluginRackUninstallEmpty": "Nothing installed yet - install a plugin from the install tab.",
+	"pluginRackGroupOwned": "Owned plugins",
+	"pluginRackGroupExternal": "External rack",
+	"pluginRackExpandAll": "Expand all",
+	"pluginRackCollapseAll": "Collapse all"
 }

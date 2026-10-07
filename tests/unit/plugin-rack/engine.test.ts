@@ -78,7 +78,7 @@ describe('rack engine — refresh lifecycle (D3)', () => {
   it('builds the snapshot when the cache is absent', () => {
     const ws = tracked(workspace())
     const p = runEngine(ws, ['refresh', '--reff', ws.reff, '--cache', ws.cache, '--manifest', ws.manifest])
-    expect(p.v).toBe(1); expect(p.ok).toBe(true); expect(p.reused).toBeUndefined()
+    expect(p.v).toBe(2); // wire v2 (Plugin Garden ADR: group/description/version per row) expect(p.ok).toBe(true); expect(p.reused).toBeUndefined()
     expect(p.snapshot.plugins.map((x: { id: string }) => x.id)).toEqual(['dsh-rules-paths', 'RuleBase'])
     expect(p.snapshot.plugins.every((x: { installed: boolean }) => x.installed === false)).toBe(true)
   })

@@ -14,12 +14,12 @@
  * dependencies[id] AND dsh.profile.bundles includes id. Gates surface, they
  * never auto-clear (D6).
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
-const CACHE_VERSION = 1;
+export const CACHE_VERSION = 2;
 
 function parseArgs(argv) {
 	const out = { command: argv[0], reload: false, reff: null, cache: null, manifest: null, profile: process.env.DSH_PROFILE ?? 'web', dshCmd: null, targets: [] };
@@ -30,6 +30,8 @@ function parseArgs(argv) {
 		else if (a === '--cache') out.cache = argv[++i];
 		else if (a === '--manifest') out.manifest = argv[++i];
 		else if (a === '--profile') out.profile = argv[++i];
+		else if (a === '--garden') out.garden = argv[++i];
+		else if (a === '--garden-repo') out.gardenRepo = argv[++i];
 		else if (a === '--dsh-cmd') out.dshCmd = argv[++i];
 		else out.targets.push(a);
 	}
@@ -54,6 +56,58 @@ export function parseReff(text) {
 	return { plugins, warnings };
 }
 
+
+/** Owned-species enumeration (ADR "The Plugin Garden" 2026-10-07, D1/D2):
+ *  every direct child of the garden dir with a package.json wiring
+ *  dsh.bundle.patch is one owned rack row, identified by its OWN package
+ *  name. Rows carry version/description from the same file and an optional
+ *  dsh.rack.order for display sort. Returns [] for a missing garden. */
+export function scanGarden(gardenPath) {
+	if (!gardenPath || !existsSync(gardenPath)) return [];
+	const rows = [];
+	for (const child of readdirSync(gardenPath, { withFileTypes: true })) {
+		if (!child.isDirectory()) continue;
+		const pkgPath = join(gardenPath, child.name, 'package.json');
+		if (!existsSync(pkgPath)) continue;
+		let pkg;
+		try { pkg = JSON.parse(readFileSync(pkgPath, 'utf8')); } catch { continue; }
+		const patch = pkg && pkg.dsh && pkg.dsh.bundle && pkg.dsh.bundle.patch;
+		if (!patch) continue;
+		const order = (pkg.dsh && pkg.dsh.rack && pkg.dsh.rack.order) ?? Number.POSITIVE_INFINITY;
+		rows.push({
+			id: pkg.name,
+			group: 'owned',
+			version: pkg.version ?? null,
+			description: pkg.description ?? null,
+			order,
+			installSpec: 'link:' + join(gardenPath, child.name),
+			repo: 'link:' + join(gardenPath, child.name)
+		});
+	}
+	return rows.sort((a, b) => (a.order - b.order) || a.id.localeCompare(b.id));
+}
+
+/** Repository identity (ADR-0016 D1): a catalog entry identifies a
+ *  REPOSITORY, not a URL string. Strip protocol, .git suffix, trailing
+ *  slashes and any /tree/<ref>(/...)? browse subtree, then keep the
+ *  owner/repo tail. Two URLs with the same identity are one rack group. */
+export function repoIdentity(url) {
+	const s = String(url || '')
+		.replace(/^[a-z+]+:(\/\/)?/i, '') // protocol (https://, git+, github:)
+		.split('/tree/')[0] // a github /tree/<ref>/... browse URL is a view INSIDE a repo
+		.replace(/\/+$/, '')
+		.replace(/\.git$/i, '')
+		.replace(/\/+$/, '');
+	return s.split('/').slice(-2).join('/');
+}
+
+/** Shared tail helper: last two path segments. findDepKey keeps a residual
+ *  subtree (deps may point at subfolders); repoIdentity cuts it entirely. */
+function repoTail(url) {
+	const s = String(url || '').replace(/\.git$/i, '').replace(/\/+$/, '');
+	return s.split('/').slice(-2).join('/');
+}
+
 /** D4 (amended 2026-09-27): the manifest's DEPENDENCIES are the install
  *  authority. pnpm records a git plugin under the package's REAL name from
  *  its own package.json (e.g. '@temoa/dsh-rules-paths'), not the reff id -
@@ -64,14 +118,11 @@ export function parseReff(text) {
  *  install gate. Returns the recorded dep key (the remove target) or null. */
 export function findDepKey(manifest, id, repo) {
 	if (manifest.deps[id] !== undefined) return id;
-	const tail = String(repo || '')
-		.replace(/\/tree\/[^/]+(\/|$)/, '/') // a github /tree/<ref>/ browse URL is the same repo, not a distinct plugin
-		.replace(/\.git$/, '')
-		.replace(/\/+$/, '')
-		.split('/')
-		.slice(-2)
-		.join('/');
-	if (!tail) return null;
+	// A github /tree/<ref>/ browse URL is the same repo, not a distinct plugin
+	// (identity rule: repoIdentity, ADR-0016 D1); a residual subtree segment is
+	// kept here because deps may legitimately point at subfolders.
+	const tail = repoTail(String(repo || '').replace(/\/tree\/[^/]+(\/|$)/, '/'));
+	if (!tail || tail === '/') return null;
 	for (const [key, value] of Object.entries(manifest.deps)) {
 		if (typeof value === 'string' && value.includes(tail)) return key;
 	}
@@ -95,39 +146,71 @@ export function isInstalled(manifest, id, repo) {
 	return findDepKey(manifest, id, repo) !== null;
 }
 
-export function buildSnapshot({ reffPath, manifestPath, profile }) {
+export function buildSnapshot({ reffPath, manifestPath, gardenPath, gardenRepo, profile }) {
 	const warnings = [];
-	if (!existsSync(reffPath)) warnings.push({ code: 'reff-missing', detail: reffPath });
-	const parsed = existsSync(reffPath) ? parseReff(readFileSync(reffPath, 'utf8')) : { plugins: [], warnings: [] };
-	warnings.push(...parsed.warnings);
 	const manifest = readManifest(manifestPath);
 	if (manifest.missing) warnings.push({ code: 'manifest-missing', detail: manifestPath });
+	const reconcile = (row) => {
+		const depKey = findDepKey(manifest, row.id, row.repo);
+		return { ...row, installed: depKey !== null, pkg: depKey, bundle: (depKey !== null && manifest.bundles.includes(depKey)) || null };
+	};
+	// Owned species first (garden scan), then external (reff) - flat rows,
+	// renumbered once; sources[] groups them by repo (shelf grammar).
+	const owned = scanGarden(gardenPath).map((row) => reconcile({ ...row, repo: gardenRepo ?? row.repo }));
+	const parsed = existsSync(reffPath) ? parseReff(readFileSync(reffPath, 'utf8')) : { plugins: [], warnings: [] };
+	warnings.push(...parsed.warnings);
+	// ADR-0016 D2/D3: an external reff row whose repository the garden already
+	// enumerates is SHADOWED — dropped here with a warning; the reff file itself
+	// is never rewritten and parseReff output is untouched.
+	const ownedIdents = new Set(owned.map((row) => repoIdentity(row.repo)));
+	const external = [];
+	for (const p of parsed.plugins) {
+		if (ownedIdents.has(repoIdentity(p.repo))) {
+			warnings.push({ code: 'reff-shadowed-by-garden', detail: p.id });
+			continue;
+		}
+		external.push(reconcile({
+			n: null,
+			id: p.id,
+			group: 'external',
+			repo: p.repo,
+			version: null,
+			description: null,
+			author: p.author,
+			...(p.authorUrl ? { authorUrl: p.authorUrl } : {})
+		}));
+	}
+	const plugins = [...owned, ...external].map((row, i) => ({ ...row, n: String(i + 1) }));
+	// sources[]: one collapsible group per REPOSITORY (Shelf Chrome grammar),
+	// keyed by repoIdentity (ADR-0016 D2) so /tree browse URLs never split a repo.
+	const sources = [];
+	const byRepo = new Map();
+	for (const row of plugins) {
+		const key = repoIdentity(row.repo);
+		if (!byRepo.has(key)) {
+			sources.push({
+				id: key,
+				name: key.split('/').pop(),
+				author: row.author ?? null,
+				repo: row.repo,
+				plugins: []
+			});
+			byRepo.set(key, sources[sources.length - 1]);
+		}
+		byRepo.get(key).plugins.push(row);
+	}
 	return {
 		snapshot: {
 			v: CACHE_VERSION,
 			generatedAt: new Date().toISOString(),
 			profile,
-			plugins: parsed.plugins.map((p, i) => {
-				const depKey = findDepKey(manifest, p.id, p.repo);
-				return {
-					n: String(i + 1),
-					id: p.id,
-					repo: p.repo,
-					author: p.author,
-					...(p.authorUrl ? { authorUrl: p.authorUrl } : {}),
-					installed: depKey !== null,
-					// The recorded dependency name (pnpm's truth) - the remove target.
-					pkg: depKey,
-					bundle: (depKey !== null && manifest.bundles.includes(depKey)) || null
-				};
-			})
+			sources,
+			plugins
 		},
 		warnings
 	};
 }
 
-/** D3: the reff URL becomes the dsh add spec: git+<url>.git (append .git
- *  only when absent — the operator's line stays the single source). */
 export function toInstallSpec(repo) {
 	return 'git+' + repo + (repo.endsWith('.git') ? '' : '.git');
 }
@@ -136,6 +219,47 @@ function resolveDshCommand(flags) {
 	if (flags.dshCmd) return flags.dshCmd;
 	if (process.env.DSH_WEB_CMD) return process.env.DSH_WEB_CMD;
 	return 'npx --yes @deepseek-ai/dsh@latest';
+}
+
+
+/** Owned-species install (Plugin Garden ADR, D3): write the link dependency,
+ *  APPEND (never rewrite) the bundle entry, idempotent on re-run. The only
+ *  manifest write the rack performs itself - scoped to @local link species;
+ *  git/npm species keep the dsh add delegation (D3). Returns the dep key. */
+export function installOwned(manifestPath, row) {
+	const doc = JSON.parse(readFileSync(manifestPath, 'utf8'));
+	doc.dependencies = doc.dependencies ?? {};
+	doc.dependencies[row.id] = row.installSpec;
+	const bundles = doc.dsh && doc.dsh.profile && Array.isArray(doc.dsh.profile.bundles) ? doc.dsh.profile.bundles : [];
+	if (!bundles.includes(row.id)) bundles.push(row.id);
+	if (doc.dsh && doc.dsh.profile) doc.dsh.profile.bundles = bundles;
+	writeFileSync(manifestPath, JSON.stringify(doc, null, 2));
+	return row.id;
+}
+
+/** Clobber guard (Plugin Garden ADR, 2026-10-07): a dsh plugin add rewrites
+ *  the bundles array to just the new plugin and may drop earlier deps.
+ *  Re-append every still-installed owned row's bundle entry and dep entry.
+ *  Rows already recorded pass through untouched. */
+export function restoreClobberedBundles(manifestPath, preOwnedRows) {
+	const doc = JSON.parse(readFileSync(manifestPath, 'utf8'));
+	let changed = false;
+	doc.dependencies = doc.dependencies ?? {};
+	const bundles = doc.dsh && doc.dsh.profile && Array.isArray(doc.dsh.profile.bundles) ? doc.dsh.profile.bundles : [];
+	for (const row of preOwnedRows) {
+		if (!row.pkg && !row.installSpec) continue;
+		if (doc.dependencies[row.id] === undefined) {
+			doc.dependencies[row.id] = row.installSpec;
+			changed = true;
+		}
+		if (!bundles.includes(row.id)) {
+			bundles.push(row.id);
+			changed = true;
+		}
+	}
+	if (doc.dsh && doc.dsh.profile) doc.dsh.profile.bundles = bundles;
+	if (changed) writeFileSync(manifestPath, JSON.stringify(doc, null, 2));
+	return changed;
 }
 
 /** D3/D6: run dsh, relay its own diagnostics verbatim on failure. */
@@ -172,7 +296,7 @@ function main() {
 			console.log(JSON.stringify({ v: CACHE_VERSION, ok: true, reused: true, snapshot: loadSnapshot(cachePath) }));
 			return;
 		}
-		const { snapshot, warnings } = buildSnapshot({ reffPath, manifestPath, profile: args.profile });
+		const { snapshot, warnings } = buildSnapshot({ reffPath, manifestPath, gardenPath: args.garden, gardenRepo: args.gardenRepo, profile: args.profile });
 		mkdirSync(dirname(cachePath), { recursive: true });
 		writeFileSync(cachePath, JSON.stringify(snapshot, null, 2));
 		console.log(JSON.stringify({ v: CACHE_VERSION, ok: true, snapshot, ...(warnings.length ? { errors: warnings.map((w) => w.code + ': ' + w.detail) } : {}) }));
@@ -192,6 +316,17 @@ function main() {
 			if (!plugin) { results.push({ n: t, ok: false, error: 'not on the rack: ' + t }); continue; }
 			if (action === 'install') {
 				if (plugin.installed) { results.push({ n: plugin.n, id: plugin.id, ok: true, already: true }); continue; }
+				if (plugin.group === 'owned') {
+					// Owned species (Plugin Garden ADR, D3-scoped): link dep + bundles append + pnpm install.
+					const res = installOwned(manifestPath, plugin);
+					const inst = spawnSync('pnpm', ['install'], { cwd: dirname(manifestPath), encoding: 'utf8', timeout: 300000 });
+					if (inst.status !== 0) { results.push({ n: plugin.n, id: plugin.id, ok: false, error: 'pnpm install failed (exit ' + (inst.status ?? 1) + '): ' + String(inst.stderr ?? '').slice(-400) }); continue; }
+					plugin.installed = true;
+					plugin.pkg = res;
+					plugin.bundle = true;
+					results.push({ n: plugin.n, id: plugin.id, pkg: res, ok: true });
+					continue;
+				}
 				const r = runDsh(args, 'add', toInstallSpec(plugin.repo));
 				if (!r.ok) { results.push({ n: plugin.n, id: plugin.id, ok: false, error: r.error }); continue; }
 				const manifest = readManifest(manifestPath);
@@ -240,4 +375,5 @@ function fail(errors) {
 	process.exit(1);
 }
 
-main();
+// Run only when executed directly (not when imported by tests/other tools).
+if (process.argv[1] && import.meta.url === new URL('file://' + process.argv[1].replace(/\\/g, '/')).href) main();
