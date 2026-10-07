@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { CircleUser, ExternalLink, Star } from '@lucide/svelte';
 	import { formatCompact } from '$lib/utils/compact-number';
+	import { t } from '$lib/services/locale/locale-state.svelte';
+	import * as m from '$lib/paraglide/messages';
 	/**
 	 * PluginManagerStars — the source head's meta cluster (extracted from
 	 * PluginManagerPanel): the first plugin's GitHub star badge plus the
@@ -36,9 +38,9 @@
 		</span>
 	{/if}
 	<span class="rack-source-doors">
-		<a class="rack-door" target="_blank" rel="noopener noreferrer" data-testid={'rack-door-repo-' + slug(id)} href={repo} aria-label="Open the plugin repo" title="Open the plugin repo"><ExternalLink size={12} aria-hidden="true" /></a>
+		<a class="rack-door" target="_blank" rel="noopener noreferrer" data-testid={'rack-door-repo-' + slug(id)} href={repo} aria-label={t(m.pluginRackOpenRepo)} title={t(m.pluginRackOpenRepo)}><ExternalLink size={12} aria-hidden="true" /></a>
 		{#if author && plugins[0] && plugins[0].authorUrl}
-			<a class="rack-door" target="_blank" rel="noopener noreferrer" data-testid={'rack-door-author-' + slug(id)} href={plugins[0].authorUrl} aria-label="Open the creator profile" title="Open the creator profile"><CircleUser size={12} aria-hidden="true" /></a>
+			<a class="rack-door" target="_blank" rel="noopener noreferrer" data-testid={'rack-door-author-' + slug(id)} href={plugins[0].authorUrl} aria-label={t(m.pluginRackOpenAuthor)} title={t(m.pluginRackOpenAuthor)}><CircleUser size={12} aria-hidden="true" /></a>
 		{/if}
 	</span>
 </span>

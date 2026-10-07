@@ -19,7 +19,7 @@ function stub(payload: Partial<RackEnginePayload> | 'nonjson' | 'throw', opts: {
 	setRackEngineRunner(async () => {
 		if (payload === 'nonjson') return 'not json at all'
 		if (payload === 'throw') throw new Error('spawn exploded')
-		return JSON.stringify({ v: opts.wire ?? 1, ok: true, ...payload })
+		return JSON.stringify({ v: opts.wire ?? 2, ok: true, ...payload })
 	})
 }
 
@@ -47,7 +47,7 @@ describe('rack engine wrapper', () => {
 		const seen: string[][] = []
 		setRackEngineRunner(async (_p, args) => {
 			seen.push(args)
-			return JSON.stringify({ v: 1, ok: true, snapshot: { v: 1, generatedAt: 't', profile: 'web', plugins: [] } })
+			return JSON.stringify({ v: 2, ok: true, snapshot: { v: 1, generatedAt: 't', profile: 'web', plugins: [] } })
 		})
 		await getRackEngine().refresh(true)
 		expect(seen[0]).toContain('--reload')
@@ -66,7 +66,7 @@ describe('rack engine wrapper', () => {
 	})
 
 	it('wire version mismatch -> RackEngineFailedError', async () => {
-		stub({ present: false }, { wire: 2 })
+		stub({ present: false }, { wire: 1 })
 		await expect(getRackEngine().snapshotStatus()).rejects.toThrow(/wire version mismatch/)
 	})
 

@@ -1,5 +1,18 @@
 # Releases
 
+## v0.6.11
+
+Bumped from v0.6.10 — every file clears the 80% per-file coverage floor, and 13 silently-failing tests come back green.
+
+### Features
+
+- **Per-file coverage floor holds on all six sub-80% files** (3a14946) — the vitest per-file 80% gate (all four metrics) passes with zero threshold errors across 368 test files / 4672 tests. New suites: `tests/unit/components/settings-plugins/plugin-manager-rack-row.test.ts` (PluginManagerRackRow 0% → S100/B91.7/F100/L100), `tests/unit/plugin-manager-uninstall-header-actions.test.ts` (both components to 100%), `tests/unit/settings-skills-item.test.ts` (SettingsSkillsItem B50 → 100), `tests/unit/plugin-manager-panel-branches.test.ts` + `PluginManagerPanelTokenHost.svelte` (PluginManagerPanel B68.3 → 80.6, incl. the waitFloorBack 120s-timeout arm via fake timers), `tests/unit/components/common/buttons/canvas-copy-button-scrollers.test.ts` (CanvasCopyButton B75.8 → 90.9).
+
+### Bug fixes
+
+- **Coverage runs produced no report at all — 13 tests silently failing** (3a14946) — the rack engine wire bumped to v2 (`RACK_WIRE_VERSION = 2`) while both engine suites still emitted v:1 payloads, so every snapshot/refresh/apply test rejected with a wire-version mismatch and vitest aborted before writing coverage. Fixed: engine test payloads follow v2, the mismatch tests pin v=1, and `RACK_GARDEN_PATH` is pinned in verb-arg assertions so `--garden` args stay deterministic (`tests/unit/plugin-rack-engine.test.ts`, `tests/unit/server/plugins/engine.test.ts`).
+- **Hard-coded copy broke the ui-i18n-clean gate** (3a14946) — `PluginManagerHeaderActions` (aria-label "Plugin Rack") and `PluginManagerStars` (repo/creator door labels) carried literal English strings; both now route through paraglide `t(m.pluginRack…)` using existing catalog keys. Pinned by `tests/unit/ui-i18n-clean.test.ts` (zero violations at HEAD).
+
 ## v0.6.10
 
 Bumped from v0.6.9 — the Plugin Garden joins the rack (owned enumeration, wire v2, shelf-exact grouped panel) and one repository can no longer appear twice.

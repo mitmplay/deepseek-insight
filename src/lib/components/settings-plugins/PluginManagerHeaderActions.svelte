@@ -8,6 +8,8 @@
 	 * PluginManagerPanel.
 	 */
 	import PluginManagerReloadButton from './PluginManagerReloadButton.svelte';
+	import { t } from '$lib/services/locale/locale-state.svelte';
+	import * as m from '$lib/paraglide/messages';
 	import { ChevronsDownUp, ChevronsUpDown } from '@lucide/svelte';
 
 	interface Props {
@@ -24,7 +26,7 @@
 	<PluginManagerReloadButton disabled={loading || floorBounce} {onreload} />
 	<!-- The fold pill grammar (SidebarOpenPanelTree): ONE joined pill,
 	     icon-only segments; sits AFTER the reload verb (Shelf Chrome). -->
-	<div class="seg-group" role="group" aria-label="Plugin Rack" data-testid="rack-fold-toggle">
+	<div class="seg-group" role="group" aria-label={t(m.pluginRackTitle)} data-testid="rack-fold-toggle">
 		<button
 			type="button"
 			class="seg left"

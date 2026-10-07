@@ -23,9 +23,12 @@ const script = (name: string, body: string) => {
 };
 
 const ENV = process.env.RACK_ENGINE_PATH;
+const GARDEN = process.env.RACK_GARDEN_PATH;
 afterAll(() => {
   if (ENV === undefined) delete process.env.RACK_ENGINE_PATH;
   else process.env.RACK_ENGINE_PATH = ENV;
+  if (GARDEN === undefined) delete process.env.RACK_GARDEN_PATH;
+  else process.env.RACK_GARDEN_PATH = GARDEN;
   rmSync(tmp, { recursive: true, force: true });
 });
 
@@ -34,6 +37,9 @@ const SENTINEL = script('sentinel.mjs', 'console.log(JSON.stringify({v:1}))');
 
 beforeEach(() => {
   process.env.RACK_ENGINE_PATH = SENTINEL;
+  // Keep gardenArgs() out of the verb-args assertions: point it at a path
+  // that does not exist so the --garden pair is omitted.
+  process.env.RACK_GARDEN_PATH = join(tmp, 'absent-garden');
   setRackEngineRunner(null);
 });
 
@@ -48,15 +54,15 @@ describe('defaultEnginePath', () => {
 });
 
 describe('run() via the real default runner', () => {
-  it('parses a v:1 stdout payload', async () => {
-    process.env.RACK_ENGINE_PATH = script('ok.mjs', 'console.log(JSON.stringify({v:1,present:true}))');
+  it('parses a v:2 stdout payload', async () => {
+    process.env.RACK_ENGINE_PATH = script('ok.mjs', 'console.log(JSON.stringify({v:2,present:true}))');
     await expect(getRackEngine().snapshotStatus()).resolves.toEqual({ present: true });
   });
 
   it('recovers the JSON fail payload from a nonzero exit (err.stdout arm)', async () => {
     process.env.RACK_ENGINE_PATH = script(
       'fail-with-stdout.mjs',
-      'console.log(JSON.stringify({v:1,present:false}));process.exit(1)'
+      'console.log(JSON.stringify({v:2,present:false}));process.exit(1)'
     );
     await expect(getRackEngine().snapshotStatus()).resolves.toEqual({ present: false });
   });
@@ -72,8 +78,8 @@ describe('run() via the real default runner', () => {
   });
 
   it('rejects a wire version mismatch', async () => {
-    process.env.RACK_ENGINE_PATH = script('v2.mjs', 'console.log(JSON.stringify({v:2}))');
-    await expect(getRackEngine().snapshotStatus()).rejects.toThrow('wire version mismatch: v=2');
+    process.env.RACK_ENGINE_PATH = script('v1.mjs', 'console.log(JSON.stringify({v:1}))');
+    await expect(getRackEngine().snapshotStatus()).rejects.toThrow('wire version mismatch: v=1');
   });
 
   it('reports a missing engine binary', async () => {
@@ -113,7 +119,7 @@ describe('getRackEngine verb shapes', () => {
     let withWarnings = true;
     setRackEngineRunner(async (_p, args) => {
       calls.push(args);
-      return JSON.stringify({ v: 1, ok: true, reused: true, snapshot: { v: 1, generatedAt: 't', profile: 'p', plugins: [] }, ...(withWarnings ? { errors: ['w'] } : {}) });
+      return JSON.stringify({ v: 2, ok: true, reused: true, snapshot: { v: 1, generatedAt: 't', profile: 'p', plugins: [] }, ...(withWarnings ? { errors: ['w'] } : {}) });
     });
     const withErrors = await getRackEngine().refresh(true, ['--profile', 'x']);
     expect(calls[0]).toEqual(['refresh', '--reload', '--profile', 'x']);
@@ -127,7 +133,7 @@ describe('getRackEngine verb shapes', () => {
   });
 
   it('refresh rejects a snapshot-less payload', async () => {
-    setRackEngineRunner(async () => JSON.stringify({ v: 1, ok: true }));
+    setRackEngineRunner(async () => JSON.stringify({ v: 2, ok: true }));
     await expect(getRackEngine().refresh(false)).rejects.toThrow('returned no snapshot');
   });
 
@@ -135,19 +141,19 @@ describe('getRackEngine verb shapes', () => {
     const calls: string[][] = [];
     setRackEngineRunner(async (_p, args) => {
       calls.push(args);
-      return JSON.stringify({ v: 1, ok: true, results: [{ id: 'a', ok: true }] });
+      return JSON.stringify({ v: 2, ok: true, results: [{ id: 'a', ok: true }] });
     });
     await expect(getRackEngine().apply('install', ['a', 'b'], ['--yarn'])).resolves.toEqual([
       { id: 'a', ok: true }
     ]);
     expect(calls[0]).toEqual(['apply', 'install', 'a', 'b', '--yarn']);
 
-    setRackEngineRunner(async () => JSON.stringify({ v: 1, ok: false }));
+    setRackEngineRunner(async () => JSON.stringify({ v: 2, ok: false }));
     await expect(getRackEngine().apply('remove', ['a'])).rejects.toThrow('returned no results');
   });
 
   it('snapshotStatus coerces present to a boolean', async () => {
-    setRackEngineRunner(async () => JSON.stringify({ v: 1, present: 'yes' }));
+    setRackEngineRunner(async () => JSON.stringify({ v: 2, present: 'yes' }));
     await expect(getRackEngine().snapshotStatus()).resolves.toEqual({ present: true });
   });
 });
