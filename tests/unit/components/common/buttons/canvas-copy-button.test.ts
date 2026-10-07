@@ -204,7 +204,17 @@ describe('CanvasCopyButton — capture + copy/save payoffs', () => {
 			// The clone box pin: live width in px, stale percentage max-width
 			// neutralized (Opaque Backing addendum, 2026-09-08 — the border
 			// must own the full artifact width).
-			expect(options?.style).toEqual({ width: '400px', maxWidth: 'none' });
+			expect(options?.style).toEqual({
+				width: '400px',
+				maxWidth: 'none',
+				position: 'static',
+				top: 'auto',
+				left: 'auto',
+				right: 'auto',
+				bottom: 'auto',
+				transform: 'none',
+				margin: '0'
+			});
 		} finally {
 			decoy.mockRestore();
 		}

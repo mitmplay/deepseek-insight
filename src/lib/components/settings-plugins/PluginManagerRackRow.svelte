@@ -146,7 +146,7 @@
 		grid-template-columns: auto auto minmax(0, 1fr) auto auto auto;
 		align-items: center;
 		gap: 0.35rem;
-		padding: 0.12rem 0.4rem;
+		padding: 0.12rem 0 0 1.4rem;
 		border-radius: 6px;
 	}
 	.rack-row:hover {

@@ -56,6 +56,29 @@
 	let _maxCanvasSide: number | null = null;
 
 	/**
+	 * Neutralize the capture ROOT's positioning for the clone (2026-10-07,
+	 * PromptsManagerDialog bug). The manager modal is position:fixed,
+	 * centered by top/left:50% + translate(-50%,-50%), and sized width:90%
+	 * — all of which resolve against the VIEWPORT. html-to-image re-renders
+	 * the clone inside a foreignObject sized to the element itself, so
+	 * those percentages re-resolve against the clone's own box: the modal
+	 * shrinks to 90% of itself and re-centers inside it — captured content
+	 * lands offset-right with a blank band (the clone root keeps its
+	 * computed styles). Pinning static/auto/none on the clone root makes
+	 * the foreignObject the clone's containing block; capture targets that
+	 * are already static (every panel column) are unaffected.
+	 */
+	const UNFIX_ROOT: Partial<CSSStyleDeclaration> = {
+		position: 'static',
+		top: 'auto',
+		left: 'auto',
+		right: 'auto',
+		bottom: 'auto',
+		transform: 'none',
+		margin: '0'
+	};
+
+	/**
 	 * Nested-scroll compensation for FULL-mode captures (2026-10-06).
 	 *
 	 * html-to-image clones content at every scroller's ORIGIN — a table
@@ -174,7 +197,7 @@
 				pixelRatio: ratio,
 				backgroundColor: CAPTURE_BACKING,
 				skipAutoScale: true,
-				style: { width: `${w}px`, maxWidth: 'none' }
+				style: { width: `${w}px`, maxWidth: 'none', ...UNFIX_ROOT }
 			});
 			if (!blob) throw new Error('toBlob returned null');
 			return blob;
@@ -203,7 +226,7 @@
 				pixelRatio: DESIRED_RATIO,
 				width: w,
 				height: tH,
-				style: { transform: `translateY(-${yOff}px)`, maxWidth: 'none' },
+				style: { ...UNFIX_ROOT, transform: `translateY(-${yOff}px)`, maxWidth: 'none' },
 				backgroundColor: CAPTURE_BACKING,
 				skipAutoScale: true
 			});
@@ -324,7 +347,7 @@
 				skipAutoScale: true,
 				width: w,
 				height: h,
-				style: { width: `${w}px`, maxWidth: 'none' }
+				style: { width: `${w}px`, maxWidth: 'none', ...UNFIX_ROOT }
 			});
 			if (!blob) throw new Error('toBlob returned null');
 			return blob;

@@ -222,6 +222,7 @@
 	"copyPageImage": "Copy conversation page as image (Shift+Click to save)",
 	"resizeSidebar": "Resize sidebar",
 	"clearFilter": "Clear filter",
+	"copyPromptManagerImage": "Copy prompt manager as image (Shift+Click to save)",
 	"copySpecImage": "Copy feature spec as image (Shift+Click to save)",
 	"copyMarkdown": "Copy markdown",
 	"noOutput": "(no output)",

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { t } from '$lib/services/locale/locale-state.svelte';
 	import * as m from '$lib/paraglide/messages';
-	import { LoaderCircle } from '@lucide/svelte';
+	import { Check, LoaderCircle } from '@lucide/svelte';
 
 	/**
 	 * PluginManagerUninstall — the per-row uninstall verb (extracted from
@@ -24,6 +24,9 @@
 
 <span class="rack-verb">
 	{#if plugin.installed}
+		<span class="rack-badge" data-testid={'rack-badge-' + plugin.id} role="status" aria-label={t(m.pluginRackInstalled)}>
+			<Check size={11} aria-hidden="true" /> {t(m.pluginRackInstalled)}
+		</span>
 		<button type="button" data-testid={'rack-uninstall-' + plugin.id} disabled={busyId !== null || floorBounce} onclick={() => onremove(plugin.id)}>
 			{#if busyId === plugin.id}
 				<span class="rack-busy" data-testid={'rack-busy-' + plugin.id}><span class="spin"><LoaderCircle size={11} aria-hidden="true" /></span>{t(m.pluginRackUninstall)}</span>
@@ -37,6 +40,19 @@
 <style>
 	.rack-verb {
 		display: inline-flex;
+		align-items: center;
+		/* pin the verb (badge + uninstall) to the row's right end */
+		margin-left: auto;
+	}
+	.rack-badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.15rem;
+		padding: 0.05rem 0.3rem;
+		border-radius: 999px;
+		background: color-mix(in srgb, #1a7f37 14%, transparent);
+		color: #1a7f37;
+		font-size: 0.68rem;
 	}
 	.rack-verb button {
 		background: none;

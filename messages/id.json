@@ -222,6 +222,7 @@
 	"copyPageImage": "Salin halaman percakapan sebagai gambar (Shift+Klik untuk menyimpan)",
 	"resizeSidebar": "Ubah ukuran sidebar",
 	"clearFilter": "Hapus filter",
+	"copyPromptManagerImage": "Salin manajer prompt sebagai gambar (Shift+Klik untuk menyimpan)",
 	"copySpecImage": "Salin spesifikasi fitur sebagai gambar (Shift+Klik untuk menyimpan)",
 	"copyMarkdown": "Salin markdown",
 	"noOutput": "(tanpa output)",

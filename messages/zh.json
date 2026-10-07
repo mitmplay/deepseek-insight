@@ -222,6 +222,7 @@
 	"copyPageImage": "将对话页复制为图片（Shift+点击保存）",
 	"resizeSidebar": "调整侧栏大小",
 	"clearFilter": "清除筛选",
+	"copyPromptManagerImage": "将提示词管理器复制为图片（Shift+点击保存）",
 	"copySpecImage": "将功能规格复制为图片（Shift+点击保存）",
 	"copyMarkdown": "复制 markdown",
 	"noOutput": "(无输出)",

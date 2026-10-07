@@ -20,7 +20,7 @@
 	 * {#if} — onclose unmounts it.
 	 */
 	import PromptManagerPanel from '../prompt-manager/PromptManagerPanel.svelte';
-	import { MANAGER_ROW_TITLE } from '$lib/services/panels/panel-rows';
+	import PromptsManagerDialogHeader from '../prompt-manager/PromptsManagerDialogHeader.svelte';
 
 	let {
 		onclose,
@@ -43,12 +43,7 @@
 
 <!-- Modal -->
 <div class="mgr-modal" role="dialog" aria-label={t(m.manageSavedPrompts)} tabindex="-1">
-	<!-- Shell header: title left, close right — the panel carries neither
-	     (it owns only toolbar + table; onclose stays for its Escape path). -->
-	<div class="mgr-dialog-header">
-		<div class="mgr-dialog-title">{MANAGER_ROW_TITLE}</div>
-		<button type="button" class="mgr-dialog-close" onclick={onclose} aria-label={t(m.close)}>×</button>
-	</div>
+	<PromptsManagerDialogHeader {onclose} />
 	<div class="mgr-dialog-body">
 		<PromptManagerPanel {onclose} {onchanged} />
 	</div>
@@ -95,14 +90,6 @@
 		border-radius: 0.5rem;
 	}
 
-	.mgr-dialog-header {
-		display: flex;
-		align-items: center;
-		padding-left: 0.5rem;
-		gap: 0.5rem;
-		flex: none; /* header never scrolls — only the body does */
-	}
-
 	/* The scrolling sibling: owns the overflow so the header stays put. */
 	.mgr-dialog-body {
 		flex: 1;
@@ -110,25 +97,4 @@
 		overflow-y: auto;
 	}
 
-	.mgr-dialog-title {
-	    font-size: 0.9rem;
-		font-weight: 600;
-		margin: 0;
-		flex: 1; /* title left, close right */
-		text-align: left;
-	}
-
-	.mgr-dialog-close {
-		border: none;
-		background: transparent;
-		color: var(--color-text-muted, #888);
-		font-size: 1.125rem;
-		line-height: 1;
-		cursor: pointer;
-	}
-
-	.mgr-dialog-close:hover {
-		color: var(--color-text-primary, #212529);
-		font-size: 0.8125rem;
-	}
 </style>

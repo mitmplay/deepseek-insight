@@ -12,13 +12,11 @@
 	import { onMount } from 'svelte';
 	import { t } from '$lib/services/locale/locale-state.svelte';
 	import * as m from '$lib/paraglide/messages';
-	import { Check, ChevronDown, ChevronRight, LoaderCircle, Star } from '@lucide/svelte';
-	import PluginManagerRackRow from './PluginManagerRackRow.svelte';
+	import { LoaderCircle } from '@lucide/svelte';
 	import PluginManagerHeader from './PluginManagerHeader.svelte';
 	import PluginManagerToolbar from './PluginManagerToolbar.svelte';
-	import PluginManagerUninstall from './PluginManagerUninstall.svelte';
 	import PluginManagerInstall from './PluginManagerInstall.svelte';
-	import PluginManagerStars from './PluginManagerStars.svelte';
+	import PluginManagerSection, { type RackPlugin, type RackSource } from './PluginManagerSection.svelte';
 
 	interface Props {
 		/** Session-only refresh token (BUG 2026-10-05, same contract as the
@@ -33,26 +31,6 @@
 	}
 	let { refreshToken = 0, initialTab = 'install', ontabchange }: Props = $props();
 
-	interface RackPlugin {
-		n: string;
-		id: string;
-		group?: 'owned' | 'external'; // v2 wire: owned = plugins/ scan, external = reff
-		description?: string | null;
-		version?: string | null;
-		dn?: string; // display number, e.g. 1.1 (source number . row number)
-		authorUrl?: string | null;
-		repo: string;
-		author: string | null;
-		installed: boolean;
-	}
-	interface RackSource {
-		n?: string;
-		name?: string;
-		id: string;
-		author: string | null;
-		repo: string;
-		plugins: RackPlugin[];
-	}
 	interface RackSnapshot {
 		generatedAt: string;
 		profile: string;
@@ -335,54 +313,18 @@
 			</div>
 		{:else}
 			{#each visibleSources as source (source.id + source.repo)}
-				<div class="rack-source" data-testid={'rack-source-' + source.id.replace(/[^a-zA-Z0-9-]/g, '-')}>
-					<button
-						type="button"
-						class="rack-source-head"
-						data-testid={'rack-source-head-' + source.id.replace(/[^a-zA-Z0-9-]/g, '-')}
-						aria-expanded={collapsedGroups.has(source.id) ? 'false' : 'true'}
-						onclick={() => toggleGroup(source.id)}
-					>
-						<span class="rack-source-chevron">{#if collapsedGroups.has(source.id)}<ChevronRight size={12} aria-hidden="true" />{:else}<ChevronDown size={12} aria-hidden="true" />{/if}</span>
-						<span class="rack-source-num">{source.n}.</span>
-						{#if source.author}
-						<span class="rack-source-author">by {source.author}</span>
-						{:else}
-						<span class="rack-source-name">{source.name ?? source.id}</span>
-						{/if}
-						<PluginManagerStars id={source.id} repo={source.repo} author={source.author} plugins={source.plugins} stars={stars} />
-					</button>
-					{#if !collapsedGroups.has(source.id)}
-						<ul class="rack-rows" data-testid={'rack-rows-' + source.id.replace(/[^a-zA-Z0-9-]/g, '-')}>
-							{#each source.plugins as plugin (plugin.n)}
-								<li class="rack-row" class:rack-row-selected={selected.has(plugin.n)} data-testid={'rack-row-' + plugin.id}>
-									{#if tab === 'install' && !plugin.installed}
-										<input
-											type="checkbox"
-											class="rack-check"
-											data-testid={'rack-select-' + plugin.n}
-											checked={selected.has(plugin.n)}
-											onchange={() => toggleSelect(plugin.n)}
-										/>
-									{/if}
-									<span class="rack-n">{plugin.dn}</span>
-									<span class="rack-id">
-										{plugin.id}
-										{#if plugin.installed}
-											<span class="rack-badge" data-testid={'rack-badge-' + plugin.id} role="status" aria-label={t(m.pluginRackInstalled)}>
-												<Check size={11} aria-hidden="true" /> {t(m.pluginRackInstalled)}
-											</span>
-										{/if}
-									</span>
-									{#if plugin.description}
-										<span class="rack-desc">{plugin.description}</span>
-									{/if}
-									<PluginManagerUninstall {plugin} {busyId} {floorBounce} onremove={(id) => void apply('remove', id)} />
-								</li>
-							{/each}
-						</ul>
-					{/if}
-				</div>
+				<PluginManagerSection
+					{tab}
+					{stars}
+					{source}
+					{busyId}
+					{selected}
+					{floorBounce}
+					ontoggleselect={toggleSelect}
+					ontoggle={() => toggleGroup(source.id)}
+					onremove={(id) => void apply('remove', id)}
+					collapsed={collapsedGroups.has(source.id)}
+				/>
 			{/each}
 			{#if errors.length > 0}
 				<ul class="rack-errors" data-testid="rack-errors">
@@ -406,117 +348,6 @@
 		gap: 0.25rem;
 		font-size: 0.85rem;
 		padding-bottom: 3.2rem;
-	}
-	.rack-source {
-		display: flex;
-		flex-direction: column;
-	}
-	.rack-source-head {
-		display: flex;
-		align-items: center;
-		gap: 0.3rem;
-		white-space: nowrap;
-		width: 100%;
-		background: none;
-		border: 0;
-		padding: 0.15rem 0.3rem;
-		cursor: pointer;
-		color: inherit;
-		font-weight: 600;
-		text-align: left;
-	}
-	.rack-source-head:hover {
-		background: color-mix(in srgb, currentcolor 6%, transparent);
-	}
-	.rack-source-chevron {
-		display: inline-flex;
-		align-items: center;
-	}
-	.rack-source-chevron :global(svg) {
-		display: block;
-	}
-	.rack-source-num {
-		opacity: 0.55;
-		font-variant-numeric: tabular-nums;
-		padding-right: 0.15rem;
-	}
-	.rack-source-name {
-		display: inline;
-	}
-	.rack-source-author {
-		display: inline;
-		font-weight: 400;
-		opacity: 0.75;
-	}
-	.rack-rows {
-		list-style: none;
-		margin: 0;
-		padding: 0 0 0 1.1rem;
-		display: flex;
-		flex-direction: column;
-		gap: 0.25rem;
-	}
-	.rack-row {
-		display: flex;
-		align-items: center;
-		gap: 0.35rem;
-		padding: 0.12rem 0.4rem;
-		border-radius: 6px;
-	}
-	.rack-row:hover {
-		background: color-mix(in srgb, currentcolor 6%, transparent);
-	}
-	.rack-row-selected,
-	.rack-row:has(.rack-check:checked) {
-		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 10%, transparent);
-	}
-	.rack-check {
-		appearance: none;
-		width: 0.9rem;
-		height: 0.9rem;
-		margin: 0;
-		border: 1.5px solid var(--color-surface-border, #8b949e);
-		border-radius: 3px;
-		background: var(--color-surface, #fff);
-		cursor: pointer;
-		flex-shrink: 0;
-		display: inline-block;
-		vertical-align: middle;
-	}
-	.rack-check:checked {
-		background: var(--color-accent-blue, #3b82f6);
-		border-color: var(--color-accent-blue, #3b82f6);
-		box-shadow: inset 0 0 0 2px var(--color-surface, #fff);
-	}
-	.rack-n {
-		opacity: 0.55;
-		font-variant-numeric: tabular-nums;
-		padding-right: 0.15rem;
-	}
-	.rack-id {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.25rem;
-		min-width: 0;
-	}
-	.rack-desc {
-		color: var(--color-text-muted, #888);
-		font-size: 0.78rem;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-		flex: 1;
-		min-width: 0;
-	}
-	.rack-badge {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.15rem;
-		padding: 0.05rem 0.3rem;
-		border-radius: 999px;
-		background: color-mix(in srgb, #1a7f37 14%, transparent);
-		color: #1a7f37;
-		font-size: 0.68rem;
 	}
 	.rack-note {
 		display: flex;

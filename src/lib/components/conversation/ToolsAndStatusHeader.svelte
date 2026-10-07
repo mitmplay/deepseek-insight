@@ -130,7 +130,7 @@
 		<CanvasCopyButton
 			container={transcript}
 			title={t(m.copyConversationImage)}
-			size={18}
+			size={15}
 			class="shrink-0 rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
 		/>
 	{/if}

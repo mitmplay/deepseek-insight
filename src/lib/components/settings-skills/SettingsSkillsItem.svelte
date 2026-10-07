@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { t } from '$lib/services/locale/locale-state.svelte';
 	import * as m from '$lib/paraglide/messages';
+	import { Check } from '@lucide/svelte';
 	import SettingsSkillsUninstall from './SettingsSkillsUninstall.svelte';
 
 	/**
@@ -46,9 +47,7 @@
 			<span class="shelf-id">{id}{dup ? '(d)' : ''}</span>
 		</label>
 		{#if tier}<span class="shelf-tier" data-testid="shelf-tier">{tier}</span>{/if}
-		{#if badge}
-			<span class="shelf-badge" data-testid="shelf-badge">{badge}</span>
-		{/if}
+		{#if badge}<span class="shelf-badge" data-testid="shelf-badge"><Check size={11} aria-hidden="true" />{badge}</span>{/if}
 		{#if uninstallable}<SettingsSkillsUninstall {id} {busy} {onuninstall} />{/if}
 	</div>
 	{#if overview}
@@ -109,6 +108,11 @@
 		color: #e67e22;
 	}
 	.shelf-badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.15rem;
+		flex-shrink: 0;
+		white-space: nowrap;
 		font-size: 0.7rem;
 		padding: 0.05rem 0.35rem;
 		border-radius: 999px;

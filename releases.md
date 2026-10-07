@@ -1,5 +1,18 @@
 # Releases
 
+## v0.6.13
+
+Bumped from v0.6.12 — the plugin rack's per-source block becomes its own component, and the installed badge finds a right-aligned home on both shelves.
+
+### Features
+
+- **PluginManagerSection extracted** (790bdf5) — the per-source block of `PluginManagerPanel.svelte` (collapsible source header + row list, former ln 338–385) is now `PluginManagerSection.svelte`; the panel stays the state owner and hands in `source/collapsed/stars/tab/selected/busyId/floorBounce` plus `ontoggle/ontoggleselect/onremove`. The shared wire types `RackPlugin`/`RackSource` are exported from the section's `<script module>` and imported by the panel (single type home, no duplication). All `data-testid`s preserved; scoped `.rack-source*`/`.rack-row*` CSS moved with the markup.
+
+### Bug fixes
+
+- **Installed badge lives with the uninstall verb** (790bdf5) — the `rack-badge` moved from the row body into `PluginManagerUninstall`, and the badge+uninstall cluster pins to the row's right end (`margin-left: auto`); behavior unchanged for uninstalled rows (nothing renders on the right).
+- **Skills shelf badge one-line layout** (790bdf5) — `.shelf-badge` had no flex layout, so the `Check` icon and text wrapped onto separate lines inside the pill; now `inline-flex` + `gap: 0.15rem` + `white-space: nowrap`, and the markup collapsed to a whitespace-free one-liner so `textContent` stays exactly the badge text (pinned by `tests/unit/settings-skills-item.test.ts`, all 4 skills-shelf suites green).
+
 ## v0.6.12
 
 Bumped from v0.6.11 — canvas-copy capture lands in the panel floor, and the type/test/coverage gates all come back green.

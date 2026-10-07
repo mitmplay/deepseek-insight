@@ -222,6 +222,7 @@
 	"copyPageImage": "Copiar página de conversación como imagen (Shift+clic para guardar)",
 	"resizeSidebar": "Redimensionar barra lateral",
 	"clearFilter": "Limpiar filtro",
+	"copyPromptManagerImage": "Copiar gestor de prompts como imagen (Shift+clic para guardar)",
 	"copySpecImage": "Copiar spec de funcionalidad como imagen (Shift+clic para guardar)",
 	"copyMarkdown": "Copiar markdown",
 	"noOutput": "(sin salida)",
