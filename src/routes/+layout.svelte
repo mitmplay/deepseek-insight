@@ -9,8 +9,15 @@
 	 * 0×0, and Playwright correctly reported the span `hidden`.
 	 */
 	import '../app.css';
+	import { onMount } from 'svelte';
+	import { themePrefs } from '$lib/utils/theme-prefs.svelte';
 
 	let { children } = $props();
+
+	// The Three-State Lamp (ADR-0023 D2/D3): the pre-paint script in
+	// app.html already resolved and set html[data-theme] - the store ADOPTS
+	// it here and attaches the live OS listener. Never re-sets at boot.
+	onMount(() => themePrefs.adopt());
 </script>
 
 {@render children()}

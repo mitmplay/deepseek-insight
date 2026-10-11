@@ -82,7 +82,7 @@
 	/* NewChatButton's seg-group contract copied verbatim (the app's one
 	   segmented-toggle language): ONE joined pill, zero gap, shared 1px
 	   edges (the right segment drops its left border), outer curves only.
-	   Icon-only segments; rest #52606d, hover accent-deep; a seg at its
+	   Icon-only segments; rest var(--color-slate-neutral), hover accent-deep; a seg at its
 	   extreme sits at 0.6. */
 	.seg-group {
 		flex-shrink: 0;
@@ -94,9 +94,9 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		border: 1px solid color-mix(in srgb, var(--color-accent-blue, #3b82f6) 35%, #fff);
+		border: 1px solid color-mix(in srgb, var(--color-accent-blue, #3b82f6) 35%, var(--color-surface-elevated));
 		background: transparent;
-		color: #52606d;
+		color: var(--color-slate-neutral);
 		line-height: 1;
 		padding: 0.15rem 0.275rem;
 		cursor: pointer;
@@ -131,15 +131,15 @@
 	}
 
 	.seg:not(:disabled):hover {
-		border-color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, #1e3a8a);
-		color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, #1e3a8a);
-		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 12%, #fff);
+		border-color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, var(--color-navy-focus));
+		color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, var(--color-navy-focus));
+		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 12%, var(--color-surface-elevated));
 	}
 
 	/* Keyboard focus gets the header's navy ring (WCAG 2.4.7), inside the
 	   segment's curve so the pill shape keeps reading as one control. */
 	.seg:focus-visible {
-		outline: 2px solid #1e3a8a;
+		outline: 2px solid var(--color-navy-focus);
 		outline-offset: -2px;
 	}
 </style>

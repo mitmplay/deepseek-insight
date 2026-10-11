@@ -464,6 +464,10 @@ export function readSettingsHomes(): { dsi: string; dsh: string } {
  *  resolve(request): Spec step — the seam itself applies no defaults. */
 export interface TerminalConfig {
 	enabled: boolean;
+	/** Terminal Theming (ADR-0023 follow-up, 2026-10-11): when true the
+	 *  terminal follows html[data-theme] — a light ANSI palette on the
+	 *  light floor. Default false: the terminal stays self-dark. */
+	theming: boolean;
 	tailBytes: number;
 	spillMaxBytes: number;
 	graceMs: number;
@@ -476,7 +480,10 @@ export interface TerminalConfig {
 }
 
 export const DEFAULT_TERMINAL_CONFIG: TerminalConfig = {
-	enabled: false,
+	// 2026-10-11 flip (operator decision): terminals are ON by default —
+	// the yaml key terminal.enabled: false is now the explicit off-switch.
+	enabled: true,
+	theming: false,
 	tailBytes: DEFAULT_TERMINAL_TAIL_BYTES,
 	spillMaxBytes: DEFAULT_TERMINAL_SPILL_BYTES,
 	graceMs: DEFAULT_TERMINAL_GRACE_MS,
@@ -495,6 +502,7 @@ export function readTerminalConfig(configPath?: string): TerminalConfig {
 	const section = isConfigRecord(rec) ? rec : {};
 	return {
 		enabled: boolOr(section.enabled, DEFAULT_TERMINAL_CONFIG.enabled),
+		theming: boolOr(section.theming, DEFAULT_TERMINAL_CONFIG.theming),
 		tailBytes: intWithin(section.tailBytes, 4_096, 8_000_000, DEFAULT_TERMINAL_TAIL_BYTES),
 		spillMaxBytes: intWithin(section.spillMaxBytes, 1_000_000, 1_000_000_000, DEFAULT_TERMINAL_SPILL_BYTES),
 		graceMs: intWithin(section.graceMs, 250, 30_000, DEFAULT_TERMINAL_GRACE_MS),

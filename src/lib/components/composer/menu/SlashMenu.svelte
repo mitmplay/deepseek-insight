@@ -384,6 +384,6 @@
 		color: var(--color-text-muted, #868e96);
 	}
 	.slash-error {
-		color: #b91c1c;
+		color: var(--si-run);
 	}
 </style>

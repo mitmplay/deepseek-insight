@@ -44,20 +44,20 @@
 		{#if argsRaw !== undefined}
 			<pre
 				data-testid="tool-chip-args"
-				class="overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-slate-50 p-2 font-mono text-[11px] text-slate-600 ring-1 ring-slate-200"
+				class="overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-surface p-2 font-mono text-[11px] text-text-secondary ring-1 ring-surface-border"
 			>{argsRaw}</pre>
 		{/if}
 		{#if resultShown !== undefined}
 			<pre
 				data-testid="tool-chip-result"
-				class="mt-1 overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-slate-50 p-2 font-mono text-[11px] text-slate-600 ring-1 ring-slate-200"
+				class="mt-1 overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-surface p-2 font-mono text-[11px] text-text-secondary ring-1 ring-surface-border"
 			>{resultShown}</pre>
 			{#if resultText && resultText.length > RESULT_TRUNC}
 				<button
 					type="button"
 					data-testid="tool-chip-result-toggle"
 					onclick={() => (resultExpanded = !resultExpanded)}
-					class="mt-0.5 text-[11px] text-slate-400 underline hover:text-slate-600"
+					class="mt-0.5 text-[11px] text-text-muted underline hover:text-text-secondary"
 				>
 					{resultExpanded ? t(m.showLess) : t(m.showFullResult)}
 				</button>
@@ -67,7 +67,7 @@
 			     args show once. -->
 			<pre
 				data-testid="tool-chip-detail"
-				class="overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-slate-50 p-2 font-mono text-[11px] text-slate-600 ring-1 ring-slate-200"
+				class="overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-surface p-2 font-mono text-[11px] text-text-secondary ring-1 ring-surface-border"
 			>{summary}</pre>
 		{/if}
 	{/if}

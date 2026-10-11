@@ -10,7 +10,8 @@
 	 * the levels cache, the fetches, and the git state — this component
 	 * reads them as props and emits toggle / open-file intents back.
 	 */
-	import { workspacePanelCopy as copy } from './workspace-panel-copy';
+	import { t } from '$lib/services/locale/locale-state.svelte';
+import * as m from '$lib/paraglide/messages';
 	import FileTypeIcon from './FileTypeIcon.svelte';
 
 	/** One listing row (workspaceFiles/list WorkspaceDirectoryEntry). */
@@ -72,14 +73,14 @@
 	}
 </script>
 
-<ul class="tree" role="tree" aria-label={copy.explorer.title + ': ' + root} data-active-file={activeFile ?? ''}>
+<ul class="tree" role="tree" aria-label={`${t(m.workspaceExplorerTitle)}: ${root}`} data-active-file={activeFile ?? ''}>
 			{#each sorted(levels['']?.kind === 'ready' ? levels[''].entries : []) as entry (entry.name)}
 				{@render row(entry, '', 0)}
 			{/each}
 			{#if levels['']?.kind === 'loading'}
-				<li class="note">{copy.explorer.loading}</li>
+				<li class="note">{t(m.workspaceExplorerLoading)}</li>
 			{:else if levels['']?.kind === 'failed'}
-				<li class="note fail" data-testid="explorer-failed">{copy.explorer.loadFailed}{levels['']?.kind === 'failed' ? ` — ${levels[''].reason}` : ''}</li>
+				<li class="note fail" data-testid="explorer-failed">{t(m.workspaceExplorerLoadFailed)}{levels['']?.kind === 'failed' ? ` — ${levels[''].reason}` : ''}</li>
 			{/if}
 		</ul>
 
@@ -103,19 +104,19 @@
 {/if}
 		{#if dir && isOpen}
 			{#if levels[child]?.kind === 'loading'}
-				<ul class="tree"><li class="note">{copy.explorer.loading}</li></ul>
+				<ul class="tree"><li class="note">{t(m.workspaceExplorerLoading)}</li></ul>
 			{:else if levels[child]?.kind === 'failed'}
-				<ul class="tree"><li class="note fail">{copy.explorer.loadFailed}{levels[child]?.kind === 'failed' ? ` — ${levels[child].reason}` : ''}</li></ul>
+				<ul class="tree"><li class="note fail">{t(m.workspaceExplorerLoadFailed)}{levels[child]?.kind === 'failed' ? ` — ${levels[child].reason}` : ''}</li></ul>
 			{:else if levels[child]?.kind === 'ready'}
 				{#if levels[child].entries.length === 0}
-					<ul class="tree"><li class="note">{copy.explorer.empty}</li></ul>
+					<ul class="tree"><li class="note">{t(m.workspaceExplorerEmpty)}</li></ul>
 				{:else}
 					<ul class="tree">
 						{#each sorted(levels[child].entries) as sub (sub.name)}
 							{@render row(sub, child, depth + 1)}
 						{/each}
 						{#if levels[child].truncated}
-							<li class="note">{copy.explorer.truncated.trim()}</li>
+							<li class="note">{t(m.workspaceExplorerTruncated).trim()}</li>
 						{/if}
 					</ul>
 				{/if}
@@ -144,7 +145,7 @@
 	   text so the operator sees WHERE the linked file lives in the tree. */
 	li.active > .row {
 		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 18%, transparent);
-		color: var(--wsc-fg, color-mix(in srgb, var(--color-accent-blue, #3b82f6) 60%, #1e3a8a));
+		color: var(--wsc-fg, color-mix(in srgb, var(--color-accent-blue, #3b82f6) 60%, var(--color-navy-focus)));
 	}
 	.row {
 		display: inline-flex;
@@ -176,7 +177,7 @@
 	/* app.css @layer base sets svg { color: var(--color-accent-purple) } — a
 	   direct rule that beats inherited color, so every folder icon painted
 	   accent-purple regardless of the tint below. Icons here must inherit
-	   the span's color (amber plain, #7c3aed repo). */
+	   the span's color (amber plain, var(--color-accent-deep) repo). */
 	.entry-icon :global(svg) {
 		color: inherit;
 	}
@@ -184,25 +185,25 @@
 	   accent; .git repo folders keep the amber of the DSH FileTypeIcon
 	   folder (dsw static-amber-400) with their distinct stroked shape. */
 	.dir .entry-icon {
-		color: #7c3aed;
+		color: var(--color-accent-deep);
 	}
 	/* Git Eye repo rows (ADR D3): bold red name + amber stroked icon. */
 	.row.repo .entry-icon {
-		color: rgb(247, 173, 49);
+		color: var(--color-tree-amber);
 	}
 	.row.repo .entry-name {
 		font-weight: 600;
-		color: #ff4500; /* orangered */
+		color: var(--color-tree-repo); /* orangered */
 	}
 	/* A directory on the ancestor chain of a changed file: chocolate, bold —
 	   distinct from the orangered repo rows it may coexist with. */
 	.row.hot .entry-name {
 		font-weight: 600;
-		color: #d2691e; /* chocolate */
+		color: var(--color-tree-child); /* chocolate */
 	}
 	/* Identified-as-changed files (ADR D5 rows): chocolate + bold. */
 	.row.changed .entry-name {
-		color: #d2691e; /* chocolate */
+		color: var(--color-tree-child); /* chocolate */
 		font-weight: 600;
 	}
 	.entry-name {
@@ -215,6 +216,6 @@
 		padding: 0.1rem 0.25rem;
 	}
 	.note.fail {
-		color: #b91c1c;
+		color: var(--si-run);
 	}
 </style>

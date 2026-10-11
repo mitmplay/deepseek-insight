@@ -78,7 +78,7 @@ describe('OpenParentButton — the jump back to the fork source', () => {
 		const { target, instance } = mountButton({ parentSessionId: 'session-parent' });
 		const btn = target.querySelector<HTMLButtonElement>('[data-testid="parent-button"]')!;
 		expect(btn.disabled).toBe(true);
-		expect(btn.className).toContain('text-slate-300'); // the gray parked state
+		expect(btn.className).toContain('text-text-muted'); // the gray parked state
 		expect(btn.getAttribute('title')).toBe('Parent session is already open');
 		btn.click();
 		flushSync();

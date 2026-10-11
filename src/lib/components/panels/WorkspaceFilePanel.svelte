@@ -21,8 +21,7 @@
 	 * Refusals render the mapped failure line (never blank): not-found,
 	 * outside-workspace, too-large, not-text, not-regular-file.
 	 */
-	import { workspacePanelCopy as copy } from './workspace-panel-copy';
-	import { appConfig } from '$lib/services/config/app-config.svelte';
+		import { appConfig } from '$lib/services/config/app-config.svelte';
 	import { t } from '$lib/services/locale/locale-state.svelte';
 	import * as m from '$lib/paraglide/messages';
 	import WorkspaceFile from './WorkspaceFile.svelte';
@@ -549,10 +548,10 @@
 		onViewChange={setView}
 		onSave={save}
 		{saveError}
-		saveFailedNote={copy.file.saveFailed}
-		loadingNote={copy.explorer.loading}
-		loadFailedNote={copy.file.loadFailed}
-		truncatedNote={copy.file.truncated}
+		saveFailedNote={t(m.workspaceFileSaveFailed)}
+		loadingNote={t(m.workspaceExplorerLoading)}
+		loadFailedNote={t(m.workspaceFileLoadFailed)}
+		truncatedNote={t(m.workspaceFileTruncated)}
 		newFileNote={t(m.fileEyeNewFile)}
 		{phase}
 		{errorCode}
@@ -585,7 +584,7 @@
 	   into its own DOM, outside Svelte's scoping) — hence :global. A soft
 	   amber band, distinct from Monaco's own current-line highlight. */
 	:global(.dsi-line-anchor-highlight) {
-		background: rgba(255, 196, 0, 0.22);
-		outline: 1px solid rgba(255, 170, 0, 0.45);
+		background: color-mix(in srgb, var(--color-status-pending) 22%, transparent);
+		outline: 1px solid color-mix(in srgb, var(--color-status-pending) 45%, transparent);
 	}
 </style>

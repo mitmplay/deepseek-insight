@@ -43,7 +43,7 @@
 			mx-0.5 my-0.5 align-middle shrink-0 transition-colors select-none cursor-pointer
 			{open
 				? 'bg-accent-blue/20 text-accent-blue border border-accent-blue/30'
-				: 'bg-slate-500/10 text-text-secondary border border-slate-500/20 hover:bg-slate-500/20 hover:text-text-primary'}"
+				: 'bg-surface0/10 text-text-secondary border border-text-muted/20 hover:bg-surface0/20 hover:text-text-primary'}"
 	>
 		{#if open}
 			<ChevronDown size={10} />
@@ -56,7 +56,7 @@
 	{#if open}
 		<div
 			data-testid="system-prompt-body"
-			class="mt-1 rounded-md border border-slate-500/20 bg-slate-500/5 p-2"
+			class="mt-1 rounded-md border border-text-muted/20 bg-surface0/5 p-2"
 		>
 			<pre class="max-h-72 overflow-auto whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed text-text-secondary">{text}</pre>
 		</div>

@@ -103,7 +103,7 @@
 		margin-right: 0.5rem;
 	}
 	.help-params dt code {
-		color: var(--color-accent-purple, #8b5cf6);
+		color: var(--color-accent-purple, var(--color-accent-purple));
 	}
 	.help-params dd {
 		margin: 0;

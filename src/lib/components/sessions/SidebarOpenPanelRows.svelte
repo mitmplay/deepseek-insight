@@ -236,9 +236,9 @@
 	   calibrated script, 2026-08-26) — and selection is NEVER carried
 	   by color alone: field + weight + ring + aria-current="page". */
 	.row.current {
-		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 30%, #fff);
+		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 30%, var(--color-surface-elevated));
 		font-weight: 600;
-		box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, #1e3a8a);
+		box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, var(--color-navy-focus));
 		/* Ring contrast (WCAG 1.4.11): 4.26:1 against the selected
 		   field, 5.17:1 against the wash — visible from both sides. */
 	}
@@ -253,19 +253,19 @@
 	   from ghost views (ghosts keep the default colors). The chip keeps
 	   its grammar — ONE color per chip, the Folder icon follows the text
 	   (WorkspaceRowItem's 2026-08-26 rule), so the override lands on .ws
-	   itself, not .ws-label. #9400d3 calibrated: name 6.56 white / 5.61
+	   itself, not .ws-label. var(--color-ws-violet) calibrated: name 6.56 white / 5.61
 	   wash / 4.62 light-selected; chip 5.72 on its 10% blue tint and
 	   5.64 on the grey ghost chip — AA 4.5:1 on every field the group
 	   paints. Dead outranks paneled (the row says dead in red-800, the
 	   same priority the idle dot takes). */
 	.row.panel-row :global(.label),
 	.row.panel-row :global(.ws) {
-		color: #9400d3;
+		color: var(--color-ws-violet);
 	}
 
 	.row.panel-row.dead:not(.current) :global(.label),
 	.row.panel-row.dead:not(.current) :global(.ws) {
-		color: #991b1b;
+		color: var(--color-danger-wash-ink);
 	}
 
 	/* Paneled-session ROW BUTTONS (move up/down, close, fold — one
@@ -279,12 +279,12 @@
 	   compound below is :global under the local row ancestors — the
 	   WorkspaceRowItem :global(.label) precedent; one home for the palette. */
 	.row.panel-row :global(.row-btn) {
-		color: #9400d3;
+		color: var(--color-ws-violet);
 		opacity: 0.7;
 	}
 
 	.row.panel-row.dead:not(.current) :global(.row-btn) {
-		color: #991b1b;
+		color: var(--color-danger-wash-ink);
 	}
 
 
@@ -302,13 +302,13 @@
 	}
 
 	.row.ghost-row:hover {
-		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 20%, #fff);
+		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 20%, var(--color-surface-elevated));
 		opacity: 1;
 	}
 
 	.row.ghost-row:focus-visible {
-		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 20%, #fff);
-		outline: 2px solid #1e3a8a;
+		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 20%, var(--color-surface-elevated));
+		outline: 2px solid var(--color-navy-focus);
 		outline-offset: -2px;
 	}
 
@@ -316,7 +316,7 @@
 		flex-shrink: 0;
 		font-size: 0.5625rem;
 		font-style: italic;
-		color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 30%, #1e3a8a);
+		color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 30%, var(--color-navy-focus));
 		opacity: 0;
 		transition: opacity 0.15s ease;
 	}
@@ -339,7 +339,7 @@
 		text-overflow: ellipsis;
 		white-space: nowrap;
 		font-size: 0.5625rem;
-		color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 30%, #1e3a8a);
+		color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 30%, var(--color-navy-focus));
 	}
 
 	.spawned-by :global(svg) {
@@ -347,32 +347,32 @@
 	}
 
 	.row.panel-row:hover {
-		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 20%, #fff);
+		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 20%, var(--color-surface-elevated));
 	}
 
 	/* Focus ring (WCAG 2.4.7) — the hover field alone is too close to
 	   the wash to be a keyboard cue; the navy ring is the indicator
 	   (8.86:1 on the wash — see the host header's focus ring). */
 	.row.panel-row:focus-visible {
-		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 20%, #fff);
-		outline: 2px solid #1e3a8a;
+		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 20%, var(--color-surface-elevated));
+		outline: 2px solid var(--color-navy-focus);
 		outline-offset: -2px;
 	}
 
 	.row.current.panel-row:hover,
 	.row.current.panel-row:focus-visible {
-		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 34%, #fff);
+		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 34%, var(--color-surface-elevated));
 	}
 
 	/* Honest 404 tint (commitment 7): the session died on the host — the
-	 * row stays selectable/closeable, the tint says so. #991b1b
+	 * row stays selectable/closeable, the tint says so. var(--color-danger-wash-ink)
 	 * (red-800): 7.11:1 on the wash (the old 55/45 mix measured 2.08:1
 	 * — its documented 5.28:1 never survived re-computation). The idle
 	 * dot follows via the --si-idle custom property (it inherits
 	 * through the WorkspaceRowItem boundary; scoped selectors cannot). */
 	.row.dead:not(.current) {
-		color: #991b1b;
-		--si-idle: #991b1b;
+		color: var(--color-danger-wash-ink);
+		--si-idle: var(--color-danger-wash-ink);
 	}
 
 	/* Row interior (status glyph, workspace chip, label) lives in

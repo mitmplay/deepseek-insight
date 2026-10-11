@@ -101,9 +101,9 @@ describe('PlanPopup — render', () => {
 		expect(active?.classList.contains('line-through')).toBe(false);
 		expect(pending?.classList.contains('line-through')).toBe(false);
 		const markers = rows.map((r) => r.querySelector('span[aria-hidden="true"]') as HTMLElement);
-		expect(markers[0]?.className).toContain('text-emerald-500');
+		expect(markers[0]?.className).toContain('text-status-pass');
 		expect(markers[1]?.className).toContain('text-accent-purple');
-		expect(markers[2]?.className).toContain('text-slate-300');
+		expect(markers[2]?.className).toContain('text-text-muted');
 	});
 
 	it('renders nothing while closed', () => {
@@ -230,7 +230,7 @@ describe('PlanPopup — plan changes after mount', () => {
 		expect(rows.map((r) => r.querySelector('span')?.textContent)).toEqual(['◐', '●']);
 		const markers = rows.map((r) => r.querySelector('span[aria-hidden="true"]') as HTMLElement);
 		expect(markers[0]?.className).toContain('text-accent-purple');
-		expect(markers[1]?.className).toContain('text-emerald-500');
+		expect(markers[1]?.className).toContain('text-status-pass');
 
 		// emptied plan: header drops to 0/0, no rows remain
 		host.set({ items: [] });

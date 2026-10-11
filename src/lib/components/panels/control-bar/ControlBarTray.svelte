@@ -54,7 +54,7 @@
 		padding: 0.75rem;
 		border: 1px solid var(--color-surface-border, #dee2e6);
 		border-radius: 0.5rem;
-		background: var(--color-surface-primary, #fff);
+		background: var(--color-surface-primary, var(--color-surface-elevated));
 		box-shadow: 0 4px 16px rgb(0 0 0 / 0.12);
 	}
 </style>

@@ -77,7 +77,7 @@
 	}
 
 	.tone-purple:hover {
-		color: var(--color-text-primary, #fff);
+		color: var(--color-text-primary, var(--color-surface-elevated));
 	}
 
 	.tone-purple.active {

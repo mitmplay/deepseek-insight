@@ -237,7 +237,7 @@
 	}
 
 	.header :global(.ws-chip.menuable:hover) {
-		--wsc-border: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 80%, #1e3a8a);
+		--wsc-border: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 80%, var(--color-navy-focus));
 	}
 
 	/* Ghost chip keeps its TRANSPARENT field on the header line (the
@@ -285,14 +285,14 @@
 	}
 
 	.head:hover {
-		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 18%, #fff);
+		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 18%, var(--color-surface-elevated));
 	}
 
 	/* Keyboard focus gets a RING (WCAG 2.4.7) — the hover wash alone is
 	   not a visible-enough keyboard cue on the tinted field. */
 	.head:focus-visible {
-		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 18%, #fff);
-		outline: 2px solid color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, #1e3a8a);
+		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 18%, var(--color-surface-elevated));
+		outline: 2px solid color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, var(--color-navy-focus));
 		outline-offset: -2px;
 	}
 
@@ -302,7 +302,7 @@
 	   chip icon blue regardless of kind. */
 	.head > :global(svg) {
 		flex-shrink: 0;
-		color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, #1e3a8a);
+		color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, var(--color-navy-focus));
 	}
 
 	/* Summary chips (2026-08-26): the collapsed header previews the live
@@ -338,9 +338,9 @@
 	/* Agent chip — the preset pill's rest identity: purple deepened 50%
 	   toward violet-900 (5.25:1 on its 8% tint). */
 	.chip.agent {
-		color: color-mix(in srgb, var(--color-accent-purple, #8b5cf6) 50%, #4c1d95);
-		border-color: color-mix(in srgb, var(--color-accent-purple, #8b5cf6) 50%, #4c1d95);
-		background: color-mix(in srgb, var(--color-accent-purple, #8b5cf6) 8%, transparent);
+		color: color-mix(in srgb, var(--color-accent-purple, var(--color-accent-purple)) 50%, #4c1d95);
+		border-color: color-mix(in srgb, var(--color-accent-purple, var(--color-accent-purple)) 50%, #4c1d95);
+		background: color-mix(in srgb, var(--color-accent-purple, var(--color-accent-purple)) 8%, transparent);
 	}
 
 	/* Summary — accent-deep + 600, the panel group's .head-title twin:
@@ -351,7 +351,7 @@
 		text-overflow: ellipsis;
 		white-space: nowrap;
 		font-weight: 600;
-		color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, #1e3a8a);
+		color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, var(--color-navy-focus));
 	}
 
 	/* Empty-state placeholder (2026-09-05): `Workspace + Agent` sits in

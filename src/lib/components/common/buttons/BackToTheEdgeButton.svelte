@@ -163,7 +163,7 @@
 	}
 
 	.tone-blue:hover {
-		color: var(--color-text-primary, #fff);
+		color: var(--color-text-primary, var(--color-surface-elevated));
 	}
 
 	/* Drain state (Shift+click): the tone's saturated moment — the

@@ -39,9 +39,9 @@
 	}
 
 	function glyphClass(status: TodoItem['status']): string {
-		if (status === 'completed') return 'text-emerald-500';
+		if (status === 'completed') return 'text-status-pass';
 		if (status === 'in_progress') return 'text-accent-purple';
-		return 'text-slate-300';
+		return 'text-text-muted';
 	}
 </script>
 

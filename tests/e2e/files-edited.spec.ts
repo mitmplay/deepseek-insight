@@ -137,7 +137,9 @@ test('files-edited chip expands to counts; peek counts only real chips; hover 2s
 	const card = page.getByTestId('files-edited-card');
 	await expect(card).toBeVisible();
 	await expect(card.getByText('Edited 5 files')).toBeVisible();
-	await expect(card.getByText('+12')).toBeVisible();
+	// the +12 total renders in the card header AND on the first list row —
+	// assert the first (the header total), not a unique match (W0 net fix).
+	await expect(card.getByText('+12').first()).toBeVisible();
 	await expect(card.getByText('-3')).toBeVisible();
 	await expect(card.getByText('binary')).toBeVisible();
 	await expect(card.getByText('and 3 more')).toBeVisible();

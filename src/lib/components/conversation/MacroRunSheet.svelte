@@ -286,15 +286,15 @@
 		padding: 0.125rem 0.5rem;
 		border-radius: 6px;
 		background: rgba(59, 130, 246, 0.1);
-		color: #1d4ed8;
+		color: var(--color-accent-blue);
 	}
 	.macro-chip[data-phase='failed'] {
 		background: rgba(239, 68, 68, 0.12);
-		color: #b91c1c;
+		color: var(--si-run);
 	}
 	.macro-chip[data-phase='stopped'] {
 		background: rgba(107, 114, 128, 0.12);
-		color: #4b5563;
+		color: var(--color-text-secondary);
 	}
 	.macro-chip-label {
 		display: flex;

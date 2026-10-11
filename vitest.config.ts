@@ -99,7 +99,12 @@ export default defineConfig({
 			['tests/unit/dsh-sessions-root-config.test.ts', 'node'],
 			['tests/unit/api-dsh-session-path-route.test.ts', 'node'],
 			// terminal route seams — server-only registry/session mocks
-			['tests/unit/terminal-route-seams.test.ts', 'node']
+			['tests/unit/terminal-route-seams.test.ts', 'node'],
+			// prompts similarity + search math — node:sqlite consumers
+			['tests/unit/prompts-similarity.test.ts', 'node'],
+			['tests/unit/prompts-search.test.ts', 'node'],
+			// dsh-connection coverage-gap tests — server-only transport seams
+			['tests/unit/dsh-connection-gaps.test.ts', 'node']
 		],
 		coverage: {
 			provider: 'v8',

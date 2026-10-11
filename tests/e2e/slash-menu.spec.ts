@@ -86,11 +86,13 @@ test('01 · open — "/" renders the three labeled sections; filter narrows; Esc
 	await expect(page.getByTestId('slash-gestures-label')).toContainText('DSI gestures');
 	await expect(page.getByTestId('slash-commands-label')).toContainText('Commands');
 	await expect(page.getByTestId('slash-skills-label')).toContainText('Skills');
-	// Layer A (ADR §1.1): the DSI gesture section lists first — /new +
-	// /dsi-prompts + @mention (the manager row joined 2026-09-06, D7).
-	// Five client gestures: /new + /dsi-prompts (2026-09-06) + the two
-	// settings editors + @mention (Settings Panel ADR D3, 2026-09-07).
-	await expect(page.getByTestId('slash-gesture-row')).toHaveCount(5);
+	// Layer A (ADR §1.1): the DSI gesture section lists first — the rows
+	// DERIVE from COMMAND_HELP (the zero-extra-names rule), so the count
+	// grows as commands join. Nine as of 2026-10-09: /new, /workspace,
+	// /dsi-terminal, /dsi-prompts, /dsi-skills, /dsi-plugins,
+	// /dsi-settings, /dsh-settings, @mention (W0 net fix — the old 5
+	// predates terminal/skills/plugins/workspace rows).
+	await expect(page.getByTestId('slash-gesture-row')).toHaveCount(9);
 	// The stub vocabulary: 2 commands (one with a hint) + 2 skills (one twin).
 	await expect(page.getByTestId('slash-command-row')).toHaveCount(2);
 	await expect(page.getByTestId('slash-skill-row')).toHaveCount(2);

@@ -50,15 +50,15 @@
 	>
 		<div class="h-1 w-15 overflow-hidden rounded-sm bg-surface-border">
 			<div
-				class="h-full rounded-sm transition-[width] duration-300 bg-[#7c3aed]"
+				class="h-full rounded-sm transition-[width] duration-300 bg-[var(--color-accent-deep)]"
 				style="width: {Math.min(percent, 100)}%"
 			></div>
 		</div>
-		<span class="text-[11px] tabular-nums text-[#7c3aed]">{percent}%</span>
+		<span class="text-[11px] tabular-nums text-[var(--color-accent-deep)]">{percent}%</span>
 	</div>
 {:else if used !== undefined}
 	<span
-		class="text-[11px] tabular-nums text-[#7c3aed]"
+		class="text-[11px] tabular-nums text-[var(--color-accent-deep)]"
 		title={t(m.ctxWindowUnknown)}
 		data-testid="context-consumption"
 	>

@@ -94,7 +94,7 @@
 				mx-0.5 my-0.5 align-middle shrink-0 transition-colors select-none cursor-pointer
 				{open
 					? 'bg-accent-purple/20 text-accent-purple border border-accent-purple/30'
-					: 'bg-slate-500/10 text-text-secondary border border-slate-500/20 hover:bg-slate-500/20 hover:text-text-primary'}"
+					: 'bg-surface0/10 text-text-secondary border border-text-muted/20 hover:bg-surface0/20 hover:text-text-primary'}"
 		>
 			{#if open}
 				<ChevronDown size={10} />

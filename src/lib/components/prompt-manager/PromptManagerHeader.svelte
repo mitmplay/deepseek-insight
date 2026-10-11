@@ -182,8 +182,8 @@
 	   the panel's content box like any other row. */
 	.mgr-header {
 		flex: none; /* never scrolls — the container below does */
-		background: var(--color-surface-elevated, #fff);
-		box-shadow: 0 1px 4px rgba(139, 92, 246, 0.08);
+		background: var(--color-surface-elevated, var(--color-surface-elevated));
+		box-shadow: 0 1px 4px color-mix(in srgb, var(--color-accent-purple) 8%, transparent);
 	}
 
 	/* Title + close live in the PromptsManagerDialog shell header now;
@@ -229,8 +229,8 @@
 	.mgr-head-table th {
 		text-align: left;
 		padding: 0.35em 0.6em;
-		border: 1px solid rgba(139, 92, 246, 0.15);
-		background: rgba(139, 92, 246, 0.12);
+		border: 1px solid color-mix(in srgb, var(--color-accent-purple) 15%, transparent);
+		background: color-mix(in srgb, var(--color-accent-purple) 12%, transparent);
 		color: var(--color-text-primary);
 		font-weight: 600;
 		font-size: 0.6875rem;
@@ -275,7 +275,7 @@
 		color: var(--color-text-muted, #888);
 	}
 	.mgr-btn-danger {
-		color: #dc2626;
+		color: var(--si-run);
 	}
 	.mgr-btn-danger:disabled {
 		opacity: 0.4;

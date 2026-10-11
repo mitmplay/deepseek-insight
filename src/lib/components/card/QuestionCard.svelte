@@ -145,7 +145,7 @@ import * as m from '$lib/paraglide/messages';
 </script>
 
 <div
-	class="max-w-[85%] self-start rounded-2xl bg-white px-4 py-3 text-sm shadow-sm ring-1 ring-slate-200"
+	class="max-w-[85%] self-start rounded-2xl bg-surface-elevated px-4 py-3 text-sm shadow-sm ring-1 ring-surface-border"
 	data-testid="question-card"
 	data-rpc-id={rpcId}
 	data-phase={phase}
@@ -156,10 +156,10 @@ import * as m from '$lib/paraglide/messages';
 		<span
 			aria-hidden="true"
 			class="inline-block h-2 w-2 shrink-0 rounded-full {phase === 'withdrawn'
-				? 'bg-slate-400'
+				? 'bg-surface-border'
 				: phase === 'settled' || phase === 'answered-elsewhere'
-					? 'bg-emerald-500'
-					: 'bg-amber-500'}"
+					? 'bg-status-pass/100'
+					: 'bg-status-pending/100'}"
 		></span>
 		<span class="font-medium" data-testid="question-card-title">
 			{questions.length === 1 ? t(m.question) : `${questions.length} ${t(m.questions)}`}
@@ -175,10 +175,10 @@ import * as m from '$lib/paraglide/messages';
 		     and keep the plan plus the shared decision line below. -->
 		<div class="mt-2" data-testid="plan-review-body">
 			{#if questions[0]?.header}
-				<p class="text-xs uppercase tracking-wide text-slate-400" data-testid="plan-review-eyebrow">{questions[0].header}</p>
+				<p class="text-xs uppercase tracking-wide text-text-muted" data-testid="plan-review-eyebrow">{questions[0].header}</p>
 			{/if}
 			<h3 id={reviewNameId} class="font-medium whitespace-pre-wrap break-words" data-testid="plan-review-question">{review.question}</h3>
-			<div class="mt-2 rounded-lg ring-1 ring-slate-100 p-2">
+			<div class="mt-2 rounded-lg ring-1 ring-surface-border p-2">
 				<MarkdownContent content={review.plan} hideToggle />
 			</div>
 		</div>
@@ -202,13 +202,13 @@ import * as m from '$lib/paraglide/messages';
 						title={declineOption.description}
 						disabled={phase !== 'waiting'}
 						onclick={() => answerReview(review, declineOption.label)}
-						class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+						class="rounded-md border border-surface-border bg-surface-elevated px-3 py-1.5 text-xs font-medium text-text-primary hover:bg-surface disabled:cursor-not-allowed disabled:opacity-50"
 					>
 						{declineOption.label}
 					</button>
 				{/if}
 				{#if phase === 'in-flight'}
-					<span class="text-xs text-slate-400">{t(m.sending)}</span>
+					<span class="text-xs text-text-muted">{t(m.sending)}</span>
 				{/if}
 			</div>
 		{/if}
@@ -220,13 +220,13 @@ import * as m from '$lib/paraglide/messages';
 		     The picked answer stays visible in the transcript tool chip. -->
 		<div class="mt-2 flex flex-col gap-3" data-testid="question-questions">
 			{#each questions as q (q.id)}
-				<div class="rounded-lg ring-1 ring-slate-100 p-2 {phase === 'waiting' || phase === 'in-flight' ? '' : 'opacity-80'}" data-testid="question-item" data-question-id={q.id}>
+				<div class="rounded-lg ring-1 ring-surface-border p-2 {phase === 'waiting' || phase === 'in-flight' ? '' : 'opacity-80'}" data-testid="question-item" data-question-id={q.id}>
 					<p class="font-medium whitespace-pre-wrap break-words" data-testid="question-text">{q.question}</p>
 					{#if q.header}
-						<p class="mt-0.5 text-xs text-slate-400" data-testid="question-header">{q.header}</p>
+						<p class="mt-0.5 text-xs text-text-muted" data-testid="question-header">{q.header}</p>
 					{/if}
 					{#if q.detail}
-						<p class="mt-0.5 whitespace-pre-wrap break-words text-xs text-slate-500" data-testid="question-detail">{q.detail}</p>
+						<p class="mt-0.5 whitespace-pre-wrap break-words text-xs text-text-secondary" data-testid="question-detail">{q.detail}</p>
 					{/if}
 					{#if q.options && q.options.length > 0}
 						<div class="mt-1.5 flex flex-col gap-1" data-testid="question-options">
@@ -240,8 +240,8 @@ import * as m from '$lib/paraglide/messages';
 									onclick={() => toggle(q, opt.label)}
 									class="flex items-start gap-2 rounded-md border px-2 py-1 text-left text-xs
 									{drafts[q.id]?.selected.includes(opt.label)
-										? 'border-emerald-300 bg-emerald-50 text-emerald-800'
-										: 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'}
+										? 'border-status-pass/30 bg-status-pass/10 text-status-pass'
+										: 'border-surface-border bg-surface-elevated text-text-secondary hover:border-surface-border'}
 									disabled:cursor-not-allowed disabled:opacity-50"
 								>
 									<span
@@ -249,13 +249,13 @@ import * as m from '$lib/paraglide/messages';
 										class="mt-0.5 inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center border
 										{q.multiSelect === true ? 'rounded-[2px]' : 'rounded-full'}
 										{drafts[q.id]?.selected.includes(opt.label)
-											? 'border-emerald-600 bg-emerald-600 text-white'
-											: 'border-slate-300 bg-white'}"
+											? 'border-status-pass bg-status-pass text-white'
+											: 'border-surface-border bg-surface-elevated'}"
 									>{drafts[q.id]?.selected.includes(opt.label) ? '✓' : ''}</span>
 									<span>
 										<span class="block">{opt.label}</span>
 										{#if opt.description}
-											<span class="block text-[11px] text-slate-400">{opt.description}</span>
+											<span class="block text-[11px] text-text-muted">{opt.description}</span>
 										{/if}
 									</span>
 								</button>
@@ -270,11 +270,11 @@ import * as m from '$lib/paraglide/messages';
 							placeholder="Your own answer (optional)"
 							disabled={phase === 'in-flight'}
 							bind:value={drafts[q.id].custom}
-							class="mt-1.5 w-full rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-700 disabled:opacity-50"
+							class="mt-1.5 w-full rounded-md border border-surface-border px-2 py-1 text-xs text-text-primary disabled:opacity-50"
 						/>
 					{/if}
 					{#if phase === 'waiting' && invalidReason(q)}
-						<p class="mt-1 text-[11px] text-red-600" data-testid="question-invalid">{invalidReason(q)}</p>
+						<p class="mt-1 text-[11px] text-status-fail" data-testid="question-invalid">{invalidReason(q)}</p>
 					{/if}
 				</div>
 			{/each}
@@ -292,7 +292,7 @@ import * as m from '$lib/paraglide/messages';
 			>
 				{phase === 'in-flight' ? t(m.sending) : t(m.answer)}
 			</button>
-			<span class="text-xs text-slate-400" data-testid="question-submit-hint">
+			<span class="text-xs text-text-muted" data-testid="question-submit-hint">
 				{#if phase === 'in-flight'}answering…{:else if anyInvalid}{t(m.fixMarkedAnswers)}{:else if anyBlank}{t(m.everyQuestionNeedsAnswer)}{/if}
 			</span>
 		</div>
@@ -300,13 +300,13 @@ import * as m from '$lib/paraglide/messages';
 	{/if}
 
 	{#if phase === 'settled'}
-		<p class="mt-2 text-xs text-emerald-700" data-testid="question-settled">{t(m.answered)} {outcome ?? 'sent'}.</p>
+		<p class="mt-2 text-xs text-status-pass" data-testid="question-settled">{t(m.answered)} {outcome ?? 'sent'}.</p>
 	{:else if phase === 'answered-elsewhere'}
-		<p class="mt-2 text-xs text-slate-500" data-testid="question-elsewhere">
+		<p class="mt-2 text-xs text-text-secondary" data-testid="question-elsewhere">
 			{t(m.answeredElsewhere)}
 		</p>
 	{:else if phase === 'withdrawn'}
-		<p class="mt-2 text-xs text-slate-500" data-testid="question-withdrawn">
+		<p class="mt-2 text-xs text-text-secondary" data-testid="question-withdrawn">
 			{t(m.requestWithdrawn)}
 		</p>
 	{/if}

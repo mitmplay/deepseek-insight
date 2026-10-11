@@ -94,7 +94,7 @@
 		gap: 0.25rem;
 		width: 100%;
 		flex-shrink: 0;
-		background: var(--color-surface-primary, #fff);
+		background: var(--color-surface-primary, var(--color-surface-elevated));
 	}
 	.tabs {
 		display: inline-flex;

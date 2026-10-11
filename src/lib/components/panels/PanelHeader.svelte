@@ -29,8 +29,7 @@
 	import { movePanelFromRegistry } from '$lib/services/panels/panel-registry';
 	import { copyWithFeedback } from '$lib/utils/clipboard';
 	import CanvasCopyButton from '$lib/components/common/buttons/CanvasCopyButton.svelte';
-	import { workspacePanelCopy as copy } from './workspace-panel-copy';
-
+	
 	// The canvas-copy capture target: the header's PARENT — PanelColumn
 	// renders the header as its first child, so the parent IS the column.
 	let headerEl = $state<HTMLDivElement>();
@@ -106,7 +105,7 @@
 				}}
 			>
 				{#if idCopied}
-					<Check size={12} class="text-green-500" aria-hidden="true" />
+					<Check size={12} class="text-status-pass" aria-hidden="true" />
 				{:else}
 					<Copy size={12} aria-hidden="true" />
 				{/if}
@@ -149,7 +148,7 @@
 			<CanvasCopyButton
 				container={headerEl?.parentElement}
 				mode="visible"
-				title={copy.common.copyColumn}
+				title={t(m.workspacePanelCommonCopyColumn)}
 				size={14}
 				class="inline-flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded transition-colors hover:bg-surface-hover"
 			/>
@@ -181,7 +180,7 @@
 		font-size: 0.6875rem;
 		color: var(--color-text-secondary, #6c757d);
 		border-bottom: 1px solid var(--color-surface-border, #dee2e6);
-		background: var(--color-surface-primary, #fff);
+		background: var(--color-surface-primary, var(--color-surface-elevated));
 		flex-shrink: 0;
 	}
 
@@ -190,7 +189,7 @@
 	   conversation header/footer below it — the column you would type
 	   into reads as one tinted frame. */
 	.panel-header.selected {
-		background: #fdf5e6;
+		background: var(--color-header-wash);
 	}
 
 	.label {

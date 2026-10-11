@@ -90,14 +90,19 @@
 			{spine}
 			{onspinechange}
 		/>
-
-		<SidebarFooter
-			preset={filter.preset}
-			workspace={filter.workspace}
-			{oncreated}
-			{onreplace}
-		/>
 	{/if}
+
+	<!-- The footer renders in EVERY phase (W0 e2e-net fix, 2026-10-09):
+	     the version strip and the LanguageMenu are wire-independent — an
+	     unreachable spine must not strip the locale switcher (the bare-/
+	     locale e2e regressed when the footer sat inside the ready branch
+	     only). New chat hosts its own dead-wire alert. -->
+	<SidebarFooter
+		preset={filter.preset}
+		workspace={filter.workspace}
+		{oncreated}
+		{onreplace}
+	/>
 </div>
 
 <style>
@@ -115,6 +120,6 @@
 	}
 
 	.hint.error {
-		color: var(--color-status-fail, #ef4444);
+		color: var(--color-status-fail, var(--color-status-fail));
 	}
 </style>

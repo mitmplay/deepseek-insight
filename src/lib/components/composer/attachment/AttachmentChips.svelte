@@ -39,7 +39,7 @@
 			<div class="group relative" role="listitem" data-testid="attachment-chip">
 				<button
 					type="button"
-					class="block h-[62px] w-[62px] cursor-zoom-in overflow-hidden rounded-[16px] border border-slate-200 bg-white"
+					class="block h-[62px] w-[62px] cursor-zoom-in overflow-hidden rounded-[16px] border border-surface-border bg-surface-elevated"
 					title="Show original"
 					data-testid="attachment-chip-open"
 					onclick={() => (previewing = { src: draft.previewUrl, alt: draft.file.name || 'image draft' })}

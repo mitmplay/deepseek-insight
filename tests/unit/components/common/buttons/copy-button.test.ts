@@ -70,7 +70,7 @@ describe('CopyButton — the copied feedback cycle', () => {
 		expect(writeText.mock.calls[0][0]).toBe('the payload');
 		const check = btn.querySelector('svg');
 		expect(check?.classList.contains('lucide-check')).toBe(true);
-		expect(check?.classList.contains('text-green-500')).toBe(true);
+		expect(check?.classList.contains('text-status-pass')).toBe(true);
 		unmount(comp);
 	});
 

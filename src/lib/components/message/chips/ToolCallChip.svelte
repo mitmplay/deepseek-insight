@@ -40,12 +40,12 @@
 	// OCI statusConfig parity (status-config.ts): dot = status color fill.
 	const dotClass = $derived.by(() => {
 		if (kind === 'call') {
-			if (status === 'pass') return 'bg-emerald-500';
-			if (status === 'fail') return 'bg-red-500';
-			return 'bg-amber-400'; // pending
+			if (status === 'pass') return 'bg-status-pass/100';
+			if (status === 'fail') return 'bg-status-fail';
+			return 'bg-status-pending'; // pending
 		}
-		if (kind === 'result') return ok === false ? 'bg-red-500' : 'bg-emerald-500';
-		return 'bg-slate-400';
+		if (kind === 'result') return ok === false ? 'bg-status-fail' : 'bg-status-pass/100';
+		return 'bg-surface-border';
 	});
 </script>
 
@@ -58,11 +58,11 @@
 	class="chip-button inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-xs font-mono font-medium
 			mx-0.5 my-0.5 align-middle shrink-0 transition-colors select-none cursor-pointer
 			{kind === 'result' && ok === false
-				? 'bg-red-50 text-red-700 border border-red-200'
+				? 'bg-danger-wash text-status-fail border border-danger-wash-border'
 				: kind === 'result'
-					? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+					? 'bg-status-pass/10 text-status-pass border border-status-pass/30'
 					: status === 'fail'
-						? 'bg-red-50 text-red-700 border border-red-200'
+						? 'bg-danger-wash text-status-fail border border-danger-wash-border'
 						: open
 							? 'bg-accent-purple/20 text-accent-purple border border-accent-purple/30'
 							: 'bg-surface-alt text-text-secondary border border-surface-border hover:bg-surface-hover hover:text-text-primary'}"

@@ -174,7 +174,7 @@
 		min-width: 13rem;
 		max-width: 16rem;
 		padding: 0.375rem;
-		background: var(--color-surface-elevated, #fff);
+		background: var(--color-surface-elevated, var(--color-surface-elevated));
 		border: 1px solid var(--color-surface-border, #dee2e6);
 		border-radius: 0.5rem;
 		box-shadow: 0 0.5rem 1.25rem rgb(0 0 0 / 15%);
@@ -219,7 +219,7 @@
 	}
 
 	.row.primary {
-		color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 60%, #1e3a8a);
+		color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 60%, var(--color-navy-focus));
 		font-weight: 600;
 	}
 
@@ -236,7 +236,7 @@
 		border-radius: 0.375rem;
 		font-size: 0.75rem;
 		color: var(--color-text-primary, #212529);
-		background: var(--color-surface-elevated, #fff);
+		background: var(--color-surface-elevated, var(--color-surface-elevated));
 	}
 
 	.row-set {

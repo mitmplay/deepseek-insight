@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import '@xterm/xterm/css/xterm.css';
+	import { pickTerminalTheme } from './terminal-theme';
+	import { themePrefs } from '$lib/utils/theme-prefs.svelte';
 	import { t } from '$lib/services/locale/locale-state.svelte';
 	import * as m from '$lib/paraglide/messages';
 	import {
@@ -40,8 +42,17 @@
 	let fallbackText = $state('');
 	let typedLine = $state('');
 	let xtermFailed = $state(false);
+	// Terminal Theming (ADR-0023 follow-up): while terminal.theming is on,
+	// the palette follows html[data-theme] live (theme-prefs store). Off =
+	// null theme = xterm's self-dark default, the ADR keep-list position.
+	$effect(() => {
+		const theme = pickTerminalTheme(theming, themePrefs.resolved);
+		if (xterm) xterm.options.theme = theme ?? undefined;
+	});
 
 	let xterm: import('@xterm/xterm').Terminal | null = null;
+	/** terminal.theming from the probe (default false = self-dark). */
+	let theming = $state(false);
 	let fitAddon: import('@xterm/addon-fit').FitAddon | null = null;
 	let resizeObserver: ResizeObserver | null = null;
 
@@ -110,7 +121,11 @@
 					import('@xterm/addon-fit')
 				]);
 				if (!termEl) return;
-				xterm = new Terminal({ convertEol: true, fontSize: 12 });
+				xterm = new Terminal({
+					convertEol: true,
+					fontSize: 12,
+					theme: pickTerminalTheme(theming, themePrefs.resolved) ?? undefined
+				});
 				fitAddon = new FitAddon();
 				xterm.loadAddon(fitAddon);
 				xterm.open(termEl);
@@ -179,11 +194,12 @@
 				return;
 			}
 			const probe = await fetch('/api/terminal');
-			const probeBody = (await probe.json()) as { enabled: boolean; sessions?: Array<{ id: string; exited: boolean }> };
+			const probeBody = (await probe.json()) as { enabled: boolean; theming?: boolean; sessions?: Array<{ id: string; exited: boolean }> };
 			if (!probeBody.enabled) {
 				disabled = true;
 				return;
 			}
+			theming = probeBody.theming === true;
 			// Mount ladder (The Surviving Shell D3): a live session from before
 			// the reload is RE-ATTACHED — same PTY, stream resumed at the byte
 			// tail — never duplicated. Only a fresh floor opens a new session.
@@ -264,7 +280,7 @@ close runs the server's quiescence ladder. The plain-text surface (pre +
 input line) appears ONLY when xterm cannot attach.
 -->
 
-<div class="terminal-panel flex h-full min-h-80 flex-col rounded-lg bg-slate-900 p-1" data-testid="terminal-panel">
+<div class="terminal-panel flex h-full min-h-80 flex-col rounded-lg p-1 {theming ? 'bg-surface-elevated text-text-primary' : 'bg-slate-900'}" data-testid="terminal-panel">
 	<div class="mb-1 flex items-center gap-2 px-1 text-[10px] text-slate-400">
 		{#if panelState.lastSettle}
 			<span data-testid="terminal-settle-badge" class="rounded bg-slate-700 px-1.5 py-0.5">{settleText(panelState.lastSettle)}</span>
@@ -289,7 +305,7 @@ input line) appears ONLY when xterm cannot attach.
 		{/if}
 		{#if xtermFailed}
 			<input
-				class="w-full bg-slate-800 px-2 py-1 font-mono text-[11px] text-slate-100 outline-none"
+				class="w-full px-2 py-1 font-mono text-[11px] outline-none {theming ? 'bg-surface-alt text-text-primary' : 'bg-slate-800 text-slate-100'}"
 				data-testid="terminal-input"
 				placeholder={t(m.terminalSettleStdinRead)}
 				bind:value={typedLine}

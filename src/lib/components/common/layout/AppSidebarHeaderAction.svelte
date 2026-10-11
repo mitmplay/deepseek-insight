@@ -68,7 +68,7 @@
 
 	.icon-btn:hover,
 	.icon-btn:focus-visible {
-		color: var(--color-accent-purple, #8b5cf6);
+		color: var(--color-accent-purple, var(--color-accent-purple));
 		background: var(--color-surface-hover, rgb(0 0 0 / 0.05));
 		outline: none;
 	}

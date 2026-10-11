@@ -49,17 +49,17 @@
 
 <style>
 	/* Restyled 2026-08-26 for the row's accent-wash field (same grammar
-	   as SessionFilterRow's pills): rest #52606d (5.52:1), hover
+	   as SessionFilterRow's pills): rest var(--color-slate-neutral) (5.52:1), hover
 	   accent-deep (5.17:1), selected accent-deep fill + white (5.17:1
 	   — the raw token managed 3.68:1 at this 10px size). */
 	.pill {
 		display: inline-flex;
 		align-items: center;
 		gap: 0.25rem;
-		border: 1px solid color-mix(in srgb, var(--color-accent-blue, #3b82f6) 35%, #fff);
+		border: 1px solid color-mix(in srgb, var(--color-accent-blue, #3b82f6) 35%, var(--color-surface-elevated));
 		border-radius: 9999px;
 		background: transparent;
-		color: #52606d;
+		color: var(--color-slate-neutral);
 		font-size: 0.625rem;
 		line-height: 1;
 		padding: 0.25rem 0.5rem;
@@ -73,14 +73,14 @@
 	}
 
 	.pill:hover {
-		border-color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, #1e3a8a);
-		color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, #1e3a8a);
-		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 12%, #fff);
+		border-color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, var(--color-navy-focus));
+		color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, var(--color-navy-focus));
+		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 12%, var(--color-surface-elevated));
 	}
 
 	.pill.on {
-		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 65%, #1e3a8a);
-		border-color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 65%, #1e3a8a);
+		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 65%, var(--color-navy-focus));
+		border-color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 65%, var(--color-navy-focus));
 		color: #fff;
 	}
 
@@ -96,22 +96,22 @@
 	   Purple DEEPENED 2026-08-26 for AA on the wash: rest text is the
 	   token mixed 50% toward violet-900 (5.25:1 on its 8% tint, 5.00:1
 	   on the hover tint); the selected fill is 75% toward violet-900
-	   (white 5.34:1 — the raw #8b5cf6 never cleared 4.5). */
+	   (white 5.34:1 — the raw var(--color-accent-purple) never cleared 4.5). */
 	.pill.preset.reg:not(.on) {
-		color: color-mix(in srgb, var(--color-accent-purple, #8b5cf6) 50%, #4c1d95);
-		border-color: color-mix(in srgb, var(--color-accent-purple, #8b5cf6) 50%, #4c1d95);
-		background: color-mix(in srgb, var(--color-accent-purple, #8b5cf6) 8%, transparent);
+		color: color-mix(in srgb, var(--color-accent-purple, var(--color-accent-purple)) 50%, #4c1d95);
+		border-color: color-mix(in srgb, var(--color-accent-purple, var(--color-accent-purple)) 50%, #4c1d95);
+		background: color-mix(in srgb, var(--color-accent-purple, var(--color-accent-purple)) 8%, transparent);
 	}
 
 	.pill.preset.reg:not(.on):hover {
-		color: color-mix(in srgb, var(--color-accent-purple, #8b5cf6) 50%, #4c1d95);
-		border-color: color-mix(in srgb, var(--color-accent-purple, #8b5cf6) 50%, #4c1d95);
-		background: color-mix(in srgb, var(--color-accent-purple, #8b5cf6) 12%, #fff);
+		color: color-mix(in srgb, var(--color-accent-purple, var(--color-accent-purple)) 50%, #4c1d95);
+		border-color: color-mix(in srgb, var(--color-accent-purple, var(--color-accent-purple)) 50%, #4c1d95);
+		background: color-mix(in srgb, var(--color-accent-purple, var(--color-accent-purple)) 12%, var(--color-surface-elevated));
 	}
 
 	.pill.preset.on {
-		background: color-mix(in srgb, var(--color-accent-purple, #8b5cf6) 75%, #4c1d95);
-		border-color: color-mix(in srgb, var(--color-accent-purple, #8b5cf6) 75%, #4c1d95);
+		background: color-mix(in srgb, var(--color-accent-purple, var(--color-accent-purple)) 75%, #4c1d95);
+		border-color: color-mix(in srgb, var(--color-accent-purple, var(--color-accent-purple)) 75%, #4c1d95);
 		color: #fff;
 	}
 

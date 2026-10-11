@@ -41,7 +41,7 @@ describe('ConversationHeader', () => {
 		const h = render({ focused: true });
 		const header = h.target.querySelector('[data-testid="conversation-header"]');
 		expect(header!.getAttribute('data-focused')).toBe('true');
-		expect(header!.className).toContain('bg-[#FDF5E6]');
+		expect(header!.className).toContain('bg-header-wash');
 		cleanup(h.instance, h.target);
 	});
 

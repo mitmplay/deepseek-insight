@@ -33,7 +33,7 @@ describe('TerminalContentViewer', () => {
 		const h = mountViewer({ toolName: 'bash', content: 'ok', subTool: 'bash' });
 		const root = h.target.querySelector('[data-testid="code-dispatch-terminal"]') as HTMLElement;
 		expect(root).not.toBeNull();
-		expect(root.className).toContain('ring-amber-200');
+		expect(root.className).toContain('ring-status-pending/30');
 		expect(root.getAttribute('data-sub-tool')).toBe('bash');
 		expect(root.textContent).toContain('ok');
 		h.cleanup();
@@ -43,15 +43,15 @@ describe('TerminalContentViewer', () => {
 		const h = mountViewer({ toolName: 'mystery', content: 'x', terminal: false });
 		const root = h.target.querySelector('[data-testid="code-dispatch-generic"]') as HTMLElement;
 		expect(root).not.toBeNull();
-		expect(root.className).toContain('ring-slate-200');
-		expect(root.className).not.toContain('ring-amber-200');
+		expect(root.className).toContain('ring-surface-border');
+		expect(root.className).not.toContain('ring-status-pending/30');
 		h.cleanup();
 	});
 
 	it('a failed call adds the red ring, data-error, and the failed badge', () => {
 		const h = mountViewer({ toolName: 'bash', content: 'boom', isError: true });
 		const root = h.target.querySelector('[data-testid="code-dispatch-terminal"]') as HTMLElement;
-		expect(root.className).toContain('ring-red-300');
+		expect(root.className).toContain('ring-status-fail/30');
 		expect(root.getAttribute('data-error')).toBe('true');
 		expect(root.textContent).toContain('failed');
 		// The content stays visible through the failure chrome

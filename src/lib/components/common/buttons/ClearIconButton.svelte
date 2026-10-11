@@ -66,7 +66,7 @@
 		color: var(--color-text-primary, #495057); /* disc darkens, x stays surface */
 	}
 	.clear-icon-btn:focus-visible {
-		outline: 1px solid var(--color-accent, #7048e8);
+		outline: 1px solid var(--color-accent-purple);
 		outline-offset: 1px;
 		border-radius: 50%;
 	}

@@ -121,7 +121,7 @@
 	}
 	.tab.active {
 		border-color: var(--color-border, #ddd);
-		background: var(--color-surface, #fff);
+		background: var(--color-surface, var(--color-surface-elevated));
 		font-weight: 600;
 	}
 	.label {
@@ -141,7 +141,7 @@
 	}
 	.close:hover {
 		background: var(--color-border, #ddd);
-		color: var(--color-text, #222);
+		color: var(--color-text-primary);
 	}
 	.body {
 		flex: 1;

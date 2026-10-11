@@ -147,22 +147,16 @@ test('W4 4.2-T · /dsi-prompts at zoom 0.75 — embedded mount, portaled edit, s
 	});
 	expect(api.results.map((r) => r.label)).toContain(EDIT_LABEL);
 
-	// A SECOND manager joins (two live managers are legal, D3).
+	// A SECOND /dsi-prompts FOCUSES the live manager — the one-live-manager
+	// grammar (The Focus Command ADR D3, same as shelf/rack/terminal: the
+	// open manager takes the focus; only a miss inserts). The old
+	// two-live-managers reading of D3 was superseded (W0 net fix).
 	await composer.fill('/dsi-prompts');
 	await composer.press('Enter');
-	await expect(page.getByTestId('panel-manager')).toHaveCount(2);
-
-	// Root-scoped Escape closes exactly the focused manager: focus the
-	// FIRST manager's search box, Escape, the other survives.
-	const firstRoot = page.locator('.mgr-panel-root').first();
-	await firstRoot.locator('.mgr-search').click();
-	await page.keyboard.press('Escape');
 	await expect(page.getByTestId('panel-manager')).toHaveCount(1);
 
-	// Close the survivor through its close verb — commit 1ff0af0 removed
-	// the panel's own × (.mgr-close); the embedded panel closes via
-	// root-scoped Escape (escapeScope='root', ADR D3) — then the
-	// abandoned conversation keeps its composer.
+	// Root-scoped Escape closes the manager (escapeScope='root', ADR D3):
+	// focus its search box, Escape, the floor returns to the conversation.
 	await page.locator('.mgr-panel-root .mgr-search').click();
 	await page.keyboard.press('Escape');
 	await expect(page.getByTestId('panel-manager')).toHaveCount(0);
@@ -186,7 +180,12 @@ test('W6 6.2-T widened · Alt+Click opens the manager lens; the conversation len
 	// (The Loupe for Every Panel, 2026-09-08 — the D9 no-op is lifted;
 	// the ladder kind-switches before the session path). The dialog
 	// carries the manager content and the label-variant header.
-	await manager.locator('.mgr-title').click({ modifiers: ['Alt'] });
+	// The sticky .mgr-title is gone (the header extracted to
+	// PromptManagerHeader) — Alt+Click the panel root's padding corner:
+	// the loupe trigger is the panel body, any non-control point works.
+	await manager
+		.locator('.mgr-panel-root')
+		.click({ modifiers: ['Alt'], position: { x: 5, y: 5 } });
 	const lens = page.getByTestId('panel-loupe');
 	await expect(lens).toHaveCount(1);
 	await expect(lens.getByTestId('panel-manager')).toBeVisible();

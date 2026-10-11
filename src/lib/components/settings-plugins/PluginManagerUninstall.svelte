@@ -50,8 +50,8 @@
 		gap: 0.15rem;
 		padding: 0.05rem 0.3rem;
 		border-radius: 999px;
-		background: color-mix(in srgb, #1a7f37 14%, transparent);
-		color: #1a7f37;
+		background: color-mix(in srgb, var(--color-success-ink) 14%, transparent);
+		color: var(--color-success-ink);
 		font-size: 0.68rem;
 	}
 	.rack-verb button {

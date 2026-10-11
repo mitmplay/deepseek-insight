@@ -168,7 +168,7 @@
 	.error {
 		padding: 0.25rem 0.5rem;
 		font-size: 0.75rem;
-		color: #b91c1c;
+		color: var(--si-run);
 		flex-shrink: 0;
 	}
 	.editor-host {

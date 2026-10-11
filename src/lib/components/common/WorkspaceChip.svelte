@@ -20,7 +20,7 @@
 	 *
 	 * AA rests (WCAG relative luminance, calibrated 2026-08-26):
 	 * registered text/border mix 50% accent-blue toward navy — 4.94:1
-	 * on white at 9px, 4.75:1 on its 8% tint; ghost #52606d — 6.22:1
+	 * on white at 9px, 4.75:1 on its 8% tint; ghost var(--color-slate-neutral) — 6.22:1
 	 * white spine, 5.52:1 on the row wash, 4.95:1 on the selected
 	 * field.
 	 *
@@ -96,9 +96,9 @@
 		/* Registered identity: blue deepened 50% toward navy — text,
 		   border, and an 8% tint field. */
 		border: 1px solid
-			var(--wsc-border, color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, #1e3a8a));
+			var(--wsc-border, color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, var(--color-navy-focus)));
 		background: var(--wsc-bg, color-mix(in srgb, var(--color-accent-blue, #3b82f6) 8%, transparent));
-		color: var(--wsc-fg, color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, #1e3a8a));
+		color: var(--wsc-fg, color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, var(--color-navy-focus)));
 		transition:
 			color 0.15s ease,
 			border-color 0.15s ease,
@@ -116,13 +116,13 @@
 	.ws-chip.ghost {
 		border-color: var(
 			--wsc-border,
-			color-mix(in srgb, #52606d 45%, transparent)
+			color-mix(in srgb, var(--color-slate-neutral) 45%, transparent)
 		);
 		background: var(
 			--wsc-bg,
 			var(--si-chip-ghost-bg, color-mix(in srgb, var(--color-surface-alt, #f1f3f5) 35%, transparent))
 		);
-		color: var(--wsc-fg, var(--si-chip-ghost, #52606d));
+		color: var(--wsc-fg, var(--si-chip-ghost, var(--color-slate-neutral)));
 	}
 
 	.chip-label {

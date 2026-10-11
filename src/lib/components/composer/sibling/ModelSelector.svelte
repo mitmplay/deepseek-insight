@@ -124,7 +124,7 @@
 <div class="relative">
 	<button
 		type="button"
-		class="inline-flex items-center gap-1 rounded-md border border-[#7c3aed] px-2 py-1 text-xs font-medium text-[#7c3aed] hover:bg-slate-100 disabled:opacity-50"
+		class="inline-flex items-center gap-1 rounded-md border border-[var(--color-accent-deep)] px-2 py-1 text-xs font-medium text-[var(--color-accent-deep)] hover:bg-surface-alt disabled:opacity-50"
 		disabled={disabled}
 		aria-haspopup="listbox"
 		aria-expanded={open}
@@ -132,42 +132,42 @@
 		onclick={() => toggle()}
 	>
 		{currentLabel}
-		<span class="text-[#7c3aed]" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+		<span class="text-[var(--color-accent-deep)]" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
 	</button>
 	{#if open}
 		<div
-			class="absolute z-10 max-h-72 w-72 overflow-y-auto rounded-lg border border-slate-200 bg-white p-1 shadow-lg {menuUp ? 'bottom-full mb-1' : 'right-0 top-full mt-1'}"
+			class="absolute z-10 max-h-72 w-72 overflow-y-auto rounded-lg border border-surface-border bg-surface-elevated p-1 shadow-lg {menuUp ? 'bottom-full mb-1' : 'right-0 top-full mt-1'}"
 			data-testid="model-selector-menu"
 			role="listbox"
 			aria-label={t(m.modelSelector)}
 		>
 			{#if loading}
-				<p class="px-2 py-1.5 text-xs text-slate-400" data-testid="model-selector-loading">{t(m.loading)}</p>
+				<p class="px-2 py-1.5 text-xs text-text-muted" data-testid="model-selector-loading">{t(m.loading)}</p>
 			{:else if error}
-				<p class="px-2 py-1.5 text-xs text-red-600" data-testid="model-selector-error" role="alert">{error}</p>
+				<p class="px-2 py-1.5 text-xs text-status-fail" data-testid="model-selector-error" role="alert">{error}</p>
 				<button
 					type="button"
-					class="w-full rounded px-2 py-1.5 text-left text-xs font-medium text-slate-600 hover:bg-slate-100"
+					class="w-full rounded px-2 py-1.5 text-left text-xs font-medium text-text-secondary hover:bg-surface-alt"
 					data-testid="model-selector-retry"
 					onclick={() => void load()}
 				>
 					{t(m.retry)}
 				</button>
 			{:else if directory === null || (directory.groups.length === 0 && directory.current === null)}
-				<p class="px-2 py-1.5 text-xs text-slate-400" data-testid="model-selector-empty">{t(m.noModels)}</p>
+				<p class="px-2 py-1.5 text-xs text-text-muted" data-testid="model-selector-empty">{t(m.noModels)}</p>
 			{:else}
 				{#if directory.current && directory.groups.length === 0}
 					{@const cur = directory.current}
-					<p class="px-2 py-1.5 text-xs text-slate-500" data-testid="model-selector-current-only">
+					<p class="px-2 py-1.5 text-xs text-text-secondary" data-testid="model-selector-current-only">
 						{t(() => m.currentModel({ provider: cur.provider, model: cur.model }))}
 					</p>
 				{/if}
 				{#each directory.groups as group (group.id)}
-					<p class="px-2 pb-0.5 pt-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">{group.name ?? group.id}</p>
+					<p class="px-2 pb-0.5 pt-1.5 text-[10px] font-semibold uppercase tracking-wide text-text-muted">{group.name ?? group.id}</p>
 					{#each group.models as m (m.id)}
 						<button
 							type="button"
-							class="flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-xs hover:bg-slate-100 disabled:opacity-50"
+							class="flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-xs hover:bg-surface-alt disabled:opacity-50"
 							role="option"
 							aria-selected={isCurrent(group.id, m.id)}
 							data-testid="model-option"
@@ -178,13 +178,13 @@
 						>
 							<span>{m.name ?? m.id}</span>
 							{#if isCurrent(group.id, m.id)}
-								<span class="text-emerald-600" data-testid="model-option-current" aria-label="Selected">✓</span>
+								<span class="text-status-pass" data-testid="model-option-current" aria-label="Selected">✓</span>
 							{/if}
 						</button>
 					{/each}
 				{/each}
 				{#if directory.failures.length > 0}
-					<p class="px-2 pb-1 pt-1.5 text-[10px] text-slate-400" data-testid="model-selector-failures">
+					<p class="px-2 pb-1 pt-1.5 text-[10px] text-text-muted" data-testid="model-selector-failures">
 						{directory.failures.length} provider{directory.failures.length === 1 ? '' : 's'} {t(m.failedToLoad)}
 					</p>
 				{/if}

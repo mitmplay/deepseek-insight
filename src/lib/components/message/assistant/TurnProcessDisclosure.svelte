@@ -55,7 +55,7 @@
 	title={open ? t(m.hideTurnWork) : t(m.showTurnWork)}
 	class="chip-button inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-xs font-mono font-medium
 			mx-0.5 my-0.5 align-middle shrink-0 transition-colors select-none cursor-pointer
-			text-[#7c3aed] bg-[#7c3aed]/10 border border-[#7c3aed]/30 hover:bg-[#7c3aed]/20"
+			text-[var(--color-accent-deep)] bg-[var(--color-accent-deep)]/10 border border-[var(--color-accent-deep)]/30 hover:bg-[var(--color-accent-deep)]/20"
 	onclick={() => ontoggle()}
 >
 	<ChevronRight

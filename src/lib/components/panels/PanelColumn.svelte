@@ -17,7 +17,8 @@
 	 */
 	import PanelHeader from './PanelHeader.svelte';
 	import { panelHeaderLabel } from '$lib/services/panels/panel-rows';
-	import { workspacePanelCopy } from './workspace-panel-copy';
+	import { t } from '$lib/services/locale/locale-state.svelte';
+import * as m from '$lib/paraglide/messages';
 	import ResizeGutter from './ResizeGutter.svelte';
 
 	let {
@@ -126,7 +127,7 @@
 		sessionId={panel.kind === 'conversation' ? panel.sessionId : ''}
 		label={panelHeaderLabel(panel)}
 		copyValue={panel.kind === 'workspace-explorer' ? panel.root : panel.kind === 'workspace-file' ? copyValue : undefined}
-		copyLabel={panel.kind === 'workspace-explorer' ? workspacePanelCopy.explorer.copyWorkspace : panel.kind === 'workspace-file' ? workspacePanelCopy.file.copyFilename : undefined}
+		copyLabel={panel.kind === 'workspace-explorer' ? t(m.workspaceExplorerCopyWorkspace) : panel.kind === 'workspace-file' ? t(m.workspaceFileCopyFilename) : undefined}
 		labelTestId={panel.kind === 'workspace-explorer' ? 'explorer-title' : panel.kind === 'workspace-file' ? 'file-title' : undefined}
 		{selected}
 		{canMoveLeft}
@@ -159,7 +160,7 @@
 		display: flex;
 		flex-direction: column;
 		height: 100%;
-		background: var(--color-surface-primary, #fff);
+		background: var(--color-surface-primary, var(--color-surface-elevated));
 		border-right: 1px solid var(--color-surface-border, #dee2e6);
 		flex-shrink: 0;
 	}
@@ -177,10 +178,10 @@
 		z-index: 5;
 		pointer-events: none;
 		padding: 0.125rem 0.375rem;
-		border: 1px solid color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, #1e3a8a);
+		border: 1px solid color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, var(--color-navy-focus));
 		border-radius: 0.375rem;
-		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 10%, #fff);
-		color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 30%, #1e3a8a);
+		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 10%, var(--color-surface-elevated));
+		color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 30%, var(--color-navy-focus));
 		font-size: 0.6875rem;
 		line-height: 1.25;
 		font-variant-numeric: tabular-nums;

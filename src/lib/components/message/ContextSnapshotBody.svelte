@@ -39,7 +39,7 @@
 	</p>
 	<div data-testid="context-sections" class="flex flex-col gap-1.5">
 		{#each sections as section (section.name)}
-			<div class="rounded-md border border-slate-500/15 bg-slate-500/5 p-1.5" data-testid="context-section">
+			<div class="rounded-md border border-text-muted/15 bg-surface0/5 p-1.5" data-testid="context-section">
 				<span class="font-mono text-[10px] font-medium text-accent-purple">{section.name}</span>
 				<p class="mt-0.5 whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed text-text-secondary">{section.text}</p>
 			</div>

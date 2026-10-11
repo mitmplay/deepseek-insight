@@ -67,9 +67,9 @@
 	   follows via the --si-idle custom property (it inherits through
 	   the SessionStatus boundary; scoped selectors cannot). */
 	.title-chip.dead {
-		color: #991b1b;
-		border-color: #991b1b;
+		color: var(--color-danger-wash-ink);
+		border-color: var(--color-danger-wash-ink);
 		background: transparent;
-		--si-idle: #991b1b;
+		--si-idle: var(--color-danger-wash-ink);
 	}
 </style>

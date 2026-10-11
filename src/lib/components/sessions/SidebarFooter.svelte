@@ -22,6 +22,7 @@
 	import NewChatButton from '$lib/components/composer/NewChatButton.svelte';
 	import SidebarPromptSync from './SidebarPromptSync.svelte';
 	import LanguageMenu from '$lib/components/language-menu/LanguageMenu.svelte';
+	import ThemeToggle from '$lib/components/common/buttons/ThemeToggle.svelte';
 	import { APP_VERSION, DSH_VERSION } from '$lib/version';
 
 	/** The NewChatButton's missing-selection alert, HOSTED here: rendered
@@ -79,6 +80,9 @@
 				<span>v{DSH_VERSION}</span>
 			</span>
 			<NewChatButton compact agent={preset} {workspace} {oncreated} {onreplace} bind:alert={createAlert} alertInline={false} />
+			<!-- Theme toggle (The Three-State Lamp W3, ADR-0023): BEFORE the
+			     language menu — the operator's placement decision, 2026-10-10. -->
+			<ThemeToggle dropUp />
 			<!-- Language menu (Three Tongues W2, ADR 2026-09-12): header-mount
 			     of the locale switcher; state lives in the shared service.
 			     dropUp: the footer sits at the rail's bottom — a downward list
@@ -119,20 +123,20 @@
 		justify-content: space-between;
 		gap: 0.5rem;
 		font-size: 0.75rem;
-		color: var(--color-amber-600, #d97706);
+		color: var(--color-accent-amber-ink);
 	}
 
 	.footer-create-alert-close {
 		flex-shrink: 0;
 		border-radius: 0.125rem;
 		line-height: 1;
-		color: var(--color-amber-700, #b45309);
+		color: var(--color-accent-amber-ink-deep);
 		cursor: pointer;
 	}
 
 	.footer-create-alert-close:hover {
-		background: var(--color-amber-100, #fef3c7);
-		color: var(--color-amber-900, #78350f);
+		background: var(--color-status-pending);
+		color: var(--color-accent-amber-ink-deep);
 	}
 
 	/* Version chip — before the create button (2026-09-07): the running

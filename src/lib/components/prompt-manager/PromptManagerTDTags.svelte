@@ -39,7 +39,7 @@
 		margin-right: 0.25rem;
 		padding: 0 0.375rem;
 		border-radius: 0.625rem;
-		background: rgba(139, 92, 246, 0.12);
+		background: color-mix(in srgb, var(--color-accent-purple) 12%, transparent);
 		color: var(--color-text-secondary, #495057);
 		font-size: 0.6875rem;
 		line-height: 1.25rem;

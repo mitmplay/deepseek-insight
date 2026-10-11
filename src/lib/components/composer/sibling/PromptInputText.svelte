@@ -99,7 +99,7 @@
 		oncompositionstart={oncompositionstart}
 		oncompositionend={oncompositionend}
 		data-testid="prompt-textarea"
-		class="block min-h-[2.75rem] w-full resize-none rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 disabled:cursor-not-allowed disabled:bg-slate-50 {isOverflow ? 'overflow-y-auto' : 'overflow-y-hidden'} {isStreaming || awaiting ? 'pr-7' : value.length > 0 && !locked ? 'pr-4' : ''}"
+		class="block min-h-[2.75rem] w-full resize-none rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-text-muted disabled:cursor-not-allowed disabled:bg-surface {isOverflow ? 'overflow-y-auto' : 'overflow-y-hidden'} {isStreaming || awaiting ? 'pr-7' : value.length > 0 && !locked ? 'pr-4' : ''}"
 	></textarea>
 	{#if value.length > 0 && !locked}
 		<ClearIconButton onclick={clear} label={t(m.promptClearDraft)} target={el} />

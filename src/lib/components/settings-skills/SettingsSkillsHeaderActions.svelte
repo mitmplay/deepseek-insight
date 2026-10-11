@@ -104,14 +104,14 @@
 	/* Reload feedback: spinner rotates while the reload round-trips; the
 	   check flashes green for the 5s done window. */
 	.shelf-reload.reloading {
-		color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 55%, #1e3a8a);
+		color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 55%, var(--color-navy-focus));
 	}
 	.shelf-reload.reloading :global(svg) {
 		animation: shelf-reload-spin 1s linear infinite;
 	}
 	.shelf-reload.reloaded {
-		color: #1a7f37;
-		border-color: #1a7f37;
+		color: var(--color-success-ink);
+		border-color: var(--color-success-ink);
 	}
 	@keyframes shelf-reload-spin {
 		to {
@@ -126,7 +126,7 @@
 	}
 	/* The fold pill — SidebarOpenPanelTree's seg-group contract: ONE
 	   joined pill, zero gap, outer 9999px curves, icon-only segments;
-	   rest #52606d, hover accent-deep navy. */
+	   rest var(--color-slate-neutral), hover accent-deep navy. */
 	.seg-group {
 		flex-shrink: 0;
 		display: flex;
@@ -136,9 +136,9 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		border: 1px solid color-mix(in srgb, var(--color-accent-blue, #3b82f6) 35%, #fff);
+		border: 1px solid color-mix(in srgb, var(--color-accent-blue, #3b82f6) 35%, var(--color-surface-elevated));
 		background: transparent;
-		color: #52606d;
+		color: var(--color-slate-neutral);
 		line-height: 1;
 		padding: 0.15rem 0.275rem;
 		cursor: pointer;
@@ -164,12 +164,12 @@
 		border-left-width: 0;
 	}
 	.seg:not(:disabled):hover {
-		border-color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, #1e3a8a);
-		color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, #1e3a8a);
-		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 12%, #fff);
+		border-color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, var(--color-navy-focus));
+		color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, var(--color-navy-focus));
+		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 12%, var(--color-surface-elevated));
 	}
 	.seg:focus-visible {
-		outline: 2px solid #1e3a8a;
+		outline: 2px solid var(--color-navy-focus);
 		outline-offset: -2px;
 	}
 </style>

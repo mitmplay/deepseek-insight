@@ -128,7 +128,7 @@
 			use:focusSelectAll
 			data-testid="rename-input"
 			aria-label={t(m.sessionTitle)}
-			class="w-full rounded-md border border-slate-300 pr-7 text-sm focus:border-slate-500 focus:outline-none"
+			class="w-full rounded-md border border-surface-border pr-7 text-sm focus:border-text-muted focus:outline-none"
 			maxlength="200"
 			onkeydown={(e) => {
 				if (e.key === 'Enter') void submitRename();
@@ -145,7 +145,7 @@
 				data-testid="rename-clear"
 				aria-label={t(m.clearTitle)}
 				tabindex={-1}
-				class="absolute right-1.5 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 hover:bg-slate-200 hover:text-slate-600"
+				class="absolute right-1.5 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full text-text-muted hover:bg-surface-hover hover:text-text-secondary"
 				onmousedown={(e) => e.preventDefault()}
 				onclick={() => {
 					titleDraft = '';
@@ -159,7 +159,7 @@
 		{/if}
 	</div>
 	{#if renameError}
-		<span class="text-xs text-red-600" data-testid="rename-error" role="alert">{renameError}</span>
+		<span class="text-xs text-status-fail" data-testid="rename-error" role="alert">{renameError}</span>
 	{/if}
 	<button
 		type="button"
@@ -172,7 +172,7 @@
 	</button>
 	<button
 		type="button"
-		class="rounded-md border border-slate-300 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50"
+		class="rounded-md border border-surface-border text-xs font-medium text-text-secondary hover:bg-surface-alt disabled:opacity-50"
 		disabled={renaming}
 		data-testid="rename-cancel"
 		onclick={() => cancelRename()}
@@ -185,7 +185,7 @@
 	     text with the rename trigger's exact layout classes, so the
 	     header's geometry never shifts between session kinds. -->
 	<span
-		class="min-w-0 flex-1 truncate text-left text-sm font-medium text-slate-700"
+		class="min-w-0 flex-1 truncate text-left text-sm font-medium text-text-primary"
 		data-testid="session-title"
 		title={t(m.subagentTitleOwns)}
 	>
@@ -198,7 +198,7 @@
 	     cluster genuinely squeezes the row. -->
 	<button
 		type="button"
-		class="min-w-0 flex-1 truncate rounded-md text-left text-sm font-medium text-slate-700 hover:bg-slate-100"
+		class="min-w-0 flex-1 truncate rounded-md text-left text-sm font-medium text-text-primary hover:bg-surface-alt"
 		data-testid="session-title"
 		title={t(m.renameThisSession)}
 		onclick={() => {

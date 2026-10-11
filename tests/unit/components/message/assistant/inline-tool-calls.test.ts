@@ -157,19 +157,19 @@ describe('InlineToolCalls — peek list popup (peekOpen)', () => {
 		const dot = (i: number): string => (rows[i].querySelector('span.rounded-full') as HTMLElement).className;
 
 		expect(label(0)).toBe('Bash'); // toolTitle: wire name → BC-F title
-		expect(dot(0)).toContain('bg-emerald-500'); // pass
+		expect(dot(0)).toContain('bg-status-pass/100'); // pass
 		expect(label(1)).toBe('Read');
-		expect(dot(1)).toContain('bg-red-500'); // fail
+		expect(dot(1)).toContain('bg-status-fail'); // fail
 		expect(label(2)).toBe('Write');
-		expect(dot(2)).toContain('bg-amber-400'); // pending
+		expect(dot(2)).toContain('bg-status-pending'); // pending
 		expect(label(2)).not.toContain('Write{'); // args preview is a sibling span, never the label
 		expect(rows[2].textContent).toContain('/tmp/x'); // extractArgsPreview output
 		expect(label(3)).toBe('result · Bash');
-		expect(dot(3)).toContain('bg-red-500'); // failed result
+		expect(dot(3)).toContain('bg-status-fail'); // failed result
 		expect(label(4)).toBe('event · plugin/boot');
-		expect(dot(4)).toContain('bg-slate-400');
+		expect(dot(4)).toContain('bg-surface-border');
 		expect(label(5)).toBe('turn failed'); // no code → bare label
-		expect(dot(5)).toContain('bg-red-500');
+		expect(dot(5)).toContain('bg-status-fail');
 		unmount();
 	});
 

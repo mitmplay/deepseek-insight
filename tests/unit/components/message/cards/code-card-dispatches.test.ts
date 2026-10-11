@@ -55,7 +55,7 @@ describe('CodeCard — dispatch sections', () => {
 		});
 		const term = target.querySelector('[data-testid="code-dispatch-terminal"]') as HTMLElement;
 		expect(term).not.toBeNull();
-		expect(term.className).toContain('bg-amber-50'); // light pastel body
+		expect(term.className).toContain('bg-status-pending/10'); // light pastel body
 		expect(term.textContent).toContain('a.md');
 		// Top-right hover pair: copy always; view-source flips to the raw args.
 		const actions = term.querySelector('[data-testid="code-dispatch-actions"]') as HTMLElement;

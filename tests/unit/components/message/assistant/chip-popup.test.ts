@@ -50,12 +50,12 @@ describe('ChipPopup — the expanded-chip container', () => {
 		const { target, instance } = mountPopup({
 			children: popupSnippet(),
 			maxHeight: 'max-h-[30rem]',
-			border: 'border-amber-300'
+			border: 'border-status-pending/30'
 		});
 		const popup = target.querySelector('[data-testid="chip-popup"]') as HTMLElement;
 		expect(popup.className).toContain('max-h-[30rem]');
 		expect(popup.className).not.toContain('max-h-80');
-		expect(popup.className).toContain('border-amber-300');
+		expect(popup.className).toContain('border-status-pending/30');
 		unmount(instance);
 	});
 

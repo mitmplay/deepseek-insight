@@ -137,7 +137,7 @@ describe('CanvasCopyButton — copy path (idle → busy → done)', () => {
 		const container = document.createElement('div');
 		const { target, instance } = mountButton({ container });
 		expect(target.querySelector('svg.animate-spin')).toBeNull();
-		expect(target.querySelector('.text-green-500')).toBeNull();
+		expect(target.querySelector('.text-status-pass')).toBeNull();
 
 		toBlobMock.mockResolvedValue(PNG());
 		click(target);
@@ -146,7 +146,7 @@ describe('CanvasCopyButton — copy path (idle → busy → done)', () => {
 		expect(target.querySelector('svg.animate-spin')).not.toBeNull();
 
 		await vi.waitFor(() => {
-			expect(target.querySelector('.text-green-500')).not.toBeNull();
+			expect(target.querySelector('.text-status-pass')).not.toBeNull();
 		});
 		expect(toBlobMock).toHaveBeenCalledTimes(1);
 		expect(toBlobMock.mock.calls[0][0]).toBe(container);
@@ -160,7 +160,7 @@ describe('CanvasCopyButton — copy path (idle → busy → done)', () => {
 		// the done state resets to idle after 2s
 		vi.advanceTimersByTime(2000);
 		flushSync();
-		expect(target.querySelector('.text-green-500')).toBeNull();
+		expect(target.querySelector('.text-status-pass')).toBeNull();
 		expect(target.querySelector('svg.animate-spin')).toBeNull();
 		unmount(instance);
 		vi.useRealTimers();
@@ -178,7 +178,7 @@ describe('CanvasCopyButton — copy path (idle → busy → done)', () => {
 		toBlobMock.mockResolvedValue(PNG());
 		click(target);
 		await vi.waitFor(() => {
-			expect(target.querySelector('.text-green-500')).not.toBeNull();
+			expect(target.querySelector('.text-status-pass')).not.toBeNull();
 		});
 		expect(toBlobMock.mock.calls[0][0]).toBe(child);
 		restore.mockRestore();
@@ -194,7 +194,7 @@ describe('CanvasCopyButton — copy path (idle → busy → done)', () => {
 		toBlobMock.mockResolvedValue(PNG());
 		click(target);
 		await vi.waitFor(() => {
-			expect(target.querySelector('.text-green-500')).not.toBeNull();
+			expect(target.querySelector('.text-status-pass')).not.toBeNull();
 		});
 		expect(toBlobMock.mock.calls[0][0]).toBe(container);
 		unmount(instance);
@@ -211,7 +211,7 @@ describe('CanvasCopyButton — copy path (idle → busy → done)', () => {
 		await new Promise((r) => setTimeout(r, 0));
 		flushSync();
 		// error path: back to idle, never done
-		expect(target.querySelector('.text-green-500')).toBeNull();
+		expect(target.querySelector('.text-status-pass')).toBeNull();
 		expect(target.querySelector('svg.animate-spin')).toBeNull();
 		unmount(instance);
 	});
@@ -225,7 +225,7 @@ describe('CanvasCopyButton — Shift+Click save path', () => {
 		const anchorBox = spyAnchorClick();
 		click(target, true);
 		await vi.waitFor(() => {
-			expect(target.querySelector('.text-green-500')).not.toBeNull();
+			expect(target.querySelector('.text-status-pass')).not.toBeNull();
 		});
 		expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
 		expect(revokeObjectURL).toHaveBeenCalledWith('blob:mock');
@@ -253,7 +253,7 @@ describe('CanvasCopyButton — tiled render for tall elements', () => {
 		toBlobMock.mockResolvedValue(PNG());
 		click(target);
 		await vi.waitFor(() => {
-			expect(target.querySelector('.text-green-500')).not.toBeNull();
+			expect(target.querySelector('.text-status-pass')).not.toBeNull();
 		});
 		// 16000 / 7900 → 3 tiles via toCanvas, each translated + cropped
 		expect(toCanvasMock).toHaveBeenCalledTimes(3);
@@ -289,7 +289,7 @@ describe('CanvasCopyButton — tiled render for tall elements', () => {
 		flushSync();
 		// composite construction failed → idle, never done; no tile rendered
 		expect(toCanvasMock).not.toHaveBeenCalled();
-		expect(target.querySelector('.text-green-500')).toBeNull();
+		expect(target.querySelector('.text-status-pass')).toBeNull();
 		expect(target.querySelector('svg.animate-spin')).toBeNull();
 		unmount(instance);
 	});
@@ -332,7 +332,7 @@ describe('CanvasCopyButton — visible mode', () => {
 		Object.defineProperty(container, 'offsetHeight', { value: 200, configurable: true });
 		click(target);
 		await vi.waitFor(() => {
-			expect(target.querySelector('.text-green-500')).not.toBeNull();
+			expect(target.querySelector('.text-status-pass')).not.toBeNull();
 		});
 		// every child of the scrolled pane shifted by scrollTop during render
 		expect(duringTransforms).toEqual(['translateY(-100px)', 'translateY(-100px)']);
@@ -366,7 +366,7 @@ describe('CanvasCopyButton — visible mode', () => {
 		await vi.waitFor(() => {
 			expect(rowA.style.transform).toBe('');
 		});
-		expect(target.querySelector('.text-green-500')).toBeNull();
+		expect(target.querySelector('.text-status-pass')).toBeNull();
 		expect(rowA.style.transform).toBe('');
 		expect(scroller.style.overflowY).toBe('auto');
 		unmount(instance);
@@ -378,7 +378,7 @@ describe('CanvasCopyButton — visible mode', () => {
 		click(target);
 		await new Promise((r) => setTimeout(r, 0));
 		flushSync();
-		expect(target.querySelector('.text-green-500')).toBeNull();
+		expect(target.querySelector('.text-status-pass')).toBeNull();
 		expect(target.querySelector('svg.animate-spin')).toBeNull();
 		expect(toBlobMock).not.toHaveBeenCalled();
 		unmount(instance);

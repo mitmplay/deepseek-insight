@@ -76,7 +76,7 @@
 		{#if olderError}
 			<button
 				type="button"
-				class="rounded-md border border-slate-300 px-3 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50"
+				class="rounded-md border border-surface-border px-3 py-1 text-xs font-medium text-text-secondary hover:bg-surface-alt disabled:opacity-50"
 				disabled={loadingOlder}
 				data-testid="load-older-button"
 				onclick={() => void onload()}
@@ -86,7 +86,7 @@
 		{:else if !ioAlive}
 			<button
 				type="button"
-				class="rounded-md border border-slate-300 px-3 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50"
+				class="rounded-md border border-surface-border px-3 py-1 text-xs font-medium text-text-secondary hover:bg-surface-alt disabled:opacity-50"
 				disabled={loadingOlder}
 				data-testid="load-older-button"
 				onclick={() => void onload()}
@@ -99,5 +99,5 @@
 	</div>
 {/if}
 {#if olderError}
-	<p data-testid="load-older-error" class="text-center text-xs text-red-600">{olderError}</p>
+	<p data-testid="load-older-error" class="text-center text-xs text-status-fail">{olderError}</p>
 {/if}

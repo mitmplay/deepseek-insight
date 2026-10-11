@@ -75,9 +75,9 @@
 		font-size: 0.625rem;
 		font-weight: 700;
 		line-height: 1;
-		color: var(--color-accent-purple, #8b5cf6);
-		background: rgb(255 255 255 / 0.55);
-		border: 1.5px solid var(--color-accent-purple, #8b5cf6);
+		color: var(--color-accent-purple, var(--color-accent-purple));
+		background: color-mix(in srgb, var(--color-surface-elevated) 55%, transparent);
+		border: 1.5px solid var(--color-accent-purple, var(--color-accent-purple));
 		border-radius: 9999px;
 		box-shadow: 0 0 0 2px rgb(139 92 246 / 0.18);
 		cursor: pointer;
@@ -90,29 +90,29 @@
 	@keyframes about-ring-cycle {
 		0%,
 		100% {
-			border-color: #8b5cf6;
-			background: rgb(255 255 255 / 0.55);
+			border-color: var(--color-accent-purple);
+			background: color-mix(in srgb, var(--color-surface-elevated) 55%, transparent);
 		}
 		25% {
-			border-color: #f6ad7b;
-			background: rgb(255 233 214 / 0.75);
+			border-color: var(--color-tree-amber);
+			background: color-mix(in srgb, var(--color-header-wash) 75%, transparent);
 		}
 		50% {
 			border-color: #60a5fa;
-			background: rgb(199 221 248 / 0.75);
+			background: color-mix(in srgb, var(--color-accent-blue) 18%, transparent);
 		}
 		75% {
 			border-color: #34d399;
-			background: rgb(195 240 220 / 0.75);
+			background: color-mix(in srgb, var(--color-status-pass) 18%, transparent);
 		}
 	}
 
 	.about-trigger:hover,
 	.about-trigger:focus-visible {
 		animation: none;
-		color: #7c3aed;
-		border-color: #7c3aed;
-		background: rgb(255 255 255 / 0.85);
+		color: var(--color-accent-deep);
+		border-color: var(--color-accent-deep);
+		background: color-mix(in srgb, var(--color-surface-elevated) 85%, transparent);
 		box-shadow: 0 0 0 3px rgb(139 92 246 / 0.35);
 		outline: none;
 	}

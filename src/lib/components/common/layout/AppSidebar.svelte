@@ -189,7 +189,7 @@
 		height: 100%;
 		min-height: 0;
 		overflow: hidden;
-		background: var(--color-surface-elevated, #fff);
+		background: var(--color-surface-elevated, var(--color-surface-elevated));
 	}
 
 	/* Embedded rail fills its StickyColumnContainer: the column carries
@@ -205,7 +205,7 @@
 	   split across the two components). Gradient is oversized (300% x
 	   300%) and the animation pans background-position; stops are richer
 	   pastels (warm peach → sky blue → lilac → mint), each WCAG-AA-checked
-	   against the #4b5563 label text (>= 5.4:1 contrast). Keep in sync
+	   against the var(--color-text-secondary) label text (>= 5.4:1 contrast). Keep in sync
 	   with AppSidebarHeader's copy so both states read as one surface. */
 	.rail-collapsed {
 		--rail-gradient: linear-gradient(
@@ -219,6 +219,18 @@
 		background: var(--rail-gradient);
 		background-size: 300% 300%;
 		animation: rail-header-gradient 12s ease-in-out infinite;
+	}
+	/* Dark lamp (ADR-0023): stub copy of the dark gradient — keep in sync
+	 * with AppSidebarHeader's .rail-header override. */
+	:global(html[data-theme='dark']) .rail-collapsed {
+		--rail-gradient: linear-gradient(
+			120deg,
+			#2a2431,
+			#1f2733,
+			#2b2333,
+			#1d2b26,
+			#2a2431
+		);
 	}
 
 	@keyframes rail-header-gradient {
@@ -240,7 +252,7 @@
 	}
 
 	/* Collapsed stub — same 34px geometry as OCI's ControlRail stub.
-	   Gradient + animation come from the shared rule above; #4b5563 keeps
+	   Gradient + animation come from the shared rule above; var(--color-text-secondary) keeps
 	   the vertical label AA (>= 5.4:1) on every stop. */
 	.rail-collapsed {
 		display: flex;
@@ -254,7 +266,7 @@
 		padding: 0.5rem 0;
 		border: none;
 		border-right: 1px solid var(--color-surface-border, #dee2e6);
-		color: #4b5563;
+		color: var(--color-text-secondary);
 	}
 
 	.stub-expand {
@@ -275,7 +287,7 @@
 
 	.stub-expand:hover,
 	.stub-expand:focus-visible {
-		color: var(--color-accent-purple, #8b5cf6);
+		color: var(--color-accent-purple, var(--color-accent-purple));
 		background: var(--color-surface-hover, rgb(0 0 0 / 0.03));
 		outline: none;
 	}

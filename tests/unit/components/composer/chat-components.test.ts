@@ -303,7 +303,7 @@ describe('Composer', () => {
 		expect(cancel).not.toBeNull();
 		expect(h.target.querySelector('[data-testid="send-button"]')).toBeNull();
 		// OCI cancel-btn parity: red square + filled Square icon + stop title.
-		expect(cancel.className).toContain('bg-red-500');
+		expect(cancel.className).toContain('bg-status-fail');
 		expect(cancel.querySelector('svg')).not.toBeNull();
 		expect(cancel.getAttribute('title')).toBe('Stop streaming');
 		cancel.click();
@@ -528,7 +528,7 @@ describe('ToolCallChip — chip-only (popup split, 2026-08-22)', () => {
 
 	it('pending call: amber dot, plain name, no panes in the chip', () => {
 		const { toggle, dot, comp, target } = chip({ kind: 'call', toolName: 'grep', status: 'pending' });
-		expect(dot.className).toContain('bg-amber-400'); // pending fill (OCI statusConfig)
+		expect(dot.className).toContain('bg-status-pending'); // pending fill (OCI statusConfig)
 		expect(toggle.textContent?.trim()).toBe('grep');
 		expect(target.querySelector('[data-testid="tool-chip-args"]')).toBeNull();
 		unmount(comp);
@@ -536,23 +536,23 @@ describe('ToolCallChip — chip-only (popup split, 2026-08-22)', () => {
 
 	it('pending → pass flip: dot turns emerald', () => {
 		const { dot, comp } = chip({ kind: 'call', toolName: 'grep', status: 'pass' });
-		expect(dot.className).toContain('bg-emerald-500'); // resolved fill
+		expect(dot.className).toContain('bg-status-pass/100'); // resolved fill
 		unmount(comp);
 	});
 
 	it('fail path renders red: dot red + chip border red', () => {
 		const { dot, toggle, comp } = chip({ kind: 'call', toolName: 'grep', status: 'fail' });
-		expect(dot.className).toContain('bg-red-500');
-		expect(toggle.className).toContain('border-red-200');
+		expect(dot.className).toContain('bg-status-fail');
+		expect(toggle.className).toContain('border-danger-wash-border');
 		unmount(comp);
 	});
 
 	it('result chip carries ok/error styling; unknown events render as event chips', () => {
 		const err = chip({ kind: 'result', toolName: 'grep', ok: false });
-		expect(err.toggle.className).toContain('border-red-200');
+		expect(err.toggle.className).toContain('border-danger-wash-border');
 		unmount(err.comp);
 		const okc = chip({ kind: 'result', toolName: 'grep', ok: true });
-		expect(okc.toggle.className).toContain('border-emerald-200');
+		expect(okc.toggle.className).toContain('border-status-pass/30');
 		unmount(okc.comp);
 		const unk = chip({ kind: 'unknown', toolName: 'plugin/frobnicated' });
 		expect(unk.toggle.textContent?.trim()).toBe('event · plugin/frobnicated');
@@ -1467,7 +1467,7 @@ describe('ContextConsumption — percentage bar + honest fallback', () => {
 		const { target, comp } = mountCtx({ used: 900_000, limit: 1_000_000 });
 		const el = target.querySelector('[data-testid="context-consumption"]');
 		const fill = el?.querySelector('[style*="width"]') as HTMLElement | null;
-		expect(fill?.className).toContain('bg-[#7c3aed]');
+		expect(fill?.className).toContain('bg-[var(--color-accent-deep)]');
 		unmount(comp);
 	});
 

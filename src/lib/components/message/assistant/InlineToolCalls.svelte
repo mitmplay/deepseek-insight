@@ -163,13 +163,13 @@
 	/** Peek-list status dot (ToolPeekButton port): OCI statusConfig parity. */
 	function peekDotClass(entry: TurnMember): string {
 		if (entry.kind === 'tool-call') {
-			if (entry.status === 'pass') return 'bg-emerald-500';
-			if (entry.status === 'fail') return 'bg-red-500';
-			return 'bg-amber-400';
+			if (entry.status === 'pass') return 'bg-status-pass/100';
+			if (entry.status === 'fail') return 'bg-status-fail';
+			return 'bg-status-pending';
 		}
-		if (entry.kind === 'tool-result') return entry.ok === false ? 'bg-red-500' : 'bg-emerald-500';
-		if (entry.kind === 'turn-error') return 'bg-red-500';
-		return 'bg-slate-400';
+		if (entry.kind === 'tool-result') return entry.ok === false ? 'bg-status-fail' : 'bg-status-pass/100';
+		if (entry.kind === 'turn-error') return 'bg-status-fail';
+		return 'bg-surface-border';
 	}
 
 	// ── Think popup stick-to-bottom (2026-08-26) ────────────────────────
@@ -441,20 +441,20 @@
 				     (BC-12 — text nodes only); an honest note when the wire
 				     carried no payload at all. -->
 				<div class="p-3 text-xs" data-testid="unknown-event-body">
-					<p class="text-[10px] uppercase tracking-wide text-slate-400">
+					<p class="text-[10px] uppercase tracking-wide text-text-muted">
 						{openEntry.eventType} · seq {openEntry.seq}
 					</p>
 					{#if openEntry.payload !== undefined}
-						<pre class="mt-1 whitespace-pre-wrap break-words font-mono text-[11px] text-slate-700">{JSON.stringify(openEntry.payload, null, 2)}</pre>
+						<pre class="mt-1 whitespace-pre-wrap break-words font-mono text-[11px] text-text-primary">{JSON.stringify(openEntry.payload, null, 2)}</pre>
 					{:else}
-						<p class="mt-1 text-slate-500">{t(m.unknownEventNoPayload)}</p>
+						<p class="mt-1 text-text-secondary">{t(m.unknownEventNoPayload)}</p>
 					{/if}
 				</div>
 			{:else if openEntry.kind === 'turn-error'}
 				<div class="p-3 text-xs" data-testid="turn-error-body">
-					<p class="whitespace-pre-wrap break-words font-mono text-red-700">{openEntry.message}</p>
+					<p class="whitespace-pre-wrap break-words font-mono text-status-fail">{openEntry.message}</p>
 					{#if openEntry.code !== undefined}
-						<p class="mt-1 text-[10px] uppercase tracking-wide text-slate-400">code: {openEntry.code}</p>
+						<p class="mt-1 text-[10px] uppercase tracking-wide text-text-muted">code: {openEntry.code}</p>
 					{/if}
 				</div>
 			{/if}

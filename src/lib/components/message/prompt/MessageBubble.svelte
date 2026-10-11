@@ -85,7 +85,7 @@
 		<RelativeTime
 			{time}
 			{role}
-			class="absolute bottom-0.5 {role === 'user' ? 'right-3' : 'left-3'} text-[10px] text-text-muted/60 group-hover/bubble:text-[#7c3aed]"
+			class="absolute bottom-0.5 {role === 'user' ? 'right-3' : 'left-3'} text-[10px] text-text-muted/60 group-hover/bubble:text-[var(--color-accent-deep)]"
 		/>
 	{/if}
 </div>

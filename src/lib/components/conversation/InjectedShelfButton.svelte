@@ -153,22 +153,22 @@
 		transform: scale(1.08);
 	}
 
-	/* Maroon tone — the document-child paint (DOC_CHILD_PAINT #800000, ADR
+	/* Maroon tone — the document-child paint (DOC_CHILD_PAINT var(--color-doc-child), ADR
 	   D3): the button and the sidebar rows speak the same vocabulary. */
 	.tone-maroon {
-		border: 1px solid #800000;
-		background: color-mix(in srgb, #800000 12%, transparent);
-		color: #800000;
+		border: 1px solid var(--color-doc-child);
+		background: color-mix(in srgb, var(--color-doc-child) 12%, transparent);
+		color: var(--color-doc-child);
 	}
 
 	.tone-maroon:hover {
-		color: var(--color-text-primary, #fff);
+		color: var(--color-text-primary, var(--color-surface-elevated));
 	}
 
 	.tone-maroon.active {
-		background: #800000;
+		background: var(--color-doc-child);
 		color: white;
-		border-color: #800000;
+		border-color: var(--color-doc-child);
 	}
 
 	.floating-anchor-btn :global(svg) {
@@ -184,7 +184,7 @@
 	}
 
 	.shelf-item:hover {
-		background: color-mix(in srgb, #800000 8%, transparent);
+		background: color-mix(in srgb, var(--color-doc-child) 8%, transparent);
 	}
 
 	/* The origin boundary (D6/D7): the system-prompt shelf name is a
@@ -242,7 +242,7 @@
 	}
 
 	.shelf-pick:hover {
-		background: color-mix(in srgb, #800000 8%, transparent);
+		background: color-mix(in srgb, var(--color-doc-child) 8%, transparent);
 	}
 
 	.shelf-pick-path {

@@ -104,9 +104,9 @@
 		padding: 0.25rem;
 		min-width: 0;
 		margin: 0.125rem 0;
-		border: 1px solid color-mix(in srgb, var(--color-accent-blue, #3b82f6) 35%, #fff);
+		border: 1px solid color-mix(in srgb, var(--color-accent-blue, #3b82f6) 35%, var(--color-surface-elevated));
 		border-radius: 0.5rem;
-		background: linear-gradient(135deg, transparent, #6d05ff42);
+		background: linear-gradient(135deg, transparent, color-mix(in srgb, var(--color-accent-purple) 26%, transparent));
 	}
 
 	.pills {

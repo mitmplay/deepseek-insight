@@ -48,24 +48,24 @@
 </script>
 
 <div
-	class="group/terminal relative rounded-lg px-2 py-1.5 bg-amber-50 {terminal
-		? 'ring-1 ring-amber-200'
-		: 'ring-1 ring-slate-200'} {isError ? 'ring-1 ring-red-300' : ''}"
+	class="group/terminal relative rounded-lg px-2 py-1.5 bg-status-pending/10 {terminal
+		? 'ring-1 ring-status-pending/30'
+		: 'ring-1 ring-surface-border'} {isError ? 'ring-1 ring-status-fail/30' : ''}"
 	data-testid={terminal ? 'code-dispatch-terminal' : 'code-dispatch-generic'}
 	{...subTool !== undefined ? { 'data-sub-tool': subTool } : {}}
 	data-error={isError ? 'true' : undefined}
 >
-	<div class="mb-0.5 flex items-center gap-1 font-mono text-[10px] text-slate-400">
-		<span class="font-medium text-amber-700/80">{planStepTitle(toolName)}</span>
-		{#if isError}<span class="text-red-400">failed</span>{/if}
+	<div class="mb-0.5 flex items-center gap-1 font-mono text-[10px] text-text-muted">
+		<span class="font-medium text-status-pending/80">{planStepTitle(toolName)}</span>
+		{#if isError}<span class="text-status-fail">failed</span>{/if}
 	</div>
 	{#if showSource && source !== undefined}
 		<pre
-			class="max-h-48 overflow-auto whitespace-pre-wrap break-words font-mono text-[11px] text-slate-500"
+			class="max-h-48 overflow-auto whitespace-pre-wrap break-words font-mono text-[11px] text-text-secondary"
 			data-testid="code-dispatch-source"
 		>{source}</pre>
 	{:else}
-		<pre class="max-h-48 overflow-auto whitespace-pre-wrap break-words font-mono text-[11px] text-slate-700">{content ?? t(m.noOutput)}</pre>
+		<pre class="max-h-48 overflow-auto whitespace-pre-wrap break-words font-mono text-[11px] text-text-primary">{content ?? t(m.noOutput)}</pre>
 	{/if}
 
 	<div

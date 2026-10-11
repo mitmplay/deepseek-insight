@@ -62,9 +62,9 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		border: 1px solid color-mix(in srgb, var(--color-accent-blue, #3b82f6) 35%, #fff);
+		border: 1px solid color-mix(in srgb, var(--color-accent-blue, #3b82f6) 35%, var(--color-surface-elevated));
 		background: transparent;
-		color: #52606d;
+		color: var(--color-slate-neutral);
 		line-height: 1;
 		padding: 0.15rem 0.275rem;
 		cursor: pointer;
@@ -90,12 +90,12 @@
 		border-left-width: 0;
 	}
 	.seg:not(:disabled):hover {
-		border-color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, #1e3a8a);
-		color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, #1e3a8a);
-		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 12%, #fff);
+		border-color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, var(--color-navy-focus));
+		color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, var(--color-navy-focus));
+		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 12%, var(--color-surface-elevated));
 	}
 	.seg:focus-visible {
-		outline: 2px solid #1e3a8a;
+		outline: 2px solid var(--color-navy-focus);
 		outline-offset: -2px;
 	}
 </style>

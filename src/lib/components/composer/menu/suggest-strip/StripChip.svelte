@@ -457,7 +457,7 @@
 		cursor: pointer;
 	}
 	.strip-menu-save:hover {
-		background: #2563eb;
+		background: var(--color-accent-blue);
 	}
 
 	.strip-menu-delete {

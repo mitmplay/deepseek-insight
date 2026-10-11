@@ -21,7 +21,7 @@
 	 * events keep the prop honest on both directions: scrolling up breaks
 	 * stick (button greys), returning to the bottom re-engages it.
 	 *
-	 * Maroon #800000 (8.4:1 on white) active / grey rest — color AND the
+	 * Maroon var(--color-doc-child) (8.4:1 on white) active / grey rest — color AND the
 	 * pressed state carry the meaning, never color alone.
 	 */
 	let {
@@ -77,16 +77,16 @@
 	}
 
 	.stick-toggle:hover {
-		border-color: color-mix(in srgb, #800000 40%, transparent);
-		color: #800000;
+		border-color: color-mix(in srgb, var(--color-doc-child) 40%, transparent);
+		color: var(--color-doc-child);
 	}
 
 	/* Maroon while following the live bottom (user spec, 2026-08-26):
-	   #800000 reads 8.4:1 on white — the ON state stays legible. */
+	   var(--color-doc-child) reads 8.4:1 on white — the ON state stays legible. */
 	.stick-toggle.on {
-		color: #800000;
-		border-color: color-mix(in srgb, #800000 45%, transparent);
-		background: color-mix(in srgb, #800000 8%, transparent);
+		color: var(--color-doc-child);
+		border-color: color-mix(in srgb, var(--color-doc-child) 45%, transparent);
+		background: color-mix(in srgb, var(--color-doc-child) 8%, transparent);
 	}
 
 	/* State-semantic icon (app.css icon standard exception): the glyph

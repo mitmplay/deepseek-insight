@@ -236,8 +236,8 @@ describe('panelRowsFor — document-child row facts (Loadinjected ADR D3)', () =
 		expect(injectedDocTitle(SYSTEM_PROMPT_DISPLAY_PATH)).toBe('system prompt — latest epoch');
 	});
 
-	it('the maroon document-child paint is the pinned #800000 constant', () => {
-		expect(DOC_CHILD_PAINT).toBe('#800000');
+	it('the maroon document-child paint is the pinned var(--color-doc-child) constant', () => {
+		expect(DOC_CHILD_PAINT).toBe('var(--color-doc-child)');
 	});
 
 	it('the open-session view stays conversation-only — a doc source never joins it', () => {

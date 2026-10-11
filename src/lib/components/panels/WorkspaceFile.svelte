@@ -179,7 +179,7 @@
 		font-size: 0.75rem;
 	}
 	.note.fail {
-		color: #b91c1c;
+		color: var(--si-run);
 	}
 	.file-editor-host {
 		flex: 1;
@@ -202,7 +202,7 @@
 		max-width: 100%;
 		max-height: 100%;
 		object-fit: contain;
-		background: repeating-conic-gradient(#f0f0f0 0% 25%, #fff 0% 50%) 50% / 16px 16px;
+		background: repeating-conic-gradient(var(--color-surface-alt) 0% 25%, var(--color-surface-elevated) 0% 50%) 50% / 16px 16px;
 		border: 1px solid var(--color-border, #d0d7de);
 		border-radius: 0.25rem;
 	}
@@ -212,6 +212,6 @@
 		width: 100%;
 		border: 1px solid var(--color-border, #d0d7de);
 		border-radius: 0.25rem;
-		background: #fff;
+		background: var(--color-surface-elevated);
 	}
 </style>

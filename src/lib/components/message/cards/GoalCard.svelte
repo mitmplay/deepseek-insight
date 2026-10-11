@@ -42,13 +42,13 @@
 	const phaseClass = $derived.by(() => {
 		switch (goal?.phase) {
 			case 'active':
-				return 'bg-amber-50 text-amber-700 border-amber-200';
+				return 'bg-status-pending/10 text-status-pending border-status-pending/30';
 			case 'complete':
-				return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+				return 'bg-status-pass/10 text-status-pass border-status-pass/30';
 			case 'paused':
-				return 'bg-slate-50 text-slate-600 border-slate-200';
+				return 'bg-surface text-text-secondary border-surface-border';
 			case 'blocked':
-				return 'bg-red-50 text-red-700 border-red-200';
+				return 'bg-danger-wash text-status-fail border-danger-wash-border';
 			default:
 				return '';
 		}
@@ -72,13 +72,13 @@
 		{#if argsRaw !== undefined}
 			<pre
 				data-testid="goal-raw-args"
-				class="overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-slate-50 p-2 font-mono text-[11px] text-slate-600 ring-1 ring-slate-200"
+				class="overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-surface p-2 font-mono text-[11px] text-text-secondary ring-1 ring-surface-border"
 			>{argsRaw}</pre>
 		{/if}
 		{#if resultText !== undefined}
 			<pre
 				data-testid="goal-raw-result"
-				class="mt-1 overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-slate-50 p-2 font-mono text-[11px] text-slate-600 ring-1 ring-slate-200"
+				class="mt-1 overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-surface p-2 font-mono text-[11px] text-text-secondary ring-1 ring-surface-border"
 			>{resultText}</pre>
 		{/if}
 	</div>
@@ -99,8 +99,8 @@
 			{#if result?.activation !== undefined}
 				<span
 					class="rounded-full border px-1.5 py-px text-[10px] {result.activation === 'armed'
-						? 'border-emerald-200 text-emerald-700'
-						: 'border-slate-200 text-slate-500'}"
+						? 'border-status-pass/30 text-status-pass'
+						: 'border-surface-border text-text-secondary'}"
 					data-testid="goal-activation"
 				>{result.activation}</span>
 			{/if}
@@ -112,11 +112,11 @@
 				data-testid="goal-objective"
 			>{objective}</p>
 		{:else if goal === null}
-			<p class="mt-1.5 text-xs text-slate-400" data-testid="goal-empty">{t(m.noGoalSet)}</p>
+			<p class="mt-1.5 text-xs text-text-muted" data-testid="goal-empty">{t(m.noGoalSet)}</p>
 		{/if}
 
 		{#if goal?.blockedReason !== undefined}
-			<p class="mt-1 text-xs text-red-700" data-testid="goal-blocked">
+			<p class="mt-1 text-xs text-status-fail" data-testid="goal-blocked">
 				{goal.blockedReason.code} — {goal.blockedReason.message}
 			</p>
 		{/if}
@@ -131,7 +131,7 @@
 			type="button"
 			data-testid="goal-raw-toggle"
 			onclick={() => (rawOpen = !rawOpen)}
-			class="mt-1 text-[11px] text-slate-400 underline hover:text-slate-600"
+			class="mt-1 text-[11px] text-text-muted underline hover:text-text-secondary"
 		>
 			{rawOpen ? t(m.hideRawJson) : t(m.rawJson)}
 		</button>
@@ -139,13 +139,13 @@
 			{#if argsRaw !== undefined}
 				<pre
 					data-testid="goal-raw-args"
-					class="mt-1 overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-slate-50 p-2 font-mono text-[11px] text-slate-600 ring-1 ring-slate-200"
+					class="mt-1 overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-surface p-2 font-mono text-[11px] text-text-secondary ring-1 ring-surface-border"
 				>{argsRaw}</pre>
 			{/if}
 			{#if resultText !== undefined}
 				<pre
 					data-testid="goal-raw-result"
-					class="mt-1 overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-slate-50 p-2 font-mono text-[11px] text-slate-600 ring-1 ring-slate-200"
+					class="mt-1 overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-surface p-2 font-mono text-[11px] text-text-secondary ring-1 ring-surface-border"
 				>{resultText}</pre>
 			{/if}
 		{/if}

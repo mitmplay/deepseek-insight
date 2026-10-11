@@ -78,14 +78,14 @@
 	}}
 >
 	<div
-		class="absolute w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-lg bg-white p-4 shadow-xl"
+		class="absolute w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-lg bg-surface-elevated p-4 shadow-xl"
 		style={pos ? 'left:' + pos.x + 'px; top:' + pos.y + 'px;' : 'left:50%; top:50%;'}
 	>
-		<h2 class="text-sm font-semibold text-slate-800">{t(m.enableFullAccessQ)}</h2>
-		<p class="mt-2 text-xs leading-relaxed text-slate-600">
+		<h2 class="text-sm font-semibold text-text-primary">{t(m.enableFullAccessQ)}</h2>
+		<p class="mt-2 text-xs leading-relaxed text-text-secondary">
 			{t(m.fullAccessWarning)}
 		</p>
-		<label class="mt-3 flex items-start gap-2 text-xs text-slate-700">
+		<label class="mt-3 flex items-start gap-2 text-xs text-text-primary">
 			<input
 				type="checkbox"
 				bind:checked={acknowledged}
@@ -97,7 +97,7 @@
 		<div class="mt-4 flex justify-end gap-2">
 			<button
 				type="button"
-				class="rounded-md border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100"
+				class="rounded-md border border-surface-border px-2.5 py-1 text-xs font-medium text-text-secondary hover:bg-surface-alt"
 				data-testid="access-mode-cancel"
 				onclick={oncancel}
 			>
@@ -105,7 +105,7 @@
 			</button>
 			<button
 				type="button"
-				class="rounded-md bg-red-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-50"
+				class="rounded-md bg-status-fail px-2.5 py-1 text-xs font-medium text-white hover:bg-status-fail disabled:opacity-50"
 				disabled={!acknowledged || disabled}
 				data-testid="access-mode-enable"
 				onclick={() => void onconfirm()}

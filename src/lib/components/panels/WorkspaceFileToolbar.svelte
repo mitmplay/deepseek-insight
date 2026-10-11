@@ -13,8 +13,7 @@
 	 * flags, emits the save intent, and binds the tab choice back up
 	 * ($bindable — the panel's render ladder reads it).
 	 */
-	import { workspacePanelCopy as copy } from './workspace-panel-copy';
-	import CanvasCopyButton from '$lib/components/common/buttons/CanvasCopyButton.svelte';
+		import CanvasCopyButton from '$lib/components/common/buttons/CanvasCopyButton.svelte';
 	import WorkspaceFileTabGroup from './WorkspaceFileTabGroup.svelte';
 	import { t } from '$lib/services/locale/locale-state.svelte';
 	import * as m from '$lib/paraglide/messages';
@@ -91,21 +90,21 @@
 			data-testid="file-save"
 			disabled={!dirty || saveState === 'saving' || view === 'diff'}
 			onclick={onsave}
-		>{saveState === 'saving' ? copy.file.saving : copy.file.save}</button>
+		>{saveState === 'saving' ? t(m.workspaceFileSaving) : t(m.workspaceFileSave)}</button>
 	{/if}
 	{#if dirty}
-		<span class="dirty" data-testid="file-dirty">{copy.file.dirty}</span>
+		<span class="dirty" data-testid="file-dirty">{t(m.workspaceFileDirty)}</span>
 	{/if}
 	{#if saveState === 'saved' && !dirty}
-		<span class="stale" data-testid="file-stale">{copy.file.stale}</span>
+		<span class="stale" data-testid="file-stale">{t(m.workspaceFileStale)}</span>
 	{/if}
 	{#if stale}
 		<span class="stale" data-testid="file-stale-external">{staleNote}</span>
 	{/if}
 	{#if hasTabs}
 		<div class="tabs" role="tablist">
-			<button role="tab" aria-selected={tab === 'preview'} class:active={tab === 'preview'} data-testid="tab-preview" onclick={() => (tab = 'preview')}>{copy.file.preview}</button>
-			<button role="tab" aria-selected={tab === 'edit'} class:active={tab === 'edit'} data-testid="tab-edit" onclick={() => (tab = 'edit')}>{copy.file.edit}</button>
+			<button role="tab" aria-selected={tab === 'preview'} class:active={tab === 'preview'} data-testid="tab-preview" onclick={() => (tab = 'preview')}>{t(m.workspaceFilePreview)}</button>
+			<button role="tab" aria-selected={tab === 'edit'} class:active={tab === 'edit'} data-testid="tab-edit" onclick={() => (tab = 'edit')}>{t(m.workspaceFileEdit)}</button>
 		</div>
 	{/if}
 	<!-- Capture the whole panel column (the toolbar's nearest
@@ -115,9 +114,9 @@
 	<span class="copy-slot">
 		<CanvasCopyButton
 			container={columnEl}
-			title={copy.common.copyColumn}
+			title={t(m.workspacePanelCommonCopyColumn)}
 			size={18}
-			class="shrink-0 rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+			class="shrink-0 rounded-md p-1 text-text-muted hover:bg-surface-hover hover:text-text-secondary"
 		/>
 	</span>
 </div>
@@ -141,7 +140,7 @@
 	}
 	.dirty {
 		flex-shrink: 0;
-		color: #b45309;
+		color: var(--color-accent-amber-ink-deep);
 		font-size: 0.6875rem;
 	}
 	/* The delegated save's verb: same chip grammar as the tabs; disabled

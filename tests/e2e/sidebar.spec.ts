@@ -66,10 +66,13 @@ test('01 · sidebar renders with title and sessions — the Home anchor is retir
 	await expect(page.getByTestId('sidebar-title')).toHaveText('Deepseek Insight');
 
 	// The version chip rides the footer's create row (2026-09-07): the
-	// running edition reads where new chats start.
-	await expect(page.getByTestId('sidebar-footer-version')).toHaveText(
-		/^v\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/
-	);
+	// running edition reads where new chats start. ONE chip, TWO lines
+	// (RCA 2026-09-14): DSI's own edition above the pinned DSH web
+	// release it speaks — each line semver-shaped.
+	const SEMVER = /^v\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/;
+	const versionLines = await page.getByTestId('sidebar-footer-version').locator('span').allTextContents();
+	expect(versionLines).toHaveLength(2);
+	for (const line of versionLines) expect(line).toMatch(SEMVER);
 
 	// Sessions list loads from the stubbed wire; the open session is the
 	// highlighted current row (non-link — clicking where you already are).
@@ -133,7 +136,11 @@ test('03 · gutter drag resizes within the clamp', async ({ page }) => {
 	await page.mouse.down();
 	await page.mouse.move(startX + 120, gbox!.y + 100, { steps: 4 });
 	await page.mouse.up();
-	expect(await railWidth(page)).toBe(before + 120);
+	// The clamp caps at 500 (SIDEBAR_MAX_WIDTH): 400 + 120 lands ON the
+	// cap, not past it — the drag follows the pointer only within the
+	// clamp (W0 net fix 2026-10-09; the old +120 assertion predates the
+	// 500px cap and demanded an impossible width).
+	expect(await railWidth(page)).toBe(Math.min(before + 120, 500));
 
 	// Drag far past the left edge — the clamp holds the 200px minimum.
 	const gbox2 = await gutter.boundingBox();
@@ -460,25 +467,26 @@ test('09 · Add workspace: browse to a directory, adopt it, chat in it', async (
 	await expandFilters(page);
 	const place = await page.evaluate(() => {
 		const btn = document.querySelector('[data-testid="add-workspace-button"]');
-		const collapse = document.querySelector('button[aria-label="Collapse sidebar"]');
 		const row = document.querySelector('[data-testid="session-filter-row"]');
 		const all = document.querySelector('[data-testid="filter-all"]');
 		const toggle = document.querySelector('[data-testid="filter-blank-toggle"]');
 		const before = (a: Element, b: Element) => !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
-		if (!btn || !collapse || !row || !all || !toggle) {
-			return { inHeader: false, beforeCollapse: false, inRow: false, afterAll: false };
+		if (!btn || !row || !all || !toggle) {
+			return { inRow: false, afterAll: false, afterToggle: false };
 		}
 		return {
-			inHeader: !!btn.closest('header'),
-			beforeCollapse: before(btn, collapse),
-			inRow: !!toggle.closest('[data-testid="session-filter-row"]'),
-			afterAll: before(all, toggle)
+			inRow: !!btn.closest('[data-testid="session-filter-row"]'),
+			afterAll: before(all, toggle),
+			afterToggle: before(toggle, btn)
 		};
 	});
-	expect(place.inHeader).toBe(true);
-	expect(place.beforeCollapse).toBe(true);
+	// 2026-09-12 move: Add workspace lives in the filter row's META postfix
+	// (last control, after All + the count toggle) — the header cluster
+	// holds canvas-copy and collapse only (W0 net fix; the header
+	// assertions predate the move).
 	expect(place.inRow).toBe(true);
 	expect(place.afterAll).toBe(true);
+	expect(place.afterToggle).toBe(true);
 
 	// Open the browser: the home level loads (breadcrumbs root at Home).
 	await addBtn.click();
@@ -516,7 +524,12 @@ test('09 · Add workspace: browse to a directory, adopt it, chat in it', async (
 	// One click — adopt + fresh session, no preset picker anywhere.
 	await expect(page.getByTestId('preset-picker')).toHaveCount(0);
 	await page.getByTestId('add-workspace-confirm').click();
-	await page.waitForURL(/\/?sessionKey=e2e-created-/, { timeout: 5_000 });
+	// 2026-08-31 revision: the fresh session JOINS THE FLOOR as a new
+	// panel — no navigation, no desk reset (the seed URL is the off-floor
+	// fallback only). Wait for the panel, not the URL (W0 net fix).
+	await expect(
+		page.locator('[data-testid="panel-column"][data-session-id^="e2e-created-"]')
+	).toBeVisible({ timeout: 5_000 });
 
 	// Wire truth: the browse walk happened, adoption adopted the LISTED
 	// folder, and session.create carries the cwd with NO agentPreset.
@@ -635,7 +648,10 @@ test('11 · Add workspace: native host → system dialog drives adopt+chat', asy
 	});
 	await page.getByTestId('add-workspace-button').click();
 	await expect(page.getByTestId('add-workspace-native')).toBeVisible({ timeout: 5_000 });
-	await page.waitForURL(/\/?sessionKey=e2e-created-/, { timeout: 5_000 });
+	// Floor join, not navigation (2026-08-31 revision; W0 net fix).
+	await expect(
+		page.locator('[data-testid="panel-column"][data-session-id^="e2e-created-"]')
+	).toBeVisible({ timeout: 5_000 });
 
 	// Wire truth: the browse method was refused (one probe call), the OS
 	// dialog carried the pick, adoption + create used the picked path with
@@ -688,9 +704,16 @@ test('12 · filter row expands by default: summary, fold state, sibling resize',
 	await expect(summary).toHaveText('Filter by - deepseek-harness + Main');
 
 	// Fold — pills gone, summary keeps reporting the live selection, and
-	// the tooltip now carries both segments.
-	await toggle.click();
-	await expect(page.getByTestId('filter-all')).toHaveCount(0);
+	// the tooltip now carries both segments. Click the CHEVRON (left edge):
+	// once pills are picked, the summary chips occupy the button's center
+	// and a chip click opens its menu instead of folding (ADR D1 — the
+	// registered chip's click stops propagation; W0 net fix 2026-10-09).
+	const tbox = await toggle.boundingBox();
+	await page.mouse.click(tbox!.x + 10, tbox!.y + tbox!.height / 2);
+	// The fold hides only the dimension pills (2026-09-04): the All clear
+	// moved into the always-visible meta header — it must SURVIVE the fold.
+	await expect(page.locator('#filter-pills')).toHaveCount(0);
+	await expect(page.getByTestId('filter-all')).toHaveCount(1);
 	await expect(summary).toHaveText('Filter by - deepseek-harness + Main');
 	await expect(toggle).toHaveAttribute(
 		'title',
@@ -704,15 +727,18 @@ test('12 · filter row expands by default: summary, fold state, sibling resize',
 	await expect(toggle).toHaveAttribute('aria-expanded', 'true');
 	await expect(summary).toHaveText('Filter by - deepseek-harness + Main');
 
-	// Sibling resize proof: the spine's bounding height grows when the
-	// row folds. The filter row sits above sidebar-sessions-list in the
-	// same flex column — collapsing trades pill-wrap lines for spine rows.
-	const spine = page.getByTestId('sidebar-sessions-list');
-	await expect(spine).toBeVisible();
-	const expandedHeight = (await spine.boundingBox())!.height;
-	await toggle.click();
-	const foldedHeight = (await spine.boundingBox())!.height;
-	expect(foldedHeight).toBeGreaterThan(expandedHeight);
+	// Sibling resize proof: the row SHRINKS when folded — the pill-wrap
+	// lines hand their height back to the flex column (the spine list
+	// below absorbs them; with a one-session stub the list is content-
+	// sized, so the ROW's own height is the deterministic signal — W0
+	// net fix 2026-10-09; the old spine-height assertion needed a tall
+	// list the stub never provides).
+	const row = page.getByTestId('session-filter-row');
+	const expandedRowHeight = (await row.boundingBox())!.height;
+	const tbox2 = await toggle.boundingBox();
+	await page.mouse.click(tbox2!.x + 10, tbox2!.y + tbox2!.height / 2);
+	const foldedRowHeight = (await row.boundingBox())!.height;
+	expect(foldedRowHeight).toBeLessThan(expandedRowHeight);
 
 	// Neutral storage for later specs: All clears every dimension.
 	await expandFilters(page);

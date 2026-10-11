@@ -74,7 +74,7 @@
 	<img
 		{src}
 		{alt}
-		class="relative max-h-[calc(100vh-80px)] max-w-[min(100%,1600px)] rounded-xl bg-white object-contain shadow-2xl"
+		class="relative max-h-[calc(100vh-80px)] max-w-[min(100%,1600px)] rounded-xl bg-surface-elevated object-contain shadow-2xl"
 		data-testid="attachment-lightbox-image"
 	/>
 	<button
@@ -83,6 +83,6 @@
 		onclick={onclose}
 		aria-label={t(m.closePreview)}
 		data-testid="attachment-lightbox-close"
-		class="fixed top-5 right-5 z-10 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white text-lg leading-none text-slate-700 hover:bg-slate-100"
+		class="fixed top-5 right-5 z-10 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-surface-border bg-surface-elevated text-lg leading-none text-text-primary hover:bg-surface-alt"
 	>×</button>
 </div>

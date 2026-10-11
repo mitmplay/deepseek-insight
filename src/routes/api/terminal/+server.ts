@@ -17,7 +17,12 @@ import type { TerminalSpec } from '$lib/server/terminal/types.js';
 
 export const GET = (): Response => {
 	const cfg = readTerminalConfig();
-	return json({ enabled: cfg.enabled, maxSessions: cfg.maxSessions, sessions: terminalRegistry.list() });
+	return json({
+		enabled: cfg.enabled,
+		theming: cfg.theming,
+		maxSessions: cfg.maxSessions,
+		sessions: terminalRegistry.list()
+	});
 };
 
 interface OpenBody {

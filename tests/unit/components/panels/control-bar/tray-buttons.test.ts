@@ -45,7 +45,7 @@ async function settle(rounds = 15): Promise<void> {
 }
 
 const stateIcon = (target: HTMLElement): string => {
-	if (target.querySelector('svg.text-green-500')) return 'done';
+	if (target.querySelector('svg.text-status-pass')) return 'done';
 	if (target.querySelector('svg.animate-spin')) return 'busy';
 	return 'idle';
 };

@@ -116,7 +116,7 @@
 	{#if sessionPath !== null}
 		<button
 			type="button"
-			class="shrink-0 rounded p-0.5 text-slate-400 transition-colors hover:text-slate-200"
+			class="shrink-0 rounded p-0.5 text-text-muted transition-colors hover:text-slate-200"
 			data-testid="conversation-header-copy-path"
 			aria-label={t(m.copySessionPath)}
 			title={t(m.copySessionPath)}

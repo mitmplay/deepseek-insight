@@ -61,11 +61,7 @@
 {#if parentSessionId !== null}
 	<button
 		type="button"
-		class="flex shrink-0 items-center rounded-md p-1 disabled:cursor-not-allowed"
-		class:text-slate-300={parentOpen}
-		class:text-slate-400={!parentOpen}
-		class:hover:bg-slate-100={!parentOpen}
-		class:hover:text-slate-600={!parentOpen}
+		class="flex shrink-0 items-center rounded-md p-1 disabled:cursor-not-allowed {parentOpen ? 'text-text-muted' : 'text-text-secondary hover:bg-surface-alt'}"
 		disabled={parentOpen}
 		data-testid="parent-button"
 		aria-label={t(m.openParentSession)}

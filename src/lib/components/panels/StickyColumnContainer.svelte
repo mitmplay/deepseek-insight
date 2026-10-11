@@ -69,7 +69,7 @@
 		flex-shrink: 0;
 		display: flex;
 		flex-direction: column;
-		background: var(--color-surface-elevated, #fff);
+		background: var(--color-surface-elevated, var(--color-surface-elevated));
 		position: relative;
 		overflow: visible;
 	}

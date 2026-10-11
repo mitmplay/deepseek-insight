@@ -107,7 +107,7 @@
 		background: var(--color-surface-alt, #f1f3f5);
 	}
 	.mgr-btn-save {
-		color: #16a34a;
+		color: var(--color-green-verify);
 	}
 	.mgr-btn-cancel {
 		color: var(--color-text-muted, #888);
@@ -125,7 +125,7 @@
 		transform: translate(-50%, -50%);
 		z-index: 10006;
 		width: min(90vw, 34rem);
-		background: var(--color-surface-elevated, #fff);
+		background: var(--color-surface-elevated, var(--color-surface-elevated));
 		border: 1px solid rgba(139, 92, 246, 0.3);
 		border-radius: 0.5rem;
 		box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);

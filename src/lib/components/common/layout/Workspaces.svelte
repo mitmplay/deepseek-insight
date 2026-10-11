@@ -83,7 +83,7 @@
 	   chip, driven per state through the --wsc custom properties below
 	   (they cascade from the button into the chip). Geometry vars size
 	   the chip to the pill grammar (10px text, roomier padding, 9rem
-	   cap). Rest #52606d 5.52:1, hover accent-deep 5.17:1, selected
+	   cap). Rest var(--color-slate-neutral) 5.52:1, hover accent-deep 5.17:1, selected
 	   white-on-deep 5.17:1 (the raw token managed 3.68:1 at this
 	   size — calibrated 2026-08-26). */
 	.pill {
@@ -92,8 +92,8 @@
 		border: none;
 		background: transparent;
 		cursor: pointer;
-		--wsc-fg: #52606d;
-		--wsc-border: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 35%, #fff);
+		--wsc-fg: var(--color-slate-neutral);
+		--wsc-border: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 35%, var(--color-surface-elevated));
 		--wsc-bg: transparent;
 		--wsc-font-size: 0.625rem;
 		--wsc-padding: 0.25rem 0.5rem;
@@ -104,9 +104,9 @@
 	/* Hover (every non-selected pill): the reg identity's accent-deep
 	   values — same triple the filter header's menuable hover uses. */
 	.pill:not(.on):hover {
-		--wsc-fg: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, #1e3a8a);
-		--wsc-border: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, #1e3a8a);
-		--wsc-bg: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 12%, #fff);
+		--wsc-fg: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, var(--color-navy-focus));
+		--wsc-border: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, var(--color-navy-focus));
+		--wsc-bg: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 12%, var(--color-surface-elevated));
 	}
 
 	/* Pill status styles use :not(.on) guards on every REST/HOVER rule
@@ -119,8 +119,8 @@
 	/* Registered workspace pill (chip parity): blue at REST — the chip's
 	   own default identity, restated here only to beat the grey base. */
 	.pill.reg:not(.on) {
-		--wsc-fg: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, #1e3a8a);
-		--wsc-border: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, #1e3a8a);
+		--wsc-fg: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, var(--color-navy-focus));
+		--wsc-border: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, var(--color-navy-focus));
 		--wsc-bg: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 8%, transparent);
 	}
 
@@ -128,27 +128,27 @@
 	   65% toward navy so white holds 5.17:1. */
 	.pill.on {
 		--wsc-fg: #fff;
-		--wsc-border: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 65%, #1e3a8a);
-		--wsc-bg: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 65%, #1e3a8a);
+		--wsc-border: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 65%, var(--color-navy-focus));
+		--wsc-bg: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 65%, var(--color-navy-focus));
 	}
 
 	/* Ghost workspace pill (hybrid truth): sessions ran in this path, but
 	   the host workspace registry no longer lists it — grey, never blue.
-	   #52606d on the wash = 5.52:1. Hides entirely under hideGhosts. */
+	   var(--color-slate-neutral) on the wash = 5.52:1. Hides entirely under hideGhosts. */
 	.pill.ghost:not(.on) {
-		--wsc-border: color-mix(in srgb, #52606d 45%, transparent);
+		--wsc-border: color-mix(in srgb, var(--color-slate-neutral) 45%, transparent);
 	}
 
 	/* Ghost hover darkens the grey (must out-rank the generic hover
 	   rule above — it does: two classes + :not + :hover). */
 	.pill.ghost:not(.on):hover {
 		--wsc-fg: #495057;
-		--wsc-border: #52606d;
+		--wsc-border: var(--color-slate-neutral);
 	}
 
 	.pill.ghost.on {
 		--wsc-fg: #495057;
-		--wsc-border: #52606d;
+		--wsc-border: var(--color-slate-neutral);
 		--wsc-bg: var(--color-surface-hover, #e9ecef);
 	}
 

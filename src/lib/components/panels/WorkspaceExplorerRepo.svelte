@@ -10,8 +10,7 @@
 	 * the git-status cache and the fetches — this component reads its
 	 * status as a prop and emits the open-file intent back.
 	 */
-	import { workspacePanelCopy as copy } from './workspace-panel-copy';
-	import { t } from '$lib/services/locale/locale-state.svelte';
+		import { t } from '$lib/services/locale/locale-state.svelte';
 	import * as m from '$lib/paraglide/messages';
 
 	/** One repo's git-status view state (owner-held, cache-guarded). */
@@ -61,7 +60,7 @@
 	{#if !collapsed}
 	<ul class="tree">
 		{#if st === undefined || st.kind === 'loading'}
-			<li class="note">{copy.explorer.loading}</li>
+			<li class="note">{t(m.workspaceExplorerLoading)}</li>
 		{:else if st.kind === 'unavailable'}
 			<li class="note fail" data-testid="git-changes-unavailable">{t(m.gitEyeStatusUnavailable)}</li>
 		{:else if st.kind === 'failed'}
@@ -107,7 +106,7 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		color: #ff4500; /* orangered, matches the heading */
+		color: var(--color-tree-repo); /* orangered, matches the heading */
 	}
 	/* app.css @layer base paints bare svg accent-purple — the chevron must
 	   inherit the span's orangered instead (the WorkspaceExplorerTree fix). */
@@ -146,7 +145,7 @@
 	}
 	.repo-head {
 		font-weight: 600;
-		color: #ff4500; /* orangered, matches the tree's repo rows */
+		color: var(--color-tree-repo); /* orangered, matches the tree's repo rows */
 		padding: 0.1rem 0.25rem;
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -155,13 +154,13 @@
 	.change-code {
 		font-family: var(--font-mono, monospace);
 		font-size: 0.6875rem;
-		color: #d2691e; /* chocolate */
+		color: var(--color-tree-child); /* chocolate */
 		width: 1.5rem;
 		justify-content: center;
 	}
 	/* Changed-file rows (ADR D5): chocolate + bold. */
 	.row .entry-name {
-		color: #d2691e; /* chocolate */
+		color: var(--color-tree-child); /* chocolate */
 		font-weight: 600;
 	}
 	.entry-name {
@@ -180,6 +179,6 @@
 		margin-left: 1rem;
 	}
 	.note.fail {
-		color: #b91c1c;
+		color: var(--si-run);
 	}
 </style>

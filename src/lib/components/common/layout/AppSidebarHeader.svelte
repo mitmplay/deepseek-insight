@@ -42,7 +42,7 @@
 		gap: 0.375rem;
 		padding: 0.5rem 0.5rem;
 		border-radius: 0.25rem;
-		border: solid thin #ffa9003d;
+		border: solid thin color-mix(in srgb, var(--color-accent-amber) 24%, transparent);
 	}
 
 	/* Animated gradient surface — the expanded-header half of what was one
@@ -50,7 +50,7 @@
 	   Svelte styles are component-scoped, so the rule split across the two
 	   components; the gradient is oversized (300% x 300%) and the animation
 	   pans background-position. Stops are richer pastels (warm peach → sky
-	   blue → lilac → mint), each WCAG-AA-checked against the #4b5563 label
+	   blue → lilac → mint), each WCAG-AA-checked against the var(--color-text-secondary) label
 	   text (>= 5.4:1 contrast). Keep in sync with AppSidebar's stub copy. */
 	.rail-header {
 		--rail-gradient: linear-gradient(
@@ -64,6 +64,19 @@
 		background: var(--rail-gradient);
 		background-size: 300% 300%;
 		animation: rail-header-gradient 12s ease-in-out infinite;
+	}
+
+	/* Dark lamp (ADR-0023): the pastels re-tuned for the dark rail — same
+	 * hues, dropped luminance; keep in sync with the stub copy below. */
+	:global(html[data-theme='dark']) .rail-header {
+		--rail-gradient: linear-gradient(
+			120deg,
+			#2a2431,
+			#1f2733,
+			#2b2333,
+			#1d2b26,
+			#2a2431
+		);
 	}
 
 	@keyframes rail-header-gradient {

@@ -55,7 +55,7 @@
 		display: flex;
 		align-items: center;
 		gap: 4px;
-		color: #ef4444;
+		color: var(--color-status-fail);
 		pointer-events: none;
 	}
 	/* Inline-flow variant: the host owns the placement. */

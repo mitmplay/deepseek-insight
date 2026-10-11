@@ -29,8 +29,8 @@
 	 * the panel group's accent wash (14%), row hover (18%), and the
 	 * LIGHT selected field (30% accent) — so hosts override nothing.
 	 * All ratios computed against the WCAG relative-luminance formula
-	 * (calibrated script, 2026-08-26): run #047857 5.48/4.69/4.47/3.86
-	 * (3:1 need, 1.4.11); idle #52606d 6.46/5.52/—/4.54; chip navy-mix
+	 * (calibrated script, 2026-08-26): run var(--color-success-ink) 5.48/4.69/4.47/3.86
+	 * (3:1 need, 1.4.11); idle var(--color-slate-neutral) 6.46/5.52/—/4.54; chip navy-mix
 	 * 4.94+ (AA, 9px text). CSS custom properties (--si-run, --si-idle,
 	 * --si-chip, --si-chip-bg, --si-chip-ghost, --si-chip-ghost-bg)
 	 * remain the extension point for fields this file does not know.
@@ -67,17 +67,17 @@
 		depth?: number;
 		/** Fork child (2026-09-01): parent edge, origin not 'subagent'.
 		 *  With depth > 0 the branch tree line paints the FORK GREEN
-		 *  (#00a802, 2px stroke) — one glance separates fork children
+		 *  (var(--color-ws-green), 2px stroke) — one glance separates fork children
 		 *  from spawned children in the same slot. Default false keeps
 		 *  the muted spawn line. */
 		fork?: boolean;
 		/** Document child (2026-09-07, Loadinjected ADR D3): with depth > 0
-		 *  the branch tree line paints MAROON #800000 — the third child
+		 *  the branch tree line paints MAROON var(--color-doc-child) — the third child
 		 *  paint, beside fork GREEN and spawned VIOLET. Default false keeps
 		 *  the fork/muted grammar. */
 		docChild?: boolean;
 		/** Workspace child (2026-09-10): with depth > 0 the branch tree
-		 *  line paints WORKSPACE BLUE #0066cc — the fourth child paint,
+		 *  line paints WORKSPACE BLUE var(--color-ws-blue) — the fourth child paint,
 		 *  separating the explorer/file pair from a spawned sub-agent or a
 		 *  fork. Default false keeps the existing grammar. */
 		wsChild?: boolean;
@@ -164,7 +164,7 @@
 	}
 
 	/* Fork variant (2026-09-01): a fork child's tree line paints the fork
-	   GREEN #00a802 and a 2px stroke (the muted spawn line keeps 1.5px) —
+	   GREEN var(--color-ws-green) and a 2px stroke (the muted spawn line keeps 1.5px) —
 	   measured on every field the row paints (WCAG relative luminance,
 	   2026-09-01): 3.18:1 white spine, 2.72/2.93 wash, 2.59 hover, 2.24
 	   selected — near the 3:1 non-text floor (1.4.11), the operator's
@@ -172,24 +172,24 @@
 	   carried by depth and position. Spawned children keep the muted
 	   line, so the color itself says fork. */
 	.ws-slot.branch.fork {
-		color: #00a802;
+		color: var(--color-ws-green);
 	}
 
 	/* Document variant (2026-09-07, Loadinjected ADR D3): a document
-	   child's tree line paints MAROON #800000 — the third child paint.
+	   child's tree line paints MAROON var(--color-doc-child) — the third child paint.
 	   Maroon 8.4:1 on white clears the 3:1 non-text floor on every field
 	   the row paints (the fork calibration applies; maroon is darker). */
 	.ws-slot.branch.doc-child {
-		color: #800000;
+		color: var(--color-doc-child);
 	}
 
 	/* Workspace variant (2026-09-10): an explorer/file row's tree line
-	   paints WORKSPACE BLUE #0066cc — the fourth child paint. Blue ≈ 5.4:1
+	   paints WORKSPACE BLUE var(--color-ws-blue) — the fourth child paint. Blue ≈ 5.4:1
 	   on white clears the 3:1 non-text floor on every field the row paints
 	   (the fork calibration applies; blue is darker than the fork green),
 	   so the workspace pair never reads as a spawned sub-agent. */
 	.ws-slot.branch.ws-child {
-		color: #0066cc;
+		color: var(--color-ws-blue);
 	}
 
 	/* The tree line OWNS the slot's free width (flex: 1): a border-drawn

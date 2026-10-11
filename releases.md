@@ -1,5 +1,22 @@
 # Releases
 
+## v0.6.14
+
+Bumped from v0.6.13 — the Three-State Lamp theme wave lands (dark palette, theme toggle, pre-paint), and file-link/markdown fixes harden chat surfaces.
+
+### Features
+
+- **Three-state theme: light / dark / system (458d8db, 9b404ed, daf4382, 29d8876)** — ADR-0023 token sweep plus the wave: full dark palette with scoped hljs highlighting and a contrast gate (w1), the theme-prefs module with a pre-paint script so the palette applies before first paint, no flash (w2), and the footer toggle placed before the LanguageMenu with dark-paint fixes (w3).
+- **Terminal on by default (5426aae)** — `terminal.enabled` flips to `true`; `terminal.theming` follows `data-theme`.
+
+### Bug fixes
+
+- **Mermaid diagrams: two full color sets + theme-flip re-render (d1b1ffa)** — diagrams get light/dark palettes and re-render on theme flip instead of keeping stale colors.
+- **Markdown code skins ride the token layer (f1d4d24)** — md-content code blocks use theme tokens, so they follow the active palette.
+- **Markdown link destinations with spaces use the CommonMark angle form (648bb23)** — `[label](<path with spaces.md>)` so spaced file links resolve; pinned by `tests/unit/file-link-shapes.test.ts` (6 tests) and `tests/unit/components/composer/new-chat-button.test.ts` (14 tests).
+- **Chat verb toggle goes icons-only (uncommitted, 2026-10-11)** — `chat-mode-toggle` in `NewChatButton.svelte` renders lucide `Plus`/`Replace` glyphs instead of text labels; `title` + `aria-pressed` keep it accessible; svelte-autofixer clean, 14/14 unit tests green.
+- **Agent docs: file links are workspace-root-relative (c39fb67) and non-trivial tasks follow the dsi-adr → dsi-spec → dsi-task flow (1a4edd0)** — AGENTS.md rules so assistant links resolve from any host cwd.
+
 ## v0.6.13
 
 Bumped from v0.6.12 — the plugin rack's per-source block becomes its own component, and the installed badge finds a right-aligned home on both shelves.

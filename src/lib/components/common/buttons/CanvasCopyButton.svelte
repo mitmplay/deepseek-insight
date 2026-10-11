@@ -394,10 +394,10 @@
 
 <button type="button" class="{className}" {title} data-testid="canvas-copy-button" onclick={handleAction}>
 	{#if state === 'done'}
-		<Check {size} class="text-green-500" />
+		<Check {size} class="text-status-pass" />
 	{:else if state === 'busy'}
 		<Loader2 {size} class="animate-spin" />
 	{:else}
-		<CaptureIcon {size} class="text-red-500" />
+		<CaptureIcon {size} class="text-status-fail" />
 	{/if}
 </button>

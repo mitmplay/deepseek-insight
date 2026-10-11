@@ -85,7 +85,7 @@
 		max-height: 95vh;
 		display: flex;
 		flex-direction: column;
-		background: var(--color-surface-elevated, #fff);
+		background: var(--color-surface-elevated, var(--color-surface-elevated));
 		border: 1px solid var(--color-surface-border, #dee2e6);
 		border-radius: 0.5rem;
 	}

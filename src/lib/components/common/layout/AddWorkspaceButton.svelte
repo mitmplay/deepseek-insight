@@ -418,7 +418,7 @@
 		padding: 0.75rem;
 		border: 1px solid var(--color-surface-border, #dee2e6);
 		border-radius: 0.5rem;
-		background: var(--color-surface-elevated, #fff);
+		background: var(--color-surface-elevated, var(--color-surface-elevated));
 		box-shadow: 0 4px 16px rgb(0 0 0 / 0.12);
 	}
 
@@ -589,7 +589,7 @@
 
 	.error {
 		font-size: 0.6875rem;
-		color: var(--color-status-fail, #ef4444);
+		color: var(--color-status-fail, var(--color-status-fail));
 		overflow-wrap: anywhere;
 	}
 </style>

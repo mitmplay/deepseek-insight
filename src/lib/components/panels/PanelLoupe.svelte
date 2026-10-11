@@ -130,7 +130,7 @@
 	>
 		<div
 			class="flex h-full w-full flex-col overflow-hidden rounded-xl shadow-2xl"
-			style="background: var(--color-surface-primary, #fff);"
+			style="background: var(--color-surface-primary, var(--color-surface-elevated));"
 		>
 			<PanelHeader panelId={panelId} {sessionId} {label} lens />
 			<div class="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -143,7 +143,7 @@
 			onclick={onclose}
 			aria-label={t(m.closeLoupe)}
 			data-testid="panel-loupe-close"
-			class="absolute -top-3 -right-3 z-10 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white text-lg leading-none text-slate-700 shadow-md hover:bg-slate-100"
+			class="absolute -top-3 -right-3 z-10 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-surface-border bg-surface-elevated text-lg leading-none text-text-primary shadow-md hover:bg-surface-hover"
 		>×</button>
 	</div>
 </div>

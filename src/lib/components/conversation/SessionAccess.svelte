@@ -31,25 +31,25 @@
 				return {
 					letter: 'R',
 					label: 'Access: Read only',
-					cls: 'border-green-300 bg-green-50 text-green-700'
+					cls: 'border-status-pass/30 bg-status-pass/10 text-status-pass'
 				};
 			case 'workspace-write':
 				return {
 					letter: 'W',
 					label: 'Access: Workspace write',
-					cls: 'border-amber-300 bg-amber-50 text-amber-700'
+					cls: 'border-status-pending/30 bg-status-pending/10 text-status-pending'
 				};
 			case 'danger-full-access':
 				return {
 					letter: 'F',
 					label: 'Access: Full access',
-					cls: 'border-red-300 bg-red-50 text-red-700'
+					cls: 'border-danger-wash-border bg-danger-wash text-status-fail'
 				};
 			case 'custom':
 				return {
 					letter: 'C',
 					label: 'Access: Custom',
-					cls: 'border-slate-300 bg-slate-50 text-slate-600'
+					cls: 'border-surface-border bg-surface text-text-secondary'
 				};
 			default:
 				return null;

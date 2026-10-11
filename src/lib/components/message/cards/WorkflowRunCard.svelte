@@ -32,10 +32,10 @@
 	}
 
 	function glyphClass(status: DsiWorkflowAgent['status']): string {
-		if (status === 'completed') return 'text-emerald-500';
+		if (status === 'completed') return 'text-status-pass';
 		if (status === 'running') return 'text-accent-purple';
-		if (status === 'failed') return 'text-red-500';
-		return 'text-slate-300';
+		if (status === 'failed') return 'text-status-fail';
+		return 'text-text-muted';
 	}
 
 	/** Compact wall-clock span (ms) — "42s" under a minute, "1m 05s" over. */
@@ -56,8 +56,8 @@
 			class="ml-auto font-mono text-[10px] uppercase tracking-wide {entry.status === 'running'
 				? 'text-accent-purple'
 				: entry.status === 'completed'
-					? 'text-emerald-600'
-					: 'text-red-600'}"
+					? 'text-status-pass'
+					: 'text-status-fail'}"
 			data-testid="workflow-run-status"
 		>
 			{statusWord[entry.status]}

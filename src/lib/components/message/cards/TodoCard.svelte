@@ -45,10 +45,10 @@
 	}
 
 	function glyphClass(status: TodoStatus, delta: TodoDelta | undefined): string {
-		if (delta?.kind === 'just-completed') return 'text-emerald-600';
-		if (status === 'completed') return 'text-emerald-500';
+		if (delta?.kind === 'just-completed') return 'text-status-pass';
+		if (status === 'completed') return 'text-status-pass';
 		if (status === 'in_progress') return 'text-accent-purple';
-		return 'text-slate-300';
+		return 'text-text-muted';
 	}
 
 	let rawOpen = $state(false);
@@ -60,13 +60,13 @@
 		{#if argsRaw !== undefined}
 			<pre
 				data-testid="todo-raw-args"
-				class="overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-slate-50 p-2 font-mono text-[11px] text-slate-600 ring-1 ring-slate-200"
+				class="overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-surface p-2 font-mono text-[11px] text-text-secondary ring-1 ring-surface-border"
 			>{argsRaw}</pre>
 		{/if}
 		{#if resultText !== undefined}
 			<pre
 				data-testid="todo-raw-result"
-				class="mt-1 overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-slate-50 p-2 font-mono text-[11px] text-slate-600 ring-1 ring-slate-200"
+				class="mt-1 overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-surface p-2 font-mono text-[11px] text-text-secondary ring-1 ring-surface-border"
 			>{resultText}</pre>
 		{/if}
 	</div>
@@ -83,7 +83,7 @@
 			{#if deltas === undefined && prev !== undefined}
 				<!-- A rewritten text set: honest new-plan badge, never a fake delta. -->
 				<span
-					class="rounded-full border border-slate-200 px-1.5 py-px text-[10px] text-slate-500"
+					class="rounded-full border border-surface-border px-1.5 py-px text-[10px] text-text-secondary"
 					data-testid="todo-new-plan"
 				>{t(m.newPlan)}</span>
 			{/if}
@@ -100,7 +100,7 @@
 				>
 					<span class="mt-px w-3 shrink-0 text-center font-mono {glyphClass(item.status, delta)}"
 						aria-hidden="true">{glyph(item.status)}</span>
-					<span class="min-w-0 break-words {item.status === 'completed' ? 'text-text-muted line-through decoration-slate-300' : delta?.kind === 'now-active' ? 'font-medium text-text-primary' : 'text-text-secondary'}"
+					<span class="min-w-0 break-words {item.status === 'completed' ? 'text-text-muted line-through decoration-surface-border' : delta?.kind === 'now-active' ? 'font-medium text-text-primary' : 'text-text-secondary'}"
 					>{item.content}</span>
 				</li>
 			{/each}
@@ -115,7 +115,7 @@
 			type="button"
 			data-testid="todo-raw-toggle"
 			onclick={() => (rawOpen = !rawOpen)}
-			class="mt-1 text-[11px] text-slate-400 underline hover:text-slate-600"
+			class="mt-1 text-[11px] text-text-muted underline hover:text-text-secondary"
 		>
 			{rawOpen ? t(m.hideRawJson) : t(m.rawJson)}
 		</button>
@@ -123,13 +123,13 @@
 			{#if argsRaw !== undefined}
 				<pre
 					data-testid="todo-raw-args"
-					class="mt-1 overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-slate-50 p-2 font-mono text-[11px] text-slate-600 ring-1 ring-slate-200"
+					class="mt-1 overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-surface p-2 font-mono text-[11px] text-text-secondary ring-1 ring-surface-border"
 				>{argsRaw}</pre>
 			{/if}
 			{#if resultText !== undefined}
 				<pre
 					data-testid="todo-raw-result"
-					class="mt-1 overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-slate-50 p-2 font-mono text-[11px] text-slate-600 ring-1 ring-slate-200"
+					class="mt-1 overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-surface p-2 font-mono text-[11px] text-text-secondary ring-1 ring-surface-border"
 				>{resultText}</pre>
 			{/if}
 		{/if}

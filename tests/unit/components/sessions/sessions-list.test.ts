@@ -110,10 +110,10 @@ afterEach(() => {
 });
 
 describe('SessionsList — phase branches', () => {
-	it('loading renders the hint, no rows, no footer', () => {
+	it('loading renders the hint, no rows — footer rides EVERY phase (W0 net fix)', () => {
 		const { target, instance } = mountList({ phase: 'loading' });
 		expect(target.querySelector('[data-testid="sidebar-sessions-loading"]')).not.toBeNull();
-		expect(target.querySelector('[data-testid="new-chat-button"]')).toBeNull();
+		expect(target.querySelector('[data-testid="new-chat-button"]')).not.toBeNull();
 		unmount(instance);
 	});
 

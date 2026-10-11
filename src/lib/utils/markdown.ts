@@ -415,25 +415,34 @@ function emphasis(text: string): string {
  * //evil.com protocol-relative, …) stays inert text (BC-12).
  */
 function links(text: string): string {
-	return text.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (whole, label: string, href: string) => {
+	// 2026-10-11 (operator bug): the destination regex rejected WHITESPACE,
+	// so CommonMark angle-bracket destinations with spaces - [label](<dev/...
+	// 2026-10-10 - The Name.md>, the only way to link a path with spaces -
+	// never linked at all (raw text in tables and prose). Two forms now:
+	//   <...> - the escape-first pipeline hands the angle wrapper over as
+	//           &lt;/&gt;; spaces allowed inside (the whole point)
+	//   bare  - no whitespace (unchanged legacy form)
+			const LINK = /\[([^\]]+)\]\((?:&lt;([^>]*?)&gt;|([^)\s]+))\)/g;
+	return text.replace(LINK, (whole, labelA: string, angleHref: string, bareHref: string) => {
+		const label = labelA;
+		const href = angleHref !== undefined ? angleHref : bareHref;
 		const unescaped = href
 			.replaceAll('&amp;', '&')
 			.replaceAll('&lt;', '<')
 			.replaceAll('&gt;', '>')
 			.replaceAll('&quot;', '"')
 			.replaceAll('&#39;', "'");
-		// CommonMark angle-bracket destinations: [label](<deepseek-insight/x>) —
-		// the wrapper is destination syntax, never path bytes. Strip it before
-		// every branch so file links survive (the escape-first pipeline hands
-		// the wrapper over as &lt;/&gt;, unescaped above).
+		// Angle wrapper is destination syntax, never path bytes - strip any
+		// surviving wrapper before every branch so file links survive.
 		const bare = unescaped.replace(/^<(.+)>$/, '$1');
 		if (/^https?:\/\//i.test(bare)) {
 			return `<a href="${bare.replaceAll('"', '&quot;')}" rel="noopener noreferrer" target="_blank">${label}</a>`;
 		}
-		// Relative is only safe when NO scheme is present — a single colon
+		// Relative is only safe when NO scheme is present - a single colon
 		// before any slash is exactly how javascript:/data: smuggle in, and
 		// a leading // is a protocol-relative off-origin navigation.
 		if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(bare) || bare.startsWith('//')) return whole;
 		return `<a href="${bare.replaceAll('"', '&quot;')}">${label}</a>`;
 	});
 }
+

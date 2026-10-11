@@ -164,7 +164,7 @@
 		margin: 0;
 		border: 1.5px solid var(--color-surface-border, #8b949e);
 		border-radius: 3px;
-		background: var(--color-surface, #fff);
+		background: var(--color-surface, var(--color-surface-elevated));
 		cursor: pointer;
 		flex-shrink: 0;
 		display: inline-block;
@@ -173,7 +173,7 @@
 	.rack-check:checked {
 		background: var(--color-accent-blue, #3b82f6);
 		border-color: var(--color-accent-blue, #3b82f6);
-		box-shadow: inset 0 0 0 2px var(--color-surface, #fff);
+		box-shadow: inset 0 0 0 2px var(--color-surface, var(--color-surface-elevated));
 	}
 	.rack-n {
 		opacity: 0.55;

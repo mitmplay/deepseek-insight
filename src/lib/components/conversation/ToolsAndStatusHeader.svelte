@@ -91,7 +91,7 @@
 				>
 					{#if idCopied}
 						<!-- ✓ keeps its feedback green: state, not identity. -->
-						<Check size={10} class="text-green-500" aria-hidden="true" />
+						<Check size={10} class="text-status-pass" aria-hidden="true" />
 					{:else}
 						<!-- The Copy inherits the chip color (the filter chip's kind
 					     grammar: icon = dimension color, here the agent purple). -->
@@ -106,15 +106,15 @@
 	     is ACTIVE; PlanModeChip hides itself otherwise. -->
 	<PlanModeChip {plan} />
 	<span
-		class="inline-flex items-center gap-1 text-xs text-slate-500"
+		class="inline-flex items-center gap-1 text-xs text-text-secondary"
 		role="status"
 		aria-label={isStreaming ? 'running' : 'idle'}
 		data-testid="running-status"
 	>
 		<span
 			class="inline-block h-2 w-2 rounded-full"
-			class:bg-emerald-500={isStreaming}
-			class:bg-slate-300={!isStreaming}
+			class:bg-status-pass={isStreaming}
+			class:bg-surface-border={!isStreaming}
 		></span>
 		{isStreaming ? 'running' : 'idle'}
 	</span>
@@ -131,7 +131,7 @@
 			container={transcript}
 			title={t(m.copyConversationImage)}
 			size={15}
-			class="shrink-0 rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+			class="shrink-0 rounded-md p-1 text-text-muted hover:bg-surface-alt hover:text-text-secondary"
 		/>
 	{/if}
 </div>
@@ -146,13 +146,13 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 0.25rem;
-		border: 1px solid color-mix(in srgb, var(--color-accent-purple, #8b5cf6) 50%, #4c1d95);
+		border: 1px solid color-mix(in srgb, var(--color-accent-purple, var(--color-accent-purple)) 50%, #4c1d95);
 		border-radius: 9999px;
 		padding: 0.125rem 0.5rem;
 		font-size: 0.75rem;
 		line-height: 1;
 		white-space: nowrap;
-		color: color-mix(in srgb, var(--color-accent-purple, #8b5cf6) 50%, #4c1d95);
-		background: color-mix(in srgb, var(--color-accent-purple, #8b5cf6) 8%, transparent);
+		color: color-mix(in srgb, var(--color-accent-purple, var(--color-accent-purple)) 50%, #4c1d95);
+		background: color-mix(in srgb, var(--color-accent-purple, var(--color-accent-purple)) 8%, transparent);
 	}
 </style>

@@ -155,9 +155,9 @@
 		disabled={!text.trim()}
 	>
 		{#if saveState === 'saved'}
-			<Check {size} class="text-green-500" />
+			<Check {size} class="text-status-pass" />
 		{:else if saveState === 'duplicate'}
-			<AlertTriangle {size} class="text-amber-500" />
+			<AlertTriangle {size} class="text-status-pending" />
 		{:else}
 			<BookmarkPlus {size} class={saveState === 'checking' ? 'animate-pulse' : ''} />
 		{/if}
@@ -210,7 +210,7 @@
 		position: fixed;
 		z-index: 9000;
 		width: 16rem;
-		background: var(--color-surface-elevated, #fff);
+		background: var(--color-surface-elevated, var(--color-surface-elevated));
 		border: 1px solid rgba(139, 92, 246, 0.3);
 		border-radius: 0.5rem;
 		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
@@ -273,7 +273,7 @@
 		background: var(--color-surface, #f8f9fa);
 	}
 	.save-prompt-save {
-		color: #16a34a;
+		color: var(--color-green-verify);
 	}
 	.save-prompt-save:disabled {
 		opacity: 0.5;

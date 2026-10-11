@@ -241,15 +241,15 @@
 		padding: 0.125rem 0.5rem;
 		border-radius: 6px;
 		background: rgba(16, 185, 129, 0.1);
-		color: #047857;
+		color: var(--color-success-ink);
 	}
 	.goal-chip[data-phase='paused'] {
 		background: rgba(107, 114, 128, 0.12);
-		color: #4b5563;
+		color: var(--color-text-secondary);
 	}
 	.goal-chip[data-phase='blocked'] {
 		background: rgba(245, 158, 11, 0.14);
-		color: #b45309;
+		color: var(--color-accent-amber-ink-deep);
 	}
 	.goal-chip-label {
 		display: flex;

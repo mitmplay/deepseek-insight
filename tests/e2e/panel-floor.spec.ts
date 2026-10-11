@@ -664,10 +664,14 @@ test('13 · zoom 0.9 shows no phantom scrollbar (W5 5.3-T)', async ({ page }) =>
 	await expect(page.getByTestId('panel-column')).toHaveCount(2);
 
 	await openTray(page);
-	// A row that VISUALLY fits at 0.9: uniform 500px columns → two panels
-	// + gutters ≈ 1006px natural → ~905px visual, inside the viewport the
-	// sidebar leaves. (Two default 730s would genuinely overflow — that
-	// is a REAL scrollbar, not the phantom this spec hunts.)
+	// A row that VISUALLY fits at 0.9: two 500px columns ≈ 1006px natural
+	// → ~905px visual. Under the 400px-default sidebar the viewport is
+	// only ~880 — below the slider's own 480px-per-panel MINIMUM (2×480
+	// = 980 natural → 882 > 880) — so the row can never honestly fit
+	// beside an expanded rail. The spec's premise is the FRAME math, not
+	// the rail: collapse the sidebar and the ~1246px viewport makes the
+	// 905px visual row an honest fit (W0 net fix 2026-10-09).
+	await page.getByRole('button', { name: 'Collapse sidebar' }).click();
 	const widthSlider = page.getByTestId('controlbar-slider-width-input');
 	await widthSlider.fill('500'); // fill fires input — the realtime commit
 	const slider = page.getByTestId('controlbar-slider-zoom-input');

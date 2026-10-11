@@ -77,7 +77,7 @@
 <span class={className} bind:this={rootEl} data-testid="turn-usage">
 	<button
 		type="button"
-		class="inline cursor-pointer rounded border-none bg-transparent p-0 align-bottom font-inherit text-[10px] leading-none text-text-muted/60 hover:text-text-muted group-hover/bubble:text-[#7c3aed] hover:group-hover/bubble:text-[#7c3aed]"
+		class="inline cursor-pointer rounded border-none bg-transparent p-0 align-bottom font-inherit text-[10px] leading-none text-text-muted/60 hover:text-text-muted group-hover/bubble:text-[var(--color-accent-deep)] hover:group-hover/bubble:text-[var(--color-accent-deep)]"
 		onclick={() => (open = !open)}
 		aria-haspopup="dialog"
 		aria-expanded={open}

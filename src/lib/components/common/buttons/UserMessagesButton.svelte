@@ -82,7 +82,7 @@
 	}
 
 	.tone-cyan:hover {
-		color: var(--color-text-primary, #fff);
+		color: var(--color-text-primary, var(--color-surface-elevated));
 	}
 
 	.tone-cyan.active {

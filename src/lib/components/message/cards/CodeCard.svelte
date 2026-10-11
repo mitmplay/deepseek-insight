@@ -94,13 +94,13 @@
 		{#if argsRaw !== undefined}
 			<pre
 				data-testid="code-raw-args"
-				class="overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-slate-50 p-2 font-mono text-[11px] text-slate-600 ring-1 ring-slate-200"
+				class="overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-surface p-2 font-mono text-[11px] text-text-secondary ring-1 ring-surface-border"
 			>{argsRaw}</pre>
 		{/if}
 		{#if resultText !== undefined}
 			<pre
 				data-testid="code-raw-result"
-				class="mt-1 overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-slate-50 p-2 font-mono text-[11px] text-slate-600 ring-1 ring-slate-200"
+				class="mt-1 overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-surface p-2 font-mono text-[11px] text-text-secondary ring-1 ring-surface-border"
 			>{resultText}</pre>
 		{/if}
 	</div>
@@ -118,7 +118,7 @@
 			     tool calls — variant title + salient arg, source order. -->
 			<div class="mt-1.5 flex flex-wrap items-center gap-x-1 gap-y-0.5 font-mono text-[10px]" data-testid="code-plan">
 				{#each program.plan as step, i (i)}
-					{#if i > 0}<span class="text-slate-300" aria-hidden="true">→</span>{/if}
+					{#if i > 0}<span class="text-text-muted" aria-hidden="true">→</span>{/if}
 					<span class="shrink-0">
 						<span class="font-medium text-text-primary">{planStepTitle(step.tool)}</span>
 						{#if step.arg !== undefined}
@@ -140,11 +140,11 @@
 					{#if !d.settled}
 						<!-- D5 placeholder: identity from the -start event; fills on settle. -->
 						<div
-							class="flex items-center gap-1.5 rounded-lg bg-slate-50 px-2 py-1 font-mono text-[11px] text-slate-500 ring-1 ring-slate-200"
+							class="flex items-center gap-1.5 rounded-lg bg-surface px-2 py-1 font-mono text-[11px] text-text-secondary ring-1 ring-surface-border"
 							data-testid="code-dispatch-pending"
 							data-sub-tool={d.name}
 						>
-							<span class="inline-block size-1.5 animate-pulse rounded-full bg-slate-400" aria-hidden="true"></span>
+							<span class="inline-block size-1.5 animate-pulse rounded-full bg-surface-border" aria-hidden="true"></span>
 							<span class="font-medium">{planStepTitle(d.name)}</span>
 							{#if view !== undefined}
 								<span class="truncate">{view.path.split('/').pop() ?? view.path}</span>
@@ -153,7 +153,7 @@
 							{/if}
 						</div>
 					{:else if renderer === 'file' && view !== undefined}
-						<div class="{d.isError === true ? 'ring-1 ring-red-200' : ''}" data-testid="code-dispatch-file" data-sub-tool={d.name}>
+						<div class="{d.isError === true ? 'ring-1 ring-danger-wash-border' : ''}" data-testid="code-dispatch-file" data-sub-tool={d.name}>
 							<FileContentViewer view={view} />
 						</div>
 					{:else}
@@ -172,7 +172,7 @@
 			</div>
 		{/if}
 
-		<div class="mt-1.5 rounded-lg ring-1 ring-slate-200 bg-white p-2" data-testid="code-block">
+		<div class="mt-1.5 rounded-lg ring-1 ring-surface-border bg-surface-elevated p-2" data-testid="code-block">
 			<!-- eslint-disable-next-line svelte/no-at-html-tags — highlightCode
 			     output is escaped/governed by hljs (FileContentViewer contract) -->
 			<pre class="overflow-x-auto font-mono text-[11px] leading-relaxed"><code class="hljs">{@html highlightCode(shown.join('\n'), 'typescript')}</code></pre>
@@ -181,7 +181,7 @@
 					type="button"
 					data-testid="code-block-toggle"
 					onclick={() => (expanded = !expanded)}
-					class="mt-1 text-[11px] text-slate-400 underline hover:text-slate-600"
+					class="mt-1 text-[11px] text-text-muted underline hover:text-text-secondary"
 				>
 					{expanded ? t(m.showLess) : t(() => m.showAllLines({ n: lines.length }))}
 				</button>
@@ -197,7 +197,7 @@
 					type="button"
 					data-testid="code-result-footer-toggle"
 					onclick={() => (footerOpen = !footerOpen)}
-					class="text-[11px] text-slate-400 underline hover:text-slate-600"
+					class="text-[11px] text-text-muted underline hover:text-text-secondary"
 				>
 					{footerOpen ? t(m.hideProgramOutput) : t(m.programOutput)}
 				</button>
@@ -213,7 +213,7 @@
 			type="button"
 			data-testid="code-raw-toggle"
 			onclick={() => (rawOpen = !rawOpen)}
-			class="mt-1 text-[11px] text-slate-400 underline hover:text-slate-600"
+			class="mt-1 text-[11px] text-text-muted underline hover:text-text-secondary"
 		>
 			{rawOpen ? t(m.hideRawJson) : t(m.rawJson)}
 		</button>
@@ -221,13 +221,13 @@
 			{#if argsRaw !== undefined}
 				<pre
 					data-testid="code-raw-args"
-					class="mt-1 overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-slate-50 p-2 font-mono text-[11px] text-slate-600 ring-1 ring-slate-200"
+					class="mt-1 overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-surface p-2 font-mono text-[11px] text-text-secondary ring-1 ring-surface-border"
 				>{argsRaw}</pre>
 			{/if}
 			{#if resultText !== undefined}
 				<pre
 					data-testid="code-raw-result"
-					class="mt-1 overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-slate-50 p-2 font-mono text-[11px] text-slate-600 ring-1 ring-slate-200"
+					class="mt-1 overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-surface p-2 font-mono text-[11px] text-text-secondary ring-1 ring-surface-border"
 				>{resultText}</pre>
 			{/if}
 		{/if}

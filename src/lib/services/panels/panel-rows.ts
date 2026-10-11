@@ -32,7 +32,7 @@ export const SETTINGS_ROW_TITLE: Record<'dsi' | 'dsh', string> = {
  *  #800000 — the third depth-paint color, distinct from the fork branch's
  *  GREEN and the spawned-child VIOLET (#9400d3). Render-side only: the
  *  sidebar derives the paint from the row's kind; no panel entry stores it. */
-export const DOC_CHILD_PAINT = '#800000';
+export const DOC_CHILD_PAINT = 'var(--color-doc-child)';
 
 /** The workspace child's lineage paint (2026-09-10): BLUE #0066cc — the
  *  fourth depth-paint color, distinct from the fork GREEN, the spawned

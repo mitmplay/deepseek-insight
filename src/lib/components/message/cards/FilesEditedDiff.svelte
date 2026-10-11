@@ -74,7 +74,7 @@
 
 <!-- @git-diff-view/svelte (operator choice, 2026-09-25):
      GitHub-style unified view, light theme, wrapped lines. -->
-<div class="mt-1.5 max-h-[500px] overflow-auto rounded ring-1 ring-slate-300" style="zoom: 0.7" data-testid="files-edited-diff" data-path={diff.path ?? ''}>
+<div class="mt-1.5 max-h-[500px] overflow-auto rounded ring-1 ring-surface-border" style="zoom: 0.7" data-testid="files-edited-diff" data-path={diff.path ?? ''}>
 	<!-- {#key diff}: the vendor DiffView builds its rows ONCE at mount —
 	     a new diffFile prop while mounted never rebuilds (observed live
 	     2026-09-25: second hovered row rendered empty). Re-mounting on

@@ -51,7 +51,7 @@
 </script>
 
 <div
-	class="max-w-[85%] self-start rounded-2xl bg-white px-4 py-3 text-sm shadow-sm ring-1 ring-slate-200"
+	class="max-w-[85%] self-start rounded-2xl bg-surface-elevated px-4 py-3 text-sm shadow-sm ring-1 ring-surface-border"
 	data-testid="approval-card"
 	data-rpc-id={rpcId}
 	data-phase={phase}
@@ -60,19 +60,19 @@
 		<span
 			aria-hidden="true"
 			class="inline-block h-2 w-2 shrink-0 rounded-full {phase === 'withdrawn'
-				? 'bg-slate-400'
+				? 'bg-surface-border'
 				: phase === 'settled' || phase === 'answered-elsewhere'
-					? 'bg-emerald-500'
-					: 'bg-amber-500'}"
+					? 'bg-status-pass/100'
+					: 'bg-status-pending/100'}"
 		></span>
 		<span class="font-medium" data-testid="approval-tool">{t(m.toolApproval)} {toolName}</span>
 	</div>
 
 	{#if reason}
-		<p class="mt-1.5 whitespace-pre-wrap break-words text-slate-600" data-testid="approval-reason">{reason}</p>
+		<p class="mt-1.5 whitespace-pre-wrap break-words text-text-secondary" data-testid="approval-reason">{reason}</p>
 	{/if}
 	{#if callId}
-		<p class="mt-1 font-mono text-[11px] text-slate-400" data-testid="approval-call-id">call {callId}</p>
+		<p class="mt-1 font-mono text-[11px] text-text-muted" data-testid="approval-call-id">call {callId}</p>
 	{/if}
 
 	{#if phase === 'waiting' || phase === 'in-flight'}
@@ -82,7 +82,7 @@
 				data-testid="approval-allow"
 				disabled={phase === 'in-flight'}
 				onclick={() => onanswer?.('allowed-once')}
-				class="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+				class="rounded-md bg-status-pass px-3 py-1.5 text-xs font-medium text-white hover:bg-status-pass disabled:cursor-not-allowed disabled:opacity-50"
 			>
 				{phase === 'in-flight' ? t(m.sending) : t(m.allowOnce)}
 			</button>
@@ -91,24 +91,24 @@
 				data-testid="approval-reject"
 				disabled={phase === 'in-flight'}
 				onclick={() => onanswer?.('rejected')}
-				class="rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+				class="rounded-md bg-status-fail px-3 py-1.5 text-xs font-medium text-white hover:bg-status-fail disabled:cursor-not-allowed disabled:opacity-50"
 			>
 				{t(m.reject)}
 			</button>
 			{#if phase === 'in-flight'}
-				<span class="text-xs text-slate-400" data-testid="approval-inflight">answering…</span>
+				<span class="text-xs text-text-muted" data-testid="approval-inflight">answering…</span>
 			{/if}
 		</div>
 	{:else if phase === 'settled'}
-		<p class="mt-2 text-xs text-emerald-700" data-testid="approval-settled">
+		<p class="mt-2 text-xs text-status-pass" data-testid="approval-settled">
 			{t(() => m.approvedResolved({ label: outcomeLabel }))}
 		</p>
 	{:else if phase === 'answered-elsewhere'}
-		<p class="mt-2 text-xs text-slate-500" data-testid="approval-elsewhere">
+		<p class="mt-2 text-xs text-text-secondary" data-testid="approval-elsewhere">
 			{t(m.answeredElsewhere)}
 		</p>
 	{:else if phase === 'withdrawn'}
-		<p class="mt-2 text-xs text-slate-500" data-testid="approval-withdrawn">
+		<p class="mt-2 text-xs text-text-secondary" data-testid="approval-withdrawn">
 			{t(m.requestWithdrawn)}
 		</p>
 	{/if}

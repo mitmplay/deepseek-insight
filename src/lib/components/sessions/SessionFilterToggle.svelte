@@ -89,16 +89,16 @@
 	/* Pill base (self-contained — the parent's scoped .pill rules cannot
 	   reach into this component's DOM). Same visual contract as the
 	   parent's pills, restyled 2026-08-26 for the row's accent-wash
-	   field: rest text #52606d (5.52:1 on the wash), hover accent-DEEP
+	   field: rest text var(--color-slate-neutral) (5.52:1 on the wash), hover accent-DEEP
 	   (5.17:1 — the raw token never cleared AA at 10px). */
 	.pill {
 		display: inline-flex;
 		align-items: center;
 		gap: 0.25rem;
-		border: 1px solid color-mix(in srgb, var(--color-accent-blue, #3b82f6) 35%, #fff);
+		border: 1px solid color-mix(in srgb, var(--color-accent-blue, #3b82f6) 35%, var(--color-surface-elevated));
 		border-radius: 9999px;
 		background: transparent;
-		color: #52606d;
+		color: var(--color-slate-neutral);
 		font-size: 0.625rem;
 		line-height: 1;
 		padding: 0.25rem 0.25rem;
@@ -111,9 +111,9 @@
 	}
 
 	.pill:hover {
-		border-color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, #1e3a8a);
-		color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, #1e3a8a);
-		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 12%, #fff);
+		border-color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, var(--color-navy-focus));
+		color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, var(--color-navy-focus));
+		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 12%, var(--color-surface-elevated));
 	}
 
 	/* Segmented control — reads as ONE button: zero gap, shared 1px

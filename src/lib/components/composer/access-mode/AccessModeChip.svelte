@@ -211,7 +211,7 @@
 		<button
 			type="button"
 			bind:this={triggerEl}
-			class="inline-flex items-center gap-1 rounded-md border border-[#7c3aed] px-2 py-1 text-xs font-medium text-[#7c3aed] hover:bg-slate-100 disabled:opacity-50"
+			class="inline-flex items-center gap-1 rounded-md border border-[var(--color-accent-deep)] px-2 py-1 text-xs font-medium text-[var(--color-accent-deep)] hover:bg-surface-alt disabled:opacity-50"
 			disabled={disabled || picking !== null}
 			aria-haspopup="listbox"
 			aria-expanded={open}
@@ -223,7 +223,7 @@
 			<!-- Shield glyphs (DSH design set 1556, ported verbatim): check =
 			     read-only, pencil = workspace write, exclamation = full
 			     access; currentColor so the trigger tints them. -->
-			<span class="text-[#7c3aed]" aria-hidden="true">
+			<span class="text-[var(--color-accent-deep)]" aria-hidden="true">
 				{#if (picking ?? permission.current) === 'read-only'}
 					<svg width="14" height="14" viewBox="0 0 16 16" fill="none">
 						<path d="M8.20554 0.899994L14.7901 3.36857V7.01026C14.7901 12 11.0466 14.2103 8.20554 15.3C5.36446 14.2103 1.62012 12 1.62012 7.01026V3.36857L8.20554 0.899994Z" stroke="currentColor" stroke-width="1.31831" stroke-linejoin="round" />
@@ -246,12 +246,12 @@
 				{/if}
 			</span>
 			{currentLabel}
-			<span class="text-[#7c3aed]" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+			<span class="text-[var(--color-accent-deep)]" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
 		</button>
 
 		{#if open}
 			<div
-				class="absolute z-10 max-h-72 w-64 overflow-y-auto rounded-lg border border-slate-200 bg-white p-1 shadow-lg bottom-full mb-1"
+				class="absolute z-10 max-h-72 w-64 overflow-y-auto rounded-lg border border-surface-border bg-surface-elevated p-1 shadow-lg bottom-full mb-1"
 				data-testid="access-mode-menu"
 				role="listbox"
 				aria-label={t(m.accessMode)}
@@ -259,7 +259,7 @@
 				{#each options as opt (opt.value)}
 					<button
 						type="button"
-						class="flex w-full items-start justify-between gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-slate-100 disabled:opacity-50"
+						class="flex w-full items-start justify-between gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-surface-alt disabled:opacity-50"
 						role="option"
 						aria-selected={opt.value === permission.current}
 						data-testid="access-mode-option"
@@ -268,13 +268,13 @@
 						onclick={() => void choose(opt.value)}
 					>
 						<span>
-							<span class="font-medium text-slate-700">{presetLabelOf(opt.value)}</span>
+							<span class="font-medium text-text-primary">{presetLabelOf(opt.value)}</span>
 							{#if opt.description}
-								<span class="block text-[10px] text-slate-400">{presetDescriptionOf(opt.value)}</span>
+								<span class="block text-[10px] text-text-muted">{presetDescriptionOf(opt.value)}</span>
 							{/if}
 						</span>
 						{#if opt.value === permission.current}
-							<span class="text-emerald-600" data-testid="access-mode-current" aria-label={t(m.selected)}>✓</span>
+							<span class="text-status-pass" data-testid="access-mode-current" aria-label={t(m.selected)}>✓</span>
 						{/if}
 					</button>
 				{/each}
@@ -283,10 +283,10 @@
 	</div>
 
 	{#if picking !== null && error === null}
-		<span class="text-[10px] text-slate-400" data-testid="access-mode-pending">{t(m.accessSwitching)}</span>
+		<span class="text-[10px] text-text-muted" data-testid="access-mode-pending">{t(m.accessSwitching)}</span>
 	{/if}
 	{#if error}
-		<span class="text-[10px] text-red-600" data-testid="access-mode-error" role="alert">{error}</span>
+		<span class="text-[10px] text-status-fail" data-testid="access-mode-error" role="alert">{error}</span>
 	{/if}
 
 	<!-- R7 — the Full access risk gate (DSH RiskConfirmation parity):

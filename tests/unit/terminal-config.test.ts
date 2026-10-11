@@ -27,9 +27,9 @@ function writeSection(body: string): void {
 }
 
 describe('readTerminalConfig', () => {
-	it('returns defaults on missing file (enabled stays false)', () => {
+	it('returns defaults on missing file (enabled defaults TRUE — 2026-10-11 flip)', () => {
 		expect(readTerminalConfig(join(dir, 'absent.yaml'))).toEqual(DEFAULT_TERMINAL_CONFIG);
-		expect(DEFAULT_TERMINAL_CONFIG.enabled).toBe(false);
+		expect(DEFAULT_TERMINAL_CONFIG.enabled).toBe(true);
 	});
 
 	it('returns defaults on a config without the terminal section', () => {
@@ -63,19 +63,31 @@ describe('readTerminalConfig', () => {
 				'  idleMs: 250\n'
 		);
 		const cfg = readTerminalConfig(path);
-		expect(cfg.enabled).toBe(false);
+		expect(cfg.enabled).toBe(true); // junk falls back to the DEFAULT — now true
 		expect(cfg.tailBytes).toBe(DEFAULT_TERMINAL_CONFIG.tailBytes);
 		expect(cfg.graceMs).toBe(DEFAULT_TERMINAL_CONFIG.graceMs);
 		expect(cfg.idleMs).toBe(250);
 	});
 
-	it('boolean enabled accepts only real booleans', () => {
+	it('boolean enabled accepts only real booleans (junk falls back to the TRUE default)', () => {
 		writeSection('terminal:\n  enabled: "true"\n');
-		expect(readTerminalConfig(path).enabled).toBe(false);
+		expect(readTerminalConfig(path).enabled).toBe(true); // junk -> default true
 		writeSection('terminal:\n  enabled: false\n');
-		expect(readTerminalConfig(path).enabled).toBe(false);
+		expect(readTerminalConfig(path).enabled).toBe(false); // explicit off honored
 		writeSection('terminal:\n  enabled: true\n');
 		expect(readTerminalConfig(path).enabled).toBe(true);
+	});
+
+	it('theming defaults false; only real booleans change it (2026-10-11)', () => {
+		expect(DEFAULT_TERMINAL_CONFIG.theming).toBe(false);
+		writeSection('terminal:\n  tailBytes: 65536\n');
+		expect(readTerminalConfig(path).theming).toBe(false); // absent -> false
+		writeSection('terminal:\n  theming: true\n');
+		expect(readTerminalConfig(path).theming).toBe(true);
+		writeSection('terminal:\n  theming: false\n');
+		expect(readTerminalConfig(path).theming).toBe(false);
+		writeSection('terminal:\n  theming: "yes"\n');
+		expect(readTerminalConfig(path).theming).toBe(false); // junk -> default
 	});
 });
 

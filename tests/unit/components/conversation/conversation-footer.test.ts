@@ -43,9 +43,9 @@ function mountFooter(props: Record<string, unknown> = {}) {
 }
 
 /** The tint face, read off the element's classes. */
-function tintFace(el: HTMLElement): 'gradient' | 'oldlace' | 'white' {
+function tintFace(el: HTMLElement): 'gradient' | 'wash' | 'white' {
 	if (el.className.includes('linear-gradient')) return 'gradient';
-	if (el.className.includes('bg-[#FDF5E6]')) return 'oldlace';
+	if (el.className.includes('bg-header-wash')) return 'wash';
 	return 'white';
 }
 
@@ -54,10 +54,10 @@ beforeEach(() => {
 	resetPromptSyncForTests();
 });
 
-describe('the footer tint (broadcast gradient, focus oldlace)', () => {
-	it('tints oldlace when focused-only, white otherwise', () => {
+describe('the footer tint (broadcast gradient, focus wash)', () => {
+	it('tints the header-wash token when focused-only, white otherwise', () => {
 		const h = mountFooter({ focused: true });
-		expect(tintFace(h.footer())).toBe('oldlace');
+		expect(tintFace(h.footer())).toBe('wash');
 		h.cleanup();
 
 		const plain = mountFooter();
@@ -85,7 +85,7 @@ describe('the footer tint (broadcast gradient, focus oldlace)', () => {
 		expect(h.footer().getAttribute('data-focused')).toBe('true');
 		setSyncChecked(SID, false);
 		flushSync();
-		expect(tintFace(h.footer())).toBe('oldlace'); // focus alone keeps its tint
+		expect(tintFace(h.footer())).toBe('wash'); // focus alone keeps its tint
 		expect(h.footer().getAttribute('data-focused')).toBe('true');
 		h.cleanup();
 

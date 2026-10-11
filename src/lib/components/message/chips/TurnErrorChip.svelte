@@ -30,7 +30,7 @@
 		data-testid="turn-error-toggle"
 		class="chip-button inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-xs font-mono font-medium
 				mx-0.5 my-0.5 align-middle shrink-0 transition-colors select-none cursor-pointer
-				bg-red-50 text-red-700 border border-red-200 hover:bg-red-100"
+				bg-danger-wash text-status-fail border border-danger-wash-border hover:bg-danger-wash-border"
 	>
 		{#if open}
 			<ChevronDown size={10} />
@@ -38,12 +38,12 @@
 			<ChevronRight size={10} />
 		{/if}
 		<span class="text-[10px]">{t(m.turnFailed)}{code !== undefined ? ` · ${code}` : ''}</span>
-		<span aria-hidden="true" data-testid="turn-error-dot" class="w-1.5 h-1.5 shrink-0 rounded-full bg-red-500"></span>
+		<span aria-hidden="true" data-testid="turn-error-dot" class="w-1.5 h-1.5 shrink-0 rounded-full bg-status-fail"></span>
 	</button>
 </div>
 
 <style>
 	.chip-button :global(svg) {
-		color: var(--color-red-600);
+		color: var(--color-status-fail);
 	}
 </style>

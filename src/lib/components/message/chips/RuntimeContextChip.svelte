@@ -27,7 +27,7 @@
 		onclick={() => (open = !open)}
 		aria-expanded={open}
 		data-testid="runtime-context-toggle"
-		class="inline-flex max-w-xl items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 font-mono text-slate-400 hover:border-slate-300"
+		class="inline-flex max-w-xl items-center gap-1.5 rounded-full border border-surface-border bg-surface px-2.5 py-1 font-mono text-text-muted hover:border-surface-border"
 	>
 		<span aria-hidden="true">{open ? '▾' : '▸'}</span>
 		<span class="truncate">{t(m.runtimeContext)} {head}{truncated ? '…' : ''}</span>
@@ -35,7 +35,7 @@
 	{#if open}
 		<pre
 			data-testid="runtime-context-body"
-			class="mt-1 max-w-2xl overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-slate-50 p-2 font-mono text-[11px] text-slate-500 ring-1 ring-slate-200"
+			class="mt-1 max-w-2xl overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-surface p-2 font-mono text-[11px] text-text-secondary ring-1 ring-surface-border"
 		>{text}</pre>
 	{/if}
 </div>

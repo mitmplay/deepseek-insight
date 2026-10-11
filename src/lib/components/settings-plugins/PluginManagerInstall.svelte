@@ -40,10 +40,10 @@
 	}
 	.rack-install {
 		width: 100%;
-		border: 1px solid color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, #1e3a8a);
+		border: 1px solid color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, var(--color-navy-focus));
 		border-radius: 0.375rem;
-		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 15%, #fff);
-		color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, #1e3a8a);
+		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 15%, var(--color-surface-elevated));
+		color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, var(--color-navy-focus));
 		padding: 0.375rem 0.75rem;
 		font-weight: 500;
 		cursor: pointer;

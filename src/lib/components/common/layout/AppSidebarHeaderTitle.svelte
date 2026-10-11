@@ -31,7 +31,7 @@
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
 		/* AA on every gradient stop (>= 5.4:1); see the shared gradient rule. */
-		color: #4b5563;
+		color: var(--color-text-secondary);
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;

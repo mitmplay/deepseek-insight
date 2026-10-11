@@ -17,21 +17,21 @@
 <svelte:head><title>{status} — deepseek-insight</title></svelte:head>
 
 <main class="mx-auto flex max-w-3xl flex-col items-center gap-4 px-4 py-16 text-center">
-	<p class="text-5xl font-semibold text-slate-300" data-testid="error-status">{status}</p>
+	<p class="text-5xl font-semibold text-text-muted" data-testid="error-status">{status}</p>
 	{#if status === 404}
 		<h1 class="text-xl font-semibold">{t(m.sessionNotFound)}</h1>
-		<p class="text-sm text-slate-500" data-testid="error-message">{message}</p>
-		<p class="text-xs text-slate-400">{t(m.reapedNote)}</p>
+		<p class="text-sm text-text-secondary" data-testid="error-message">{message}</p>
+		<p class="text-xs text-text-muted">{t(m.reapedNote)}</p>
 	{:else if status === 503}
 		<h1 class="text-xl font-semibold">{t(m.dshUnreachable)}</h1>
-		<p class="text-sm text-slate-500" data-testid="error-message">{message}</p>
+		<p class="text-sm text-text-secondary" data-testid="error-message">{message}</p>
 	{:else}
 		<h1 class="text-xl font-semibold">{t(m.unexpectedError)}</h1>
-		<p class="text-sm text-slate-500" data-testid="error-message">{message}</p>
+		<p class="text-sm text-text-secondary" data-testid="error-message">{message}</p>
 	{/if}
 	<a
 		href="/"
-		class="mt-2 rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100"
+		class="mt-2 rounded-md border border-surface-border px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-alt"
 		data-testid="error-back-home"
 	>
 		{t(m.backToWorkspace)}

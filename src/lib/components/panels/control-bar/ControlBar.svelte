@@ -144,7 +144,7 @@
 		margin-left: auto;
 		border: 1px solid var(--color-surface-border, #dee2e6);
 		border-radius: 0.375rem;
-		background: var(--color-surface-primary, #fff);
+		background: var(--color-surface-primary, var(--color-surface-elevated));
 		color: var(--color-text-secondary, #6c757d);
 		cursor: pointer;
 		box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);

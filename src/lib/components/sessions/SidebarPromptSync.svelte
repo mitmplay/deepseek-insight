@@ -309,11 +309,11 @@
 	     yellowgreen→oldlace→cream wash as the checked panels' footers —
 	     one pastel face for the whole broadcast surface. -->
 	<div
-		class="rounded-md border border-slate-200 bg-[linear-gradient(90deg,#E6F4D7,#FDF5E6_65%,#FEF9EF)] p-1.5"
+		class="rounded-md border border-surface-border bg-[linear-gradient(90deg,color-mix(in_srgb,var(--color-status-pass)_18%,var(--color-surface)),var(--color-header-wash)_65%,var(--color-surface))] p-1.5"
 		data-testid="sidebar-prompt-sync"
 	>
 		<p
-			class="mb-1 px-0.5 text-[0.6875rem] font-medium uppercase tracking-wide text-slate-500"
+			class="mb-1 px-0.5 text-[0.6875rem] font-medium uppercase tracking-wide text-text-secondary"
 			data-testid="prompt-sync-count"
 		>
 			{t(m.broadcast)} {count} panel{count === 1 ? '' : 's'}
@@ -376,7 +376,7 @@
 					data-testid="prompt-sync-cancel"
 					title={t(m.discardBroadcastTitle)}
 					aria-label={t(m.discardBroadcast)}
-					class="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+					class="flex h-7 w-7 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface-alt hover:text-text-secondary"
 					onclick={cancel}
 				>
 					<X size={14} />
@@ -386,7 +386,7 @@
 					data-testid="prompt-sync-submit"
 					title={t(m.sendCheckedPanels)}
 					aria-label={t(m.sendCheckedPanels)}
-					class="prompt-sync-submit flex h-7 w-7 items-center justify-center rounded-md bg-blue-600 text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-30"
+					class="prompt-sync-submit flex h-7 w-7 items-center justify-center rounded-md bg-accent-blue text-white transition-colors hover:bg-accent-blue disabled:cursor-not-allowed disabled:opacity-30"
 					disabled={!canSubmit}
 					onclick={() => void run()}
 				>
@@ -395,7 +395,7 @@
 			</div>
 		</div>
 		{#if note !== null}
-			<p class="mt-1 px-0.5 text-xs text-amber-600" role="alert" data-testid="prompt-sync-note">
+			<p class="mt-1 px-0.5 text-xs text-status-pending" role="alert" data-testid="prompt-sync-note">
 				{note}
 			</p>
 		{/if}

@@ -36,7 +36,7 @@
 	}}
 >
 	{#if copied}
-		<Check {size} class="text-green-500" />
+		<Check {size} class="text-status-pass" />
 	{:else}
 		<Copy {size} />
 	{/if}

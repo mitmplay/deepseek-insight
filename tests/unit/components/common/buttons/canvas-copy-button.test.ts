@@ -51,7 +51,7 @@ const fakeCtx = {
 let compositeBlob: Blob;
 
 const stateIcon = (target: HTMLElement): string => {
-	if (target.querySelector('svg.text-green-500')) return 'done';
+	if (target.querySelector('svg.text-status-pass')) return 'done';
 	if (target.querySelector('svg.animate-spin')) return 'busy';
 	return 'idle';
 };
@@ -369,6 +369,6 @@ describe('CanvasCopyButton — tall-element tiling (OCI port)', () => {
 		button.click();
 		await settle(30);
 		expect(clipboardWrites).toHaveLength(0);
-		expect(target.querySelector('svg.text-green-500')).toBeNull();
+		expect(target.querySelector('svg.text-status-pass')).toBeNull();
 	});
 });

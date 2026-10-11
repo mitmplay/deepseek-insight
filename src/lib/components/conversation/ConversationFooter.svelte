@@ -94,15 +94,15 @@
 	 *  hold: membership is the more specific "aimed at" signal. */
 	const tintClass = $derived(
 		isSyncChecked(sessionId)
-			? 'bg-[linear-gradient(90deg,#E6F4D7,#FDF5E6_65%,#FEF9EF)]'
+			? 'bg-[linear-gradient(90deg,color-mix(in_srgb,var(--color-status-pass)_18%,var(--color-surface)),var(--color-header-wash)_65%,var(--color-surface))]'
 			: focused
-				? 'bg-[#FDF5E6]'
-				: 'bg-white'
+				? 'bg-header-wash'
+				: 'bg-surface-elevated'
 	);
 </script>
 
 <footer
-	class="border-t border-slate-200 px-1 py-1 {tintClass}"
+	class="border-t border-surface-border px-1 py-1 {tintClass}"
 	data-testid="conversation-footer"
 	data-focused={focused ? 'true' : 'false'}
 >

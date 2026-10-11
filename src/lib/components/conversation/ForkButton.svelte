@@ -77,7 +77,7 @@
 {#if !subagent}
 	<button
 		type="button"
-		class="flex shrink-0 items-center gap-1 rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
+		class="flex shrink-0 items-center gap-1 rounded-md p-1 text-text-muted hover:bg-surface-alt hover:text-text-secondary disabled:cursor-not-allowed disabled:opacity-50"
 		disabled={lens || forking}
 		data-testid="fork-button"
 		aria-label={t(m.forkSession)}
@@ -91,7 +91,7 @@
 	</button>
 	{#if errorMessage}
 		<span
-			class="max-w-56 truncate rounded bg-red-50 px-1.5 py-0.5 text-[10px] text-red-600"
+			class="max-w-56 truncate rounded bg-danger-wash px-1.5 py-0.5 text-[10px] text-status-fail"
 			data-testid="fork-error"
 			role="alert"
 			title={errorMessage}

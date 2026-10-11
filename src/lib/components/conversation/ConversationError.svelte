@@ -20,7 +20,7 @@
 {#if error !== null}
 	<div
 		data-testid="conversation-error"
-		class="border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800"
+		class="border-b border-status-pending/30 bg-status-pending/10 px-4 py-2 text-sm text-status-pending"
 	>
 		{error.message}
 	</div>

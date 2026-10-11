@@ -143,7 +143,7 @@
 
 	.doc-title {
 		font-weight: 600;
-		color: #800000; /* the document-child paint (DOC_CHILD_PAINT, ADR D3) */
+		color: var(--color-doc-child); /* the document-child paint (DOC_CHILD_PAINT, ADR D3) */
 	}
 
 	.doc-state {

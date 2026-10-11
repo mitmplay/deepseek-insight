@@ -79,7 +79,7 @@
 		align-items: center;
 		justify-content: center;
 		text-align: center;
-		color: #7c3aed;
+		color: var(--color-accent-deep);
 		gap: 0.375rem;
 		height: 1.5rem;
 		padding: 0 0.375rem;

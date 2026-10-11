@@ -50,6 +50,43 @@
 	--color-status-pass: #10b981;
 	--color-status-fail: #ef4444;
 	--color-status-pending: #f59e0b;
+
+	/* Ink that sits ON the status-fail fill (stop/cancel buttons): white
+	 * clears 3:1 on light's #ef4444 (3.76) but fails on dark's lighter
+	 * #f87171 (2.56), so the ink flips with the mode — deep red there. */
+	--color-status-fail-ink: #ffffff;
+
+	/* Three-state lamp sweep (2026-10-10, ADR-0023): semantic names for inks
+	 * that previously lived as raw literals inside components (explorer tree,
+	 * skills/plugins panels, prompt manager, injected docs). Light values are
+	 * the swept literals VERBATIM — light mode stays pixel-identical. The
+	 * html[data-theme="dark"] block below re-points every token for AA on
+	 * dark surfaces. Consumed as var(--color-…) only; no raw hex may remain
+	 * in the audited components. */
+	--color-tree-repo: #ff4500;          /* explorer repo rows (orangered) */
+	--color-tree-child: #d2691e;         /* injected-doc child rows (chocolate) */
+	--color-tree-amber: #f7ad31;         /* explorer plain-file amber */
+	--color-accent-deep: #7c3aed;        /* repo-row violet ink */
+	--color-success-ink: #1a7f37;        /* skills/plugins success ink + border */
+	--color-success-soft: #27ae60;       /* skills item soft-green state */
+	--color-green-verify: #16a34a;       /* prompt-manager save ink */
+	--color-accent-orange: #e67e22;      /* skills item orange border/ink */
+	--color-accent-amber-ink: #d97706;   /* settings home toolbar amber ink */
+	--color-accent-amber-ink-deep: #b45309; /* file toolbar / skills panel amber */
+	--color-danger-madrid: #e74c3c;      /* skills panel danger ink */
+	--color-danger-github: #cf222e;      /* skills reload danger ink + border */
+	--color-danger-editor-surface: #45161c; /* settings editor error surface */
+	--color-danger-editor-ink: #ffb4bb;  /* settings editor error ink */
+	--color-doc-child: #800000;          /* InjectedDocPanel DOC_CHILD_PAINT */
+	--color-navy-focus: #1e3a8a;         /* skills/plugins focus outline navy */
+	--color-header-wash: #fdf5e6;        /* PanelHeader warm wash */
+	--color-slate-neutral: #52606d;      /* skills/plugins muted action ink */
+	--color-danger-wash: #fef2f2;        /* prompt-manager danger banner surface */
+	--color-danger-wash-border: #fee2e2; /* prompt-manager danger banner border */
+	--color-danger-wash-ink: #991b1b;    /* prompt-manager danger banner ink */
+	--color-ws-violet: #9400d3;          /* sidebar workspace violet ink (calibrated, SidebarOpenPanelRows) */
+	--color-ws-green: #00a802;           /* workspace fork-children green spawn line */
+	--color-ws-blue: #0066cc;            /* workspace blue child paint */
 }
 
 /* SessionStatus run color — app-wide (2026-09-03): the live-motion glyph
@@ -63,7 +100,193 @@
 @layer base {
 	:root {
 		--si-run: #b91c1c;
+		/* Legacy token-name aliases (2026-10-11): several components were
+		 * written against names this palette never declared
+		 * (surface-primary/-secondary/-border/-text/-bg) — their var()
+		 * fallbacks pinned LIGHT values and stayed light in dark mode.
+		 * Aliased to the real tokens; the indirection flips with them. */
+		--color-surface-primary: var(--color-surface-elevated);
+		--color-surface-secondary: var(--color-surface-alt);
+		--color-border: var(--color-surface-border);
+		--color-text: var(--color-text-primary);
+		--color-bg: var(--color-surface);
 	}
+}
+
+/* The Three-State Lamp (ADR-0023, 2026-10-10): the dark re-declaration.
+ * html[data-theme="dark"] re-points every token; utilities and var()
+ * consumers flip in one repaint. Values are AA-oriented on #16181d-family
+ * surfaces; each pair's formal measurement lands with Wave 1's contrast
+ * test (tasks 1.2 / 1.2-T in dev/specs/2026-10/2026-10-10 - The Three-State
+ * Lamp). Until the attribute is wired (Wave 2), nothing selects this block
+ * and light rendering is untouched. */
+[data-theme='dark'] {
+	--color-surface: #16181d;
+	--color-surface-alt: #1d2026;
+	--color-surface-hover: #262a32;
+	--color-surface-border: #333842;
+	--color-surface-elevated: #21252c;
+
+	--color-text-primary: #e9ecef;
+	--color-text-secondary: #9aa3ad;
+	--color-text-muted: #757e89;
+
+	--color-accent-blue: #60a5fa;
+	--color-accent-purple: #a78bfa;
+	--color-accent-purple-soft: #4c1d95;
+	--color-accent-purple-ink: #ede9fe;
+
+	--color-accent-emerald: #34d399;
+	--color-accent-amber: #fbbf24;
+	--color-accent-rose: #fb7185;
+	--color-accent-cyan: #22d3ee;
+
+	--color-accent-pink: #f48bb4;
+	--color-accent-pink-strong: #f7a8c4;
+
+	--color-status-pass: #34d399;
+	--color-status-fail: #f87171;
+	--color-status-pending: #fbbf24;
+	--color-status-fail-ink: #450a0a;
+
+	--color-tree-repo: #ff7a4d;
+	--color-tree-child: #f0a05c;
+	--color-tree-amber: #ffc95c;
+	--color-accent-deep: #a78bfa;
+	--color-success-ink: #4ade80;
+	--color-success-soft: #34d399;
+	--color-green-verify: #4ade80;
+	--color-accent-orange: #fb923c;
+	--color-accent-amber-ink: #fbbf24;
+	--color-accent-amber-ink-deep: #fcd34d;
+	--color-danger-madrid: #ff6b6b;
+	--color-danger-github: #ff8181;
+	--color-danger-editor-surface: #3b1218;
+	--color-danger-editor-ink: #ffb4bb;
+	--color-doc-child: #ff9b9b;
+	--color-navy-focus: #93c5fd;
+	--color-header-wash: #2b2620;
+	--color-slate-neutral: #9aa3ad;
+	--color-danger-wash: #2a1215;
+	--color-danger-wash-border: #45161c;
+	--color-danger-wash-ink: #ffb4bb;
+	--color-ws-violet: #c084fc;
+	--color-ws-green: #4ade80;
+	--color-ws-blue: #6cb8ff;
+
+	--si-run: #f87171;
+}
+
+
+/* Wave 1 task 1.3 (ADR-0023): the github-dark palette, generated from
+ * node_modules/highlight.js/styles/github-dark.css and scoped under the
+ * dark attribute - the light github.css stays the default; these override
+ * only when html[data-theme="dark"]. Regenerate, never hand-tune. */
+[data-theme="dark"] pre code.hljs {
+	display: block; overflow-x: auto; padding: 1em
+}
+[data-theme="dark"] code.hljs {
+	padding: 3px 5px
+}
+[data-theme="dark"] .hljs {
+	color: #c9d1d9; background: #0d1117
+}
+[data-theme="dark"] .hljs-doctag,
+[data-theme="dark"] .hljs-keyword,
+[data-theme="dark"] .hljs-meta .hljs-keyword,
+[data-theme="dark"] .hljs-template-tag,
+[data-theme="dark"] .hljs-template-variable,
+[data-theme="dark"] .hljs-type,
+[data-theme="dark"] .hljs-variable.language_ {
+	color: #ff7b72
+}
+[data-theme="dark"] .hljs-title,
+[data-theme="dark"] .hljs-title.class_,
+[data-theme="dark"] .hljs-title.class_.inherited__,
+[data-theme="dark"] .hljs-title.function_ {
+	color: #d2a8ff
+}
+[data-theme="dark"] .hljs-attr,
+[data-theme="dark"] .hljs-attribute,
+[data-theme="dark"] .hljs-literal,
+[data-theme="dark"] .hljs-meta,
+[data-theme="dark"] .hljs-number,
+[data-theme="dark"] .hljs-operator,
+[data-theme="dark"] .hljs-variable,
+[data-theme="dark"] .hljs-selector-attr,
+[data-theme="dark"] .hljs-selector-class,
+[data-theme="dark"] .hljs-selector-id {
+	color: #79c0ff
+}
+[data-theme="dark"] .hljs-regexp,
+[data-theme="dark"] .hljs-string,
+[data-theme="dark"] .hljs-meta .hljs-string {
+	color: #a5d6ff
+}
+[data-theme="dark"] .hljs-built_in,
+[data-theme="dark"] .hljs-symbol {
+	color: #ffa657
+}
+[data-theme="dark"] .hljs-comment,
+[data-theme="dark"] .hljs-code,
+[data-theme="dark"] .hljs-formula {
+	color: #8b949e
+}
+[data-theme="dark"] .hljs-name,
+[data-theme="dark"] .hljs-quote,
+[data-theme="dark"] .hljs-selector-tag,
+[data-theme="dark"] .hljs-selector-pseudo {
+	color: #7ee787
+}
+[data-theme="dark"] .hljs-subst {
+	color: #c9d1d9
+}
+[data-theme="dark"] .hljs-section {
+	color: #1f6feb; font-weight: bold
+}
+[data-theme="dark"] .hljs-bullet {
+	color: #f2cc60
+}
+[data-theme="dark"] .hljs-emphasis {
+	color: #c9d1d9; font-style: italic
+}
+[data-theme="dark"] .hljs-strong {
+	color: #c9d1d9; font-weight: bold
+}
+[data-theme="dark"] .hljs-addition {
+	color: #aff5b4; background-color: #033a16
+}
+[data-theme="dark"] .hljs-deletion {
+	color: #ffdcd7; background-color: #67060c
+}
+
+/* Dark palette WCAG contrast table (2026-10-11, WCAG 1.4.3 text 4.5:1 /
+ * 1.4.11 non-text 3:1) — computed with the relative-luminance formula,
+ * every pair measured against the recorded values in this block:
+ *   TEXT 4.5:1 — text-primary on surface/alt/hover/elevated:
+ *     14.98 / 13.76 / 12.13 / 12.97 — PASS
+ *   TEXT 4.5:1 — text-secondary on surface/alt/hover/elevated:
+ *     6.95 / 6.38 / 5.63 / 6.02 — PASS
+ *   MUTED TIER (incidental/disabled text, 1.4.3 exemption; held to the
+ *   3:1 non-text bar instead — light mode's muted measures ~1.9:1, so
+ *   dark carries the stricter floor): #757e89 on surface/alt/hover/
+ *     elevated: 4.31 / 4.03 / 3.50 / 3.73 — PASS at 3:1
+ *   UI 3:1 — status-pass/fail/pending on surface: 9.24 / 6.42 / 10.64 — PASS
+ *   UI 3:1 — accent-blue/purple/emerald/amber/rose/cyan on surface:
+ *     6.99 / 6.53 / 9.24 / 10.64 / 6.60 / 9.83 — PASS
+ *   UI 3:1 — tree-repo/child/amber, accent-deep, success-ink, green-verify,
+ *     accent-orange, amber-ink/-ink-deep, danger-madrid/github,
+ *     danger-editor-ink, doc-child, navy-focus, ws-violet/green/blue,
+ *     si-run on surface: 6.40–12.32 — ALL PASS
+ *   TEXT 4.5:1 — accent-purple-ink on accent-purple-soft (pill): 9.23 — PASS
+ *   TEXT 4.5:1 — danger-wash-ink on danger-wash: 10.45 — PASS
+ *   TEXT 4.5:1 — danger-editor-ink on danger-editor-surface: 9.72 — PASS
+ *   UI 3:1 — status-fail-ink on status-fail fill (stop/cancel glyph):
+ *     light white on #ef4444 = 3.76; dark #450a0a on #f87171 = 5.84 — PASS
+ *   RECORDED GIVE-UPS (decorative, WCAG-exempt, mirroring light's subtlety):
+ *     surface-border vs surface 1.51:1 / vs elevated 1.31:1 — hairline
+ *     borders are non-essential decoration (1.4.11 excludes them); light
+ *     mode measures 1.16:1 for the same role.
 }
 
 /* OCI global icon color standard (app.css parity, 2026-08-26): purple is
@@ -219,7 +442,7 @@ body {
 	color: var(--color-text-primary);
 }
 .md-content em {
-	color: #7c3aed;
+	color: var(--color-accent-deep);
 }
 .md-content hr {
 	margin: 0.5em 0;
@@ -253,14 +476,16 @@ body {
 	padding: 0.15em 0.35em;
 	border-radius: 0.3em;
 	background: rgba(139, 92, 246, 0.08);
-	color: #7c3aed;
+	color: var(--color-accent-deep);
 	font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
 }
 .md-content pre {
 	margin: 0.5em 0;
 	padding: 0.5em 0.5em;
 	border-radius: 0.5em;
-	background: #f1f3f5;
+	/* Three-State Lamp (2026-10-11): the code-block canvas rides the token
+	 * layer — #f1f3f5 stayed white in dark mode (operator bug report). */
+	background: var(--color-surface-alt);
 	border: 1px solid var(--color-surface-border);
 	overflow-x: auto;
 	font-size: 0.8em;
@@ -268,7 +493,7 @@ body {
 }
 .md-content pre code {
 	font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
-	color: #212529;
+	color: var(--color-text-primary);
 }
 
 /* Assistant-turn text→chips seam (2026-08-23): inside a turn bubble the

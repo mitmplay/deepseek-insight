@@ -19,3 +19,6 @@ src/lib/paraglide/
 # sqlite transient sidecars
 *.sqlite-shm
 *.sqlite-wal
+
+# dsi-thin two-lane worktrees (removed at batch close)
+.worktrees/

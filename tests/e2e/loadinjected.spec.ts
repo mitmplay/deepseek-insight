@@ -231,14 +231,19 @@ test('04 · the command path keeps its honest notes: usage on a missing filename
 	await expect(page.getByTestId('access-mode-chip')).toBeVisible();
 
 	const input = page.getByTestId('prompt-textarea');
+	// The command is RETIRED (command-executor): bare or with args, it
+	// answers ONE honest note pointing at the conversation anchor's
+	// Injected button — no usage line, no candidate list, no panel.
 	await input.fill('/loadinjected');
 	await input.press('Enter');
-	await expect(page.getByTestId('command-note')).toContainText('usage: /loadinjected <filename.md> [--add]');
+	await expect(page.getByTestId('command-note')).toContainText(
+		'/loadinjected retired — open injected documents with the Injected button on the conversation anchor'
+	);
 
 	await input.fill('/loadinjected NOPE.md');
 	await input.press('Enter');
 	await expect(page.getByTestId('command-note')).toContainText(
-		'no injected NOPE.md here — the shelf holds: system-prompt.md, AGENTS.md, config.yaml'
+		'/loadinjected retired — open injected documents with the Injected button on the conversation anchor'
 	);
 	await expect(page.getByTestId('injected-doc-panel')).toHaveCount(0);
 });

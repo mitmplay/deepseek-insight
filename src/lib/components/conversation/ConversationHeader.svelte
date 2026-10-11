@@ -73,7 +73,7 @@
 </script>
 
 <header
-	class="flex items-center gap-3 border-b border-slate-200 px-2 py-1 {focused ? 'bg-[#FDF5E6]' : 'bg-white'}"
+	class="flex items-center gap-3 border-b border-surface-border px-2 py-1 {focused ? 'bg-header-wash' : 'bg-surface-elevated'}"
 	data-testid="conversation-header"
 	data-focused={focused ? 'true' : 'false'}
 >

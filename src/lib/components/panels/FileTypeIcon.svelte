@@ -79,12 +79,12 @@
 <style>
 	.fti {
 		flex-shrink: 0;
-		--fti-paper: var(--color-bg, #ffffff);
+		--fti-paper: var(--color-surface-elevated);
 	}
 	.fti.code, .fti.html, .fti.markdown { color: rgb(65, 118, 230); }  /* dsw static-deepseek-500 */
 	.fti.excel { color: rgb(34, 197, 94); }                             /* dsw static-green-500 */
 	.fti.image, .fti.video { color: rgb(139, 118, 246); }               /* dsh file-type-violet */
-	.fti.other { color: rgb(207, 211, 214); }                           /* dsw static-neutral-bluish-300 */
+	.fti.other { color: var(--color-text-muted); }                           /* dsw static-neutral-bluish-300 */
 	.fti.pdf { color: rgb(236, 19, 19); }                               /* dsw static-red-600 */
 	.fti.ppt { color: rgb(245, 158, 11); }                              /* dsw static-amber-500 */
 	.fti.word { color: rgb(86, 134, 254); }                             /* dsw static-deepseek-450 */

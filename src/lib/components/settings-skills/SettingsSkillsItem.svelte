@@ -66,14 +66,14 @@
 		padding: 0.5rem 0.625rem;
 		border: 1px solid var(--color-border, #d0d7de);
 		border-radius: 0.375rem;
-		background: var(--color-surface, #fff);
+		background: var(--color-surface, var(--color-surface-elevated));
 	}
 	.shelf-card:hover {
 		border-color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 40%, var(--color-border, #d0d7de));
 	}
 	.shelf-card.checked {
 		border-color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 55%, var(--color-border, #d0d7de));
-		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 6%, var(--color-surface, #fff));
+		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 6%, var(--color-surface, var(--color-surface-elevated)));
 	}
 	.shelf-card-head {
 		display: flex;
@@ -95,7 +95,7 @@
 	}
 	.shelf-id {
 		overflow: hidden;
-		color: var(--color-fuchsia-700, #57606a);
+		color: var(--color-accent-purple);
 		text-overflow: ellipsis;
 		white-space: nowrap;
 		font-weight: 600;
@@ -104,8 +104,8 @@
 		font-size: 0.7rem;
 		padding: 0.05rem 0.35rem;
 		border-radius: 999px;
-		border: 1px solid #e67e22;
-		color: #e67e22;
+		border: 1px solid var(--color-accent-orange);
+		color: var(--color-accent-orange);
 	}
 	.shelf-badge {
 		display: inline-flex;
@@ -116,14 +116,14 @@
 		font-size: 0.7rem;
 		padding: 0.05rem 0.35rem;
 		border-radius: 999px;
-		background: color-mix(in srgb, #27ae60 18%, transparent);
-		color: #27ae60;
+		background: color-mix(in srgb, var(--color-success-soft) 18%, transparent);
+		color: var(--color-success-soft);
 	}
 	.shelf-overview {
 		margin: 0;
 		font-size: 0.72rem;
 		line-height: 1.45;
-		color: var(--color-purple-700, #57606a);
+		color: var(--color-accent-deep);
 	}
 	.shelf-overview-empty {
 		font-style: italic;

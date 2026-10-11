@@ -26,6 +26,7 @@
 -->
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages';
+	import { themePrefs } from '$lib/utils/theme-prefs.svelte';
 	import { t } from '$lib/services/locale/locale-state.svelte';
 	import { browser } from '$app/environment';
 	import { mount, unmount } from 'svelte';
@@ -87,7 +88,47 @@ import FileTypeIcon from '$lib/components/panels/FileTypeIcon.svelte';
 
 	/** Mermaid runtime, lazy — the heavy chunk loads on first diagram only. */
 	let mermaidMod: Promise<typeof import('mermaid')> | null = null;
-	let mermaidReady = false;
+	/** Sequence-diagram chrome (2026-10-11): mermaid's 'base' theme left the
+	 *  signal text/lines at defaults that failed WCAG in BOTH modes (dim
+	 *  gray on white in light, on #16181d in dark). Two full sets. */
+	const MERMAID_SEQ_LIGHT = {
+		actorBkg: '#DBEAFE',
+		actorBorder: '#3B82F6',
+		actorTextColor: '#1E293B',
+		actorLineColor: '#475569',
+		signalColor: '#475569',
+		signalTextColor: '#1E293B',
+		labelBoxBkColor: '#E2E8F0',
+		labelBoxBorderColor: '#64748B',
+		labelTextColor: '#1E293B',
+		noteBkgColor: '#FEF3C7',
+		noteTextColor: '#78350F',
+		noteBorderColor: '#F59E0B',
+		sequenceNumberColor: '#1E293B'
+	};
+	const MERMAID_SEQ_DARK = {
+		actorBkg: '#1e3a5f',
+		actorBorder: '#60a5fa',
+		actorTextColor: '#E2E8F0',
+		actorLineColor: '#9aa3ad',
+		signalColor: '#9aa3ad',
+		signalTextColor: '#E2E8F0',
+		labelBoxBkColor: '#1d2026',
+		labelBoxBorderColor: '#9aa3ad',
+		labelTextColor: '#E2E8F0',
+		noteBkgColor: '#451a03',
+		noteTextColor: '#fbbf24',
+		noteBorderColor: '#fbbf24',
+		sequenceNumberColor: '#E2E8F0'
+	};
+
+	/** The appearance the runtime was last initialized for — re-init on a
+	 *  theme flip (the once-only guard froze the first-render palette, the
+	 *  operator's 2026-10-11 bug: dim sequence text in light, pastel boxes
+	 *  in dark). */
+	let mermaidInitTheme: 'light' | 'dark' | null = null;
+	/** The appearance the CURRENT container's diagrams were painted under. */
+	let renderedTheme: 'light' | 'dark' | null = null;
 
 	/** Zed-style palette (2026-10-06): every flowchart box gets its own
 	 *  pastel fill + saturated border instead of the flat neutral gray.
@@ -105,6 +146,27 @@ import FileTypeIcon from '$lib/components/panels/FileTypeIcon.svelte';
 		['#FEE2E2', '#EF4444'], // red
 		['#E2E8F0', '#64748B'] // slate
 	] as const;
+
+	/** Dark twin of the Zed palette (2026-10-10, ADR-0023): deep fills,
+	 *  lightened borders, light ink — same hues so a diagram reads as the
+	 *  SAME diagram across modes, only re-lit. Chosen per render from the
+	 *  html data-theme attribute; a live re-render on toggle is Wave 3's
+	 *  panel re-render path, not a mermaid re-init. */
+	const MERMAID_PALETTE_DARK = [
+		['#1e3a5f', '#60a5fa'], // blue
+		['#134e4a', '#2dd4bf'], // teal
+		['#3b2a6b', '#a78bfa'], // violet
+		['#14532d', '#4ade80'], // green
+		['#451a03', '#fbbf24'], // amber
+		['#4a1942', '#f472b6'], // pink
+		['#450a0a', '#f87171'], // red
+		['#1d2026', '#9aa3ad'] // slate
+	] as const;
+
+	/** The resolved appearance lives on html[data-theme] (ADR-0023 D1);
+	 *  SSR-safe default light. */
+	const mermaidDark = (): boolean =>
+		typeof document !== 'undefined' && document.documentElement.dataset.theme === 'dark';
 
 	/** Sequence-diagram half of the Zed palette (2026-10-06): mermaid has
 	 *  NO classDef for sequence participants — their boxes take the theme's
@@ -130,7 +192,8 @@ import FileTypeIcon from '$lib/components/panels/FileTypeIcon.svelte';
 		for (const rect of boxes) {
 			const cx = columnOf(rect);
 			if (!columnColor.has(cx)) {
-				columnColor.set(cx, MERMAID_PALETTE[next % MERMAID_PALETTE.length]);
+				const palette = mermaidDark() ? MERMAID_PALETTE_DARK : MERMAID_PALETTE;
+				columnColor.set(cx, palette[next % palette.length]);
 				next++;
 			}
 			const [fill, stroke] = columnColor.get(cx)!;
@@ -175,8 +238,10 @@ import FileTypeIcon from '$lib/components/panels/FileTypeIcon.svelte';
 			}
 		}
 		if (ids.size === 0) return source;
-		const defs = MERMAID_PALETTE.map(
-			([fill, stroke], i) => 'classDef zc' + i + ' fill:' + fill + ',stroke:' + stroke + ',color:#1E293B;'
+		const palette = mermaidDark() ? MERMAID_PALETTE_DARK : MERMAID_PALETTE;
+		const ink = mermaidDark() ? '#E2E8F0' : '#1E293B';
+		const defs = palette.map(
+			([fill, stroke], i) => 'classDef zc' + i + ' fill:' + fill + ',stroke:' + stroke + ',color:' + ink + ';'
 		).join('\n');
 		const assigns = Array.from(ids)
 			.map((id, i) => 'class ' + id + ' zc' + (i % MERMAID_PALETTE.length) + ';')
@@ -404,9 +469,18 @@ import FileTypeIcon from '$lib/components/panels/FileTypeIcon.svelte';
 
 	/** Render every unprocessed placeholder in this container (OCI pass). */
 	$effect(() => {
-		// Depend on the HTML so a content change re-runs the pass.
+		// Depend on the HTML AND the resolved appearance: a theme flip
+		// re-runs the pass with the other palette (ADR-0023, 2026-10-11).
 		void highlightedHtml;
+		void themePrefs.resolved;
 		if (!browser || !containerEl || !hasMermaid) return;
+		if (renderedTheme !== null && renderedTheme !== themePrefs.resolved) {
+			// appearance flipped since the last render: repaint every
+			// placeholder with the other palette
+			for (const d of Array.from(containerEl.querySelectorAll('.mermaid-diagram'))) {
+				d.setAttribute('data-processed', 'false');
+			}
+		}
 
 		const els = containerEl.querySelectorAll<HTMLDivElement>(
 			'.mermaid-diagram[data-processed="false"]'
@@ -417,7 +491,7 @@ import FileTypeIcon from '$lib/components/panels/FileTypeIcon.svelte';
 		void (async () => {
 			mermaidMod ??= import('mermaid');
 			const mermaid = (await mermaidMod).default;
-			if (!mermaidReady) {
+			if (mermaidInitTheme !== themePrefs.resolved) {
 				mermaid.initialize({
 					startOnLoad: false,
 					// 'base' + variables (2026-10-06): lets the injected
@@ -427,15 +501,19 @@ import FileTypeIcon from '$lib/components/panels/FileTypeIcon.svelte';
 					theme: 'base',
 					themeVariables: {
 						background: 'transparent',
-						primaryColor: '#E2E8F0',
-						primaryBorderColor: '#64748B',
-						primaryTextColor: '#1E293B',
-						lineColor: '#64748B',
+						// ADR-0023 (2026-10-10): the base diagram chrome follows
+						// the resolved appearance; injected classDefs carry the
+						// per-node palette. Initialize runs once — the theme at
+						// first diagram wins until the next full render.
+						primaryColor: mermaidDark() ? '#1d2026' : '#E2E8F0',
+						primaryBorderColor: mermaidDark() ? '#9aa3ad' : '#64748B',
+						primaryTextColor: mermaidDark() ? '#E2E8F0' : '#1E293B',
+						lineColor: mermaidDark() ? '#9aa3ad' : '#64748B',
 						fontFamily: 'ui-sans-serif, system-ui, sans-serif'
 					},
 					securityLevel: 'strict'
 				});
-				mermaidReady = true;
+				mermaidInitTheme = themePrefs.resolved;
 			}
 			for (const el of Array.from(els)) {
 				if (cancelled) return;
@@ -453,10 +531,11 @@ import FileTypeIcon from '$lib/components/panels/FileTypeIcon.svelte';
 					paintSequenceColors(el);
 					el.setAttribute('data-processed', 'true');
 				} catch (err) {
-					el.innerHTML = `<div class="text-xs text-red-600 p-2 border border-red-500/30 rounded bg-red-500/10">Mermaid render error: ${String(err).split('\n')[0]}</div>`;
+					el.innerHTML = `<div class="text-xs text-status-fail p-2 border border-status-fail/30 rounded bg-status-fail/10">Mermaid render error: ${String(err).split('\n')[0]}</div>`;
 					el.setAttribute('data-processed', 'true');
 				}
 			}
+			renderedTheme = themePrefs.resolved;
 		})();
 
 		return () => {

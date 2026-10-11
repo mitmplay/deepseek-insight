@@ -12,8 +12,7 @@
 	import { t } from '$lib/services/locale/locale-state.svelte';
 	import * as m from '$lib/paraglide/messages';
 	import CanvasCopyButton from '$lib/components/common/buttons/CanvasCopyButton.svelte';
-	import { workspacePanelCopy as copy } from './workspace-panel-copy';
-
+	
 	// The canvas-copy capture target: the owning PanelColumn — the same
 	// ancestor-walk grammar as WorkspaceFileToolbar (no new prop threading
 	// through SettingsHomeFile just to name an ancestor).
@@ -49,7 +48,7 @@
 	<!-- Capture the owning panel column as a PNG: click copies,
 	     Shift+Click saves (same grammar as WorkspaceFileToolbar). -->
 	<span class="copy-slot">
-		<CanvasCopyButton container={columnEl} title={copy.common.copyColumn} size={12} />
+		<CanvasCopyButton container={columnEl} title={t(m.workspacePanelCommonCopyColumn)} size={12} />
 	</span>
 </div>
 
@@ -68,7 +67,7 @@
 		flex: 1;
 	}
 	.dirty {
-		color: #d97706;
+		color: var(--color-accent-amber-ink);
 		font-size: 0.75rem;
 	}
 	.save {

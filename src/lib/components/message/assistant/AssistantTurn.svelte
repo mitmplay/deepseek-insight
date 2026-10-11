@@ -141,14 +141,14 @@
 				{time}
 				role="assistant"
 				prefix={ranPrefix}
-				class="absolute bottom-0.5 right-3 text-[10px] leading-none text-text-muted/60 group-hover/bubble:text-[#7c3aed]"
+				class="absolute bottom-0.5 right-3 text-[10px] leading-none text-text-muted/60 group-hover/bubble:text-[var(--color-accent-deep)]"
 			/>
 		{/if}
 		{#if stoppedByUser}
 			<!-- Turn End Stamp (ADR D2): the honest end-fate chip — the
 			     operator stopped this turn; DSH parity without the banner. -->
 			<span
-				class="absolute bottom-0.5 left-1/2 -translate-x-1/2 rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] leading-none text-amber-600"
+				class="absolute bottom-0.5 left-1/2 -translate-x-1/2 rounded-full border border-status-pending/30 bg-status-pending/100/10 px-1.5 py-0.5 text-[10px] leading-none text-status-pending"
 				data-testid="turn-stopped-chip"
 				title={t(m.turnStopped)}
 			>
@@ -164,7 +164,7 @@
 		{/if}
 		{#if forkError}
 			<span
-				class="absolute right-2 top-1.5 max-w-56 truncate rounded bg-red-50 px-1.5 py-0.5 text-[10px] text-red-600"
+				class="absolute right-2 top-1.5 max-w-56 truncate rounded bg-danger-wash px-1.5 py-0.5 text-[10px] text-status-fail"
 				data-testid="fork-turn-error"
 				role="alert"
 				title={forkError}

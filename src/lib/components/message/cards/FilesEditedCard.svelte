@@ -196,10 +196,10 @@
 		{#if summary}
 			{@const s = summary}
 			<div
-				class="my-1 rounded-lg bg-slate-50 px-2.5 py-1.5 text-[11px] ring-1 ring-slate-200"
+				class="my-1 rounded-lg bg-surface px-2.5 py-1.5 text-[11px] ring-1 ring-surface-border"
 				data-testid="files-edited-card"
 			>
-				<div class="mb-1 flex items-center gap-2 font-medium text-slate-600">
+				<div class="mb-1 flex items-center gap-2 font-medium text-text-secondary">
 					<span>
 						{#if s.total === 1}
 							{t(m.editedFilesTitleOne)}
@@ -208,8 +208,8 @@
 						{/if}
 					</span>
 					<span class="font-mono text-[10px]">
-						<span class="text-emerald-600">+{s.added}</span>
-						<span class="text-red-500"> −{s.deleted}</span>
+						<span class="text-status-pass">+{s.added}</span>
+						<span class="text-status-fail"> −{s.deleted}</span>
 					</span>
 				</div>
 				{#if mdCards.length > 0}
@@ -218,7 +218,7 @@
 						{#each mdCards as card (card.path)}
 							<button
 								type="button"
-								class="flex items-start gap-1.5 rounded-md bg-white px-1.5 py-1 text-left ring-1 ring-slate-200
+								class="flex items-start gap-1.5 rounded-md bg-surface-elevated px-1.5 py-1 text-left ring-1 ring-surface-border
 									transition-colors hover:ring-accent-purple/40 hover:bg-accent-purple/5 cursor-pointer"
 								data-testid="files-edited-md-card"
 								title={card.path}
@@ -229,16 +229,16 @@
 									aria-hidden="true">MD</span
 								>
 								<span class="min-w-0 flex-1">
-									<span class="block truncate font-medium text-slate-700">{card.title}</span>
+									<span class="block truncate font-medium text-text-primary">{card.title}</span>
 									{#if card.dir !== ''}
-										<span class="block truncate text-[10px] text-slate-400">{card.dir}</span>
+										<span class="block truncate text-[10px] text-text-muted">{card.dir}</span>
 									{/if}
 								</span>
 								{#if card.added > 0}
-									<span class="shrink-0 font-mono text-[10px] text-emerald-600">+{card.added}</span>
+									<span class="shrink-0 font-mono text-[10px] text-status-pass">+{card.added}</span>
 								{/if}
 								{#if card.deleted > 0}
-									<span class="shrink-0 font-mono text-[10px] text-red-500">−{card.deleted}</span>
+									<span class="shrink-0 font-mono text-[10px] text-status-fail">−{card.deleted}</span>
 								{/if}
 							</button>
 						{/each}
@@ -248,41 +248,41 @@
 					{#each s.files as file, i (file.path)}
 						<li
 							class="flex items-center gap-2 rounded px-1 -mx-1 transition-colors
-							{hovered === i ? 'bg-white ring-1 ring-slate-300' : ''}"
+							{hovered === i ? 'bg-surface-elevated ring-1 ring-surface-border' : ''}"
 							data-testid="files-edited-file"
 							onmouseenter={() => rowEnter(i)}
 							onmouseleave={rowLeave}
 						>
-							<span class="min-w-0 flex-1 truncate text-slate-700">{file.display}</span>
+							<span class="min-w-0 flex-1 truncate text-text-primary">{file.display}</span>
 							{#if file.binary === true}
-								<span class="text-slate-400">{t(m.editedFilesBinary)}</span>
+								<span class="text-text-muted">{t(m.editedFilesBinary)}</span>
 							{:else if file.oversized === true}
-								<span class="text-slate-400">{t(m.editedFilesOversized)}</span>
+								<span class="text-text-muted">{t(m.editedFilesOversized)}</span>
 							{:else}
-								<span class="font-mono text-emerald-600">{t(() => m.editedFilesAdded({ count: file.added }))}</span>
-								<span class="font-mono text-red-500">{t(() => m.editedFilesDeleted({ count: file.deleted }))}</span>
+								<span class="font-mono text-status-pass">{t(() => m.editedFilesAdded({ count: file.added }))}</span>
+								<span class="font-mono text-status-fail">{t(() => m.editedFilesDeleted({ count: file.deleted }))}</span>
 							{/if}
 						</li>
 					{/each}
 				</ul>
 				{#if s.files.length < s.total}
-					<div class="mt-1 text-slate-400">
+					<div class="mt-1 text-text-muted">
 						{t(() => m.editedFilesCapHint({ count: s.total - s.files.length }))}
 					</div>
 				{/if}
 				{#if textDiff}
 					<FilesEditedDiff diff={textDiff} />
 				{:else if diff && diff.kind === 'binary'}
-					<div class="mt-1 text-slate-400">{t(m.editedFilesBinary)}</div>
+					<div class="mt-1 text-text-muted">{t(m.editedFilesBinary)}</div>
 				{:else if diff && diff.kind === 'oversized'}
-					<div class="mt-1 text-slate-400">{t(m.editedFilesOversized)}</div>
+					<div class="mt-1 text-text-muted">{t(m.editedFilesOversized)}</div>
 				{:else if diffLoading}
-					<div class="mt-1.5 text-slate-400" data-testid="files-edited-diff-loading">…</div>
+					<div class="mt-1.5 text-text-muted" data-testid="files-edited-diff-loading">…</div>
 				{/if}
 			</div>
 		{:else if gone}
 			<div
-				class="my-1 rounded-lg bg-slate-50 px-2.5 py-1 text-[11px] text-slate-400 ring-1 ring-slate-200"
+				class="my-1 rounded-lg bg-surface px-2.5 py-1 text-[11px] text-text-muted ring-1 ring-surface-border"
 				data-testid="files-edited-gone"
 			>
 				{t(m.editedFilesGone)}

@@ -2,7 +2,7 @@
  * ContextConsumption unit tests — the context-window indicator's three
  * display modes and the bar's color tiers:
  *
- *  - both values    → the bar in a fixed violet fill (#7c3aed,
+ *  - both values    → the bar in a fixed violet fill (var(--color-accent-deep),
  *                     2026-09-24 — replaced the OCI green/amber/red
  *                     tiers), width capped at 100% for over-window usage
  *  - used only      → the "≈N ctx" fallback label (k-format above 1000)
@@ -39,19 +39,19 @@ describe('ContextConsumption — the bar (both values present)', () => {
 	it('renders the fixed violet fill at the exact percentage', () => {
 		const { target, instance } = mountusage({ used: 5000, limit: 10000 });
 		expect(bar(target)?.getAttribute('style')).toBe('width: 50%;');
-		expect(barColor(target)).toBe('bg-[#7c3aed]');
+		expect(barColor(target)).toBe('bg-[var(--color-accent-deep)]');
 		unmount(instance);
 	});
 
 	it('keeps the violet fill in the mid band', () => {
 		const { target, instance } = mountusage({ used: 7000, limit: 10000 });
-		expect(barColor(target)).toBe('bg-[#7c3aed]');
+		expect(barColor(target)).toBe('bg-[var(--color-accent-deep)]');
 		unmount(instance);
 	});
 
 	it('keeps the violet fill at 85% and above (no tier change)', () => {
 		const { target, instance } = mountusage({ used: 9000, limit: 10000 });
-		expect(barColor(target)).toBe('bg-[#7c3aed]');
+		expect(barColor(target)).toBe('bg-[var(--color-accent-deep)]');
 		unmount(instance);
 	});
 

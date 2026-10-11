@@ -1,0 +1,41 @@
+{
+  "_comment": "ADR-0018 D1 frozen budget — component-to-component cross-domain imports as measured 2026-10-08. Regenerate ONLY with operator sign-off.",
+  "crossings": [
+    {
+      "from": "components/common/layout/AppSidebar.svelte",
+      "to": "components/sessions/SidebarSessions.svelte"
+    },
+    {
+      "from": "components/composer/Composer.svelte",
+      "to": "components/card/CommandHelpCard.svelte"
+    },
+    {
+      "from": "components/composer/Composer.svelte",
+      "to": "components/prompt-manager/PromptsManagerDialog.svelte"
+    },
+    {
+      "from": "components/conversation/DisplayWorkspace.svelte",
+      "to": "components/common/WorkspaceChip.svelte"
+    },
+    {
+      "from": "components/sessions/SessionFilterHeader.svelte",
+      "to": "components/common/WorkspaceChip.svelte"
+    },
+    {
+      "from": "components/sessions/SessionFilterMeta.svelte",
+      "to": "components/common/layout/AddWorkspaceButton.svelte"
+    },
+    {
+      "from": "components/sessions/SessionFilterRow.svelte",
+      "to": "components/common/layout/Agents.svelte"
+    },
+    {
+      "from": "components/sessions/SessionFilterRow.svelte",
+      "to": "components/common/layout/Workspaces.svelte"
+    },
+    {
+      "from": "components/sessions/WorkspaceRowItem.svelte",
+      "to": "components/common/WorkspaceChip.svelte"
+    }
+  ]
+}

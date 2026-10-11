@@ -19,6 +19,6 @@
 	const count = $derived(estimateTokens(text));
 </script>
 
-<span class="shrink-0 font-mono text-[11px] tabular-nums text-[#7c3aed]" data-testid="token-counter" title={t(m.tokenCounterTitle)}>
+<span class="shrink-0 font-mono text-[11px] tabular-nums text-[var(--color-accent-deep)]" data-testid="token-counter" title={t(m.tokenCounterTitle)}>
 	~{count} tokens
 </span>

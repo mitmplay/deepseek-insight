@@ -208,12 +208,12 @@
 		display: inline-flex;
 		align-items: center;
 		padding: 0.1rem;
-		color: #52606d;
+		color: var(--color-slate-neutral);
 		opacity: 0.65;
 		transition: color 0.15s ease, opacity 0.15s ease;
 	}
 	.shelf-door:hover {
-		color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, #1e3a8a);
+		color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, var(--color-navy-focus));
 		opacity: 1;
 	}
 	.shelf-door :global(svg) {
@@ -237,7 +237,7 @@
 	}
 	.shelf-reload-chip[data-testid^='shelf-source-done'] :global(svg) {
 		animation: none;
-		color: #1a7f37;
+		color: var(--color-success-ink);
 	}
 	@keyframes shelf-chip-spin {
 		to {

@@ -172,7 +172,7 @@
 		z-index: 50;
 		width: 14rem;
 		padding: 0.5rem;
-		background: var(--color-surface-elevated, #fff);
+		background: var(--color-surface-elevated, var(--color-surface-elevated));
 		border: 1px solid var(--color-surface-border, #dee2e6);
 		border-radius: 0.5rem;
 		box-shadow: 0 0.5rem 1rem rgb(0 0 0 / 0.15);
@@ -258,13 +258,13 @@
 	}
 
 	.cal-day.selected {
-		background: var(--color-accent-purple, #8b5cf6);
+		background: var(--color-accent-purple, var(--color-accent-purple));
 		color: #fff;
 		font-weight: 600;
 	}
 
 	.cal-day.today {
-		color: var(--color-accent-purple, #8b5cf6);
+		color: var(--color-accent-purple, var(--color-accent-purple));
 		font-weight: 600;
 	}
 
@@ -276,7 +276,7 @@
 		width: 0.25rem;
 		height: 0.25rem;
 		border-radius: 9999px;
-		background: var(--color-accent-purple, #8b5cf6);
+		background: var(--color-accent-purple, var(--color-accent-purple));
 	}
 
 	.cal-foot {

@@ -108,20 +108,22 @@ describe('SessionIdAndName', () => {
 	});
 
 	it('access badge colors: green R, amber W, red F, neutral slate C (traffic light by consequence)', () => {
+		// Three-state lamp sweep (2026-10-10): badges speak token classes so
+		// they flip with data-theme — pass/pending/fail + neutral border.
 		const cases = [
-			['read-only', 'green'],
-			['workspace-write', 'amber'],
-			['danger-full-access', 'red'],
-			['custom', 'slate']
+			['read-only', 'status-pass'],
+			['workspace-write', 'status-pending'],
+			['danger-full-access', 'danger-wash'],
+			['custom', 'surface']
 		] as const;
 		for (const [mode, tone] of cases) {
 			const { target, cleanup } = mountCluster({ access: mode });
 			const badge = target.querySelector('[data-testid="session-access"]') as HTMLElement;
 			expect(badge, mode).not.toBeNull();
 			// One tone family across border + bg + text — readable at a glance.
-			expect(badge.className, mode).toContain(`${tone}-300`);
-			expect(badge.className, mode).toContain(`${tone}-50`);
-			expect(badge.className, mode).toContain(`${tone}-`);
+			expect(badge.className, mode).toContain(`border-${tone}`); // danger-wash pairs with its -border token
+			expect(badge.className, mode).toContain(`bg-${tone}`);
+			expect(badge.className, mode).toContain('text-');
 			// The mode itself rides the element for e2e/CSS-free assertions.
 			expect(badge.getAttribute('data-access'), mode).toBe(mode);
 			cleanup();

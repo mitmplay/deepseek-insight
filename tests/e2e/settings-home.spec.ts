@@ -8,10 +8,38 @@
  * unit tests use), so the operator's real ~/.dsi is never touched.
  */
 import { expect, test } from '@playwright/test';
+import { DshStubHost, STUB_SESSION_ID } from './dsh-stub';
+
+const STUB_PORT = 4590;
+
+let stub: DshStubHost | undefined;
+
+test.beforeAll(async () => {
+	stub = new DshStubHost(STUB_PORT);
+	await stub.start();
+});
+
+test.afterAll(async () => {
+	await stub?.stop();
+});
+
+/** Bare '/' renders the EMPTY floor — no conversation panel, no composer
+ *  (the Root-is-the-Floor ADR's EmptyFloor). The settings gestures ride
+ *  a session panel's composer, so every test seeds via the stub wire
+ *  (W0 net fix 2026-10-09 — the bare-goto predated the empty floor). */
+async function openFloorWithComposer(page: import('@playwright/test').Page): Promise<void> {
+	await fetch(`http://127.0.0.1:${STUB_PORT}/__e2e/state`, {
+		method: 'POST',
+		headers: { 'content-type': 'application/json' },
+		body: JSON.stringify({ listSessionId: STUB_SESSION_ID })
+	});
+	await page.goto(`/?sessionKey=${STUB_SESSION_ID}`);
+	await expect(page.getByTestId('prompt-textarea')).toBeVisible();
+}
 
 test('01 · /dsi-settings opens a titled explorer over ~/.dsi', async ({ page }) => {
-	await page.goto('/');
-	const input = page.getByTestId('composer-input');
+	await openFloorWithComposer(page);
+	const input = page.getByTestId('prompt-textarea');
 	await input.fill('/dsi-settings');
 	await input.press('Enter');
 	const explorer = page.getByTestId('workspace-explorer');
@@ -23,8 +51,8 @@ test('01 · /dsi-settings opens a titled explorer over ~/.dsi', async ({ page })
 });
 
 test('02 · a second /dsi-settings FOCUSES the open home panel (root dedupe) — one tree', async ({ page }) => {
-	await page.goto('/');
-	const input = page.getByTestId('composer-input');
+	await openFloorWithComposer(page);
+	const input = page.getByTestId('prompt-textarea');
 	await input.fill('/dsi-settings');
 	await input.press('Enter');
 	await expect(page.getByTestId('workspace-explorer')).toHaveCount(1);
@@ -34,27 +62,36 @@ test('02 · a second /dsi-settings FOCUSES the open home panel (root dedupe) —
 });
 
 test('03 · /dsh-settings opens the DSH home — a DIFFERENT root, a SECOND explorer', async ({ page }) => {
-	await page.goto('/');
-	const input = page.getByTestId('composer-input');
+	await openFloorWithComposer(page);
+	const input = page.getByTestId('prompt-textarea');
 	await input.fill('/dsi-settings');
 	await input.press('Enter');
 	await input.fill('/dsh-settings');
 	await input.press('Enter');
 	await expect(page.getByTestId('workspace-explorer')).toHaveCount(2);
-	await expect(page.locator('[data-testid="panel-column"]')).toContainText('DSH - Settings');
+	// strict mode: THREE columns on the floor by now (seed + 2 homes) —
+	// scope to the column that carries the DSH title.
+	await expect(
+		page.locator('[data-testid="panel-column"]', { hasText: 'DSH - Settings' })
+	).toContainText('DSH - Settings');
 });
 
 test('04 · settings.yaml opens as a tab inside the explorer and edits', async ({ page }) => {
-	await page.goto('/');
-	const input = page.getByTestId('composer-input');
+	await openFloorWithComposer(page);
+	const input = page.getByTestId('prompt-textarea');
 	await input.fill('/dsi-settings');
 	await input.press('Enter');
 	const explorer = page.getByTestId('workspace-explorer');
 	await explorer.getByText('settings.yaml').click();
 	const editor = page.getByTestId('settings-home-editor');
 	await expect(editor).toBeVisible();
-	await editor.fill('chat:\n  input:\n    maxRows: 12\n');
-	await page.getByTestId('settings-home-file').getByRole('button').click();
+	// The host div mounts a MONACO instance — .fill() cannot target it.
+	// Click into the editor, select all, insert the replacement text
+	// (insertText is literal — no autocomplete/indent drift).
+	await editor.click();
+	await page.keyboard.press('ControlOrMeta+a');
+	await page.keyboard.insertText('chat:\n  input:\n    maxRows: 12\n');
+	await page.getByTestId('settings-home-file').getByRole('button', { name: 'Save', exact: true }).click();
 	// the dirty dot clears after a successful save
 	await expect(page.getByTestId('settings-home-dirty')).toHaveCount(0);
 });

@@ -140,7 +140,7 @@
 		padding: 0 0.25rem 0 0.375rem;
 		border: 1px solid color-mix(in srgb, var(--color-surface-border, #dee2e6) 75%, transparent);
 		border-radius: 0.375rem;
-		background: var(--color-surface-elevated, #fff);
+		background: var(--color-surface-elevated, var(--color-surface-elevated));
 		font-size: 0.6875rem;
 		color: var(--color-text-secondary, #6c757d);
 		transition:
@@ -168,7 +168,7 @@
 	}
 
 	.trigger:focus-visible {
-		outline: 2px solid #1e3a8a;
+		outline: 2px solid var(--color-navy-focus);
 		outline-offset: 1px;
 		border-radius: 0.25rem;
 	}
@@ -196,7 +196,7 @@
 	}
 
 	.clear:hover {
-		color: var(--color-status-fail, #ef4444);
+		color: var(--color-status-fail, var(--color-status-fail));
 		background: rgb(239 68 68 / 0.1);
 	}
 

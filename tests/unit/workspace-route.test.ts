@@ -61,10 +61,18 @@ function stage(scenario: {
 	reactiveTestPage.data = scenario.data ?? {};
 }
 
+/** The live component instance — unmount needs the INSTANCE, not the
+ *  root element: ADR-0019 W1 moved the floor state module-scope, so a
+ *  zombie page's persistence effect re-runs on every later mutation and
+ *  writes stale desks (the unmount(root-element) call silently kept
+ *  every page alive). */
+let lastPageInstance: ReturnType<typeof mount> | null = null;
+
 async function mountPage() {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
 	const instance = mount(Page, { target });
+	lastPageInstance = instance;
 	await flushEffects();
 	return { target, instance };
 }
@@ -626,9 +634,12 @@ describe('workspace route — move action (header left/right, sidebar up/down)',
 	});
 });
 
-/** Shared unmount helper (page root is target.firstElementChild). */
+/** Shared unmount helper — tears the component down for real so its
+ *  persistence effect cannot outlive its test (module-scope floor). */
 function unmountPage(): void {
-	const root = document.body.querySelector('.flex.h-dvh');
-	if (root) unmount(root as never);
+	if (lastPageInstance) {
+		unmount(lastPageInstance);
+		lastPageInstance = null;
+	}
 }
 

@@ -78,7 +78,7 @@
 		   .rail-header grammar): the pastel gradient is oversized
 		   (300% x 300%) and panned by background-position — gradients
 		   can't transition directly, the animation is the transition.
-		   Stops are AA-checked against the #4b5563 secondary inks below. */
+		   Stops are AA-checked against the var(--color-text-secondary) secondary inks below. */
 		--about-gradient: linear-gradient(
 			120deg,
 			#ffe9d6,
@@ -148,14 +148,14 @@
 		font-size: 0.8125rem;
 		font-weight: 500;
 		/* The rail title's ink — AA (>= 5.4:1) on every gradient stop. */
-		color: #4b5563;
+		color: var(--color-text-secondary);
 	}
 
 	.about-credit {
 		margin: 1rem 0 0 0;
 		font-size: 0.75rem;
 		/* The rail title's ink — AA (>= 5.4:1) on every gradient stop. */
-		color: #4b5563;
+		color: var(--color-text-secondary);
 	}
 
 	.about-link {
@@ -164,7 +164,7 @@
 		font-size: 0.75rem;
 		/* The new-chat button's deepened blue ink — readable on pastels
 		   where the raw accent blue is not. */
-		color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, #1e3a8a);
+		color: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 50%, var(--color-navy-focus));
 		text-decoration: none;
 	}
 

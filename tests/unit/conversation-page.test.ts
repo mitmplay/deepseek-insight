@@ -17,6 +17,21 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Page from '../../src/routes/+page.svelte';
 import { reactiveTestPage } from '../stubs/app-state-shared.svelte';
 import { addPanelFromSidebar, movePanelFromRegistry, resetPanelRegistryForTests, selectPanelFromRegistry } from '$lib/services/panels/panel-registry';
+// ADR-0019 W1: the floor state is MODULE-scope now — a zombie page's
+// persistence effect re-runs on every later mutation and rewrites desks
+// (heap OOM across repeated mounts). Track every instance; afterEach
+// tears them all down with the REAL unmount — the element cast
+// (`unmount(target.firstElementChild as never)`) never stopped effects.
+const livePages: unknown[] = [];
+function trackPage<T>(instance: T): T {
+	livePages.push(instance);
+	return instance;
+}
+afterEach(() => {
+	while (livePages.length > 0) {
+		unmount(livePages.pop() as never);
+	}
+});
 import { resetSpineFeedForTests } from '$lib/services/conversation/spine-feed.svelte';
 import { executeCommand } from '$lib/services/chat/command-executor';
 import { parseCommand } from '$lib/services/chat/command-parser';
@@ -290,7 +305,7 @@ describe('+page.svelte — rendering from stubbed data', () => {
 					lastSeq: -1,
 					running: false
 				});
-		mount(Page, { target });
+		trackPage(mount(Page, { target }));
 		await settle();
 		expect(target.querySelector('[data-testid="transcript-empty"]')).not.toBeNull();
 		// 2026-08-25: the copy-id button moved to the floor's PanelHeader —
@@ -314,7 +329,7 @@ describe('+page.svelte — rendering from stubbed data', () => {
 					lastSeq: 2,
 					running: false
 				});
-		mount(Page, { target });
+		trackPage(mount(Page, { target }));
 		await settle();
 
 		// Group anchors: one per group, keyed by the group's content id —
@@ -357,7 +372,7 @@ describe('+page.svelte — rendering from stubbed data', () => {
 					lastSeq: 9,
 					running: false
 				});
-		mount(Page, { target });
+		trackPage(mount(Page, { target }));
 		await settle();
 
 		// OCI two-group adoption (2026-08-21): user prompt → message-bubble
@@ -400,7 +415,7 @@ describe('+page.svelte — rendering from stubbed data', () => {
 					lastSeq: 25,
 					running: false
 				});
-		mount(Page, { target });
+		trackPage(mount(Page, { target }));
 		await settle();
 
 		const chip = target.querySelector('[data-testid="turn-error-chip"]');
@@ -441,7 +456,7 @@ describe('+page.svelte — rendering from stubbed data', () => {
 					lastSeq: 2,
 					running: true
 				});
-		mount(Page, { target });
+		trackPage(mount(Page, { target }));
 		await settle();
 
 		expect(target.querySelector('[data-testid="running-status"]')?.getAttribute('aria-label')).toBe('running');
@@ -471,7 +486,7 @@ describe('+page.svelte — load-older sentinel (W3)', () => {
 		const target = document.createElement('div');
 		document.body.appendChild(target);
 		stageSeedData({ sessionId: 's-page', entries: [], lastSeq: -1, running: false, ...props });
-		const instance = mount(Page, { target });
+		const instance = trackPage(mount(Page, { target }));
 		await settle();
 		return { target, instance };
 	}
@@ -572,7 +587,7 @@ describe('+page.svelte — answerer cards (task 2.3-T)', () => {
 						}
 					]
 				});
-		mount(Page, { target });
+		trackPage(mount(Page, { target }));
 		await settle();
 		const card = target.querySelector('[data-testid="approval-card"]') as HTMLElement;
 		expect(card).not.toBeNull();
@@ -625,7 +640,7 @@ describe('+page.svelte — answerer cards (task 2.3-T)', () => {
 						}
 					]
 				});
-		mount(Page, { target });
+		trackPage(mount(Page, { target }));
 		await settle();
 		const card = target.querySelector('[data-testid="question-card"]') as HTMLElement;
 		expect(card).not.toBeNull();
@@ -760,7 +775,7 @@ describe('+page.svelte — header rename control (W3, task 3.1)', () => {
 		const target = document.createElement('div');
 		document.body.appendChild(target);
 		stageSeedData({ entries: [], lastSeq: -1, running: false, sessionId: 's-page', ...props });
-		mount(Page, { target });
+		trackPage(mount(Page, { target }));
 		await settle();
 		return { target };
 	}
@@ -830,7 +845,7 @@ describe('+page.svelte — shell passes data.* through to ConversationPanel (W2,
 		const target = document.createElement('div');
 		document.body.appendChild(target);
 		stageSeedData({ sessionId: 's-shell', entries: [], lastSeq: -1, running: false });
-		mount(Page, { target });
+		trackPage(mount(Page, { target }));
 		await settle();
 		// sessionId flowed: page → panel → header (identity attribute) AND the
 		// panel's store is bound to this session (respond carrier prefix).
@@ -858,7 +873,7 @@ describe('+page.svelte — shell passes data.* through to ConversationPanel (W2,
 					lastSeq: -1,
 					running: false
 				});
-		mount(Page, { target });
+		trackPage(mount(Page, { target }));
 		await settle();
 		expect(target.querySelector('[data-testid="session-title"]')?.textContent).toContain('Shell Contract');
 		// Workspace chip: full cwd on the tooltip, basename label (SessionIdAndName).
@@ -886,7 +901,7 @@ describe('+page.svelte — shell passes data.* through to ConversationPanel (W2,
 					running: true,
 					hasMore: true
 				});
-		mount(Page, { target });
+		trackPage(mount(Page, { target }));
 		// Cold-prop contract asserted BEFORE any microtask can land a poll:
 		// the first orchestrator poll would apply the stub's running:false and
 		// overwrite the cold status (store.applyStatus semantics) — so the
@@ -915,7 +930,7 @@ describe('+page.svelte — shell passes data.* through to ConversationPanel (W2,
 		document.body.appendChild(target);
 		try {
 			stageSeedData({ sessionId: 's-agent', entries: [], lastSeq: -1, running: false, agentPreset: 'app-dev' });
-			mount(Page, { target });
+			trackPage(mount(Page, { target }));
 			await settle();
 			const chip = target.querySelector('[data-testid="agent-chip"]') as HTMLElement;
 			expect(chip).not.toBeNull();
@@ -954,7 +969,7 @@ describe('+page.svelte — shell passes data.* through to ConversationPanel (W2,
 		document.body.appendChild(target);
 		try {
 			stageSeedData({ sessionId: 's-creator', entries: [], lastSeq: -1, running: false, agentPreset: 'cordis' });
-			mount(Page, { target });
+			trackPage(mount(Page, { target }));
 			await settle();
 			const chip = target.querySelector('[data-testid="agent-chip"]') as HTMLElement;
 			expect(chip).not.toBeNull();
@@ -1017,7 +1032,7 @@ describe('+page.svelte — a2a chip join on the spine cadence (W4 4.2-T)', () =>
 		document.body.appendChild(target);
 		try {
 			stageSeedData({ sessionId: 's-a2a', entries: [], lastSeq: -1, running: false });
-			mount(Page, { target });
+			trackPage(mount(Page, { target }));
 			await vi.advanceTimersByTimeAsync(0);
 			await vi.advanceTimersByTimeAsync(0);
 			// The spine tick's a2a fetch is addressed to the sender panel.
@@ -1075,7 +1090,7 @@ describe('+page.svelte — a2a chip join on the spine cadence (W4 4.2-T)', () =>
 		document.body.appendChild(target);
 		try {
 			stageSeedData({ sessionId: 's-timer', entries: [], lastSeq: -1, running: false });
-			mount(Page, { target });
+			trackPage(mount(Page, { target }));
 			await settle();
 			await settle();
 			// The PRE-EXISTING trio only (probe-verified 2026-08-25): the
@@ -1090,7 +1105,12 @@ describe('+page.svelte — a2a chip join on the spine cadence (W4 4.2-T)', () =>
 		// it does not exist.
 		expect(intervals.length).toBe(3);
 			expect(intervals.every(([, ms]) => ms === 5_000)).toBe(true);
-			const pageOwned = stacks.filter((st) => st.includes('+page.svelte'));
+			// ADR-0018 W2: the spine subscription effect moved into
+			// services/workspace/page-feeds.svelte.ts — same single timer,
+			// new stack site. Route + feed service together = the one effect.
+			const pageOwned = stacks.filter(
+				(st) => st.includes('+page.svelte') || st.includes('page-feeds.svelte')
+			);
 			expect(pageOwned.length).toBe(1); // the spine effect alone
 			// And with rows flowing, the chip rendered — zero new timers.
 			expect(target.querySelector('[data-testid="a2a-chip"]')).not.toBeNull();
@@ -1151,7 +1171,7 @@ describe('+page.svelte — lineage pin under floor operations (task 3.2-T)', () 
 		stageSeedData({ sessionId: 's1', entries: [], lastSeq: -1, running: false });
 		const target = document.createElement('div');
 		document.body.appendChild(target);
-		mount(Page, { target });
+		trackPage(mount(Page, { target }));
 		await settle();
 		return target;
 	}
@@ -1632,7 +1652,7 @@ describe('+page.svelte — swap-focus (the /new successor takes the caret)', () 
 		stageSeedData({ sessionId: 's1', entries: [], lastSeq: -1, running: false });
 		const target = document.createElement('div');
 		document.body.appendChild(target);
-		mount(Page, { target });
+		trackPage(mount(Page, { target }));
 		await settle();
 		try {
 			await submitLine(target, '/new');
@@ -1656,7 +1676,7 @@ describe('+page.svelte — swap-focus (the /new successor takes the caret)', () 
 		stageSeedData({ sessionId: 's1', entries: [], lastSeq: -1, running: false });
 		const target = document.createElement('div');
 		document.body.appendChild(target);
-		mount(Page, { target });
+		trackPage(mount(Page, { target }));
 		await settle();
 		try {
 			await submitLine(target, '/new');
@@ -1696,7 +1716,7 @@ describe('+page.svelte — swap-focus (the /new successor takes the caret)', () 
 		reactiveTestPage.data = {};
 		const target = document.createElement('div');
 		document.body.appendChild(target);
-		mount(Page, { target });
+		trackPage(mount(Page, { target }));
 		await settleSwap();
 		try {
 			expect(ids()).toEqual(['s1']);

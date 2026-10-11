@@ -56,7 +56,7 @@
 				<img
 					src={slots[ref.attachmentId]!.url}
 					alt={ref.name ?? 'attached image'}
-					class="max-h-48 max-w-[16rem] rounded-lg border border-slate-300 object-contain"
+					class="max-h-48 max-w-[16rem] rounded-lg border border-surface-border object-contain"
 					data-testid="message-image"
 					loading="lazy"
 				/>
@@ -64,14 +64,14 @@
 				<div
 					role="alert"
 					data-testid="message-image-failed"
-					class="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-600"
+					class="flex items-center gap-1.5 rounded-lg border border-danger-wash-border bg-danger-wash px-2 py-1 text-xs text-status-fail"
 				>
 					<span>Image unavailable — the read was refused{ref.name ? ' (' + ref.name + ')' : ''}</span>
 				</div>
 			{:else}
 				<div
 					data-testid="message-image-loading"
-					class="h-16 w-24 animate-pulse rounded-lg border border-slate-200 bg-slate-100"
+					class="h-16 w-24 animate-pulse rounded-lg border border-surface-border bg-surface-alt"
 					aria-label="Loading image"
 				></div>
 			{/if}

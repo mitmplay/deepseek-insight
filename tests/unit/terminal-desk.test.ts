@@ -238,11 +238,17 @@ describe('TerminalDesk — D5 close cascades', () => {
 
 describe('TerminalDesk — 2.3-T floor pin (one-desk invariant + action forward, source level)', () => {
 	it('the floor keeps the one-desk grammar and forwards the action into the desk', () => {
+		// ADR-0019 W1: the one-desk grammar lives in the floor service now;
+		// the route keeps the desk mount + the action-forwarding dep seam.
 		const src = readFileSync('src/routes/+page.svelte', 'utf8');
+		// ADR-0022 W4: the one-desk grammar moved WHOLE to floor-registry/grammar.ts;
+		// the shell re-exports the surface (orchestrator-owned pin re-point).
+		const svc = readFileSync('src/lib/services/panels/floor-registry/grammar.ts', 'utf8');
 		// ONE desk: the open terminal takes the FOCUS; only a miss inserts.
-		expect(src).toContain("panels.find((p) => p.kind === 'terminal')");
-		// the parsed command action reaches the desk's applyAction
-		expect(src).toContain('terminalDeskRef.applyAction(request.action)');
+		expect(svc).toContain("panels.find((p) => p.kind === 'terminal')");
+		// the parsed command action reaches the desk's applyAction (dep seam)
+		expect(svc).toContain('d().applyTerminalDeskAction(request.action)');
+		expect(src).toContain('applyTerminalDeskAction: (a) => terminalDeskRef?.applyAction(a)');
 		// the floor renders the DESK, not a bare panel, in the terminal branch
 		expect(src).toContain('bind:this={terminalDeskRef}');
 		// the rebuild ladder's remembered half rides the entry into the desk

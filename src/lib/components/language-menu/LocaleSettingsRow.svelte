@@ -71,10 +71,10 @@
 			{/each}
 		</select>
 		{#if saving}
-			<span class="text-xs text-neutral-400" data-testid="locale-saving">…</span>
+			<span class="text-xs text-text-muted" data-testid="locale-saving">…</span>
 		{/if}
 		{#if errorNote}
-			<span class="text-xs text-red-400" data-testid="locale-error">{errorNote}</span>
+			<span class="text-xs text-status-fail" data-testid="locale-error">{errorNote}</span>
 		{/if}
 	</div>
 {/if}

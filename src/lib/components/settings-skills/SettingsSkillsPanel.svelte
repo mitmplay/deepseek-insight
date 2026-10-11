@@ -510,9 +510,9 @@
 		padding: 0 0.5rem;
 	}
 	.shelf-error {
-		color: #e74c3c;
+		color: var(--color-danger-madrid);
 	}
 	.shelf-warn {
-		color: #b45309;
+		color: var(--color-accent-amber-ink-deep);
 	}
 </style>

@@ -233,7 +233,7 @@
 	<div class="mx-auto flex max-w-3xl flex-col gap-3">
 		<LoadOlderSentinel {hasMore} {loadingOlder} {olderError} onload={onloadolder} />
 		{#if entries.length === 0}
-			<p data-testid="transcript-empty" class="text-sm text-slate-400">
+			<p data-testid="transcript-empty" class="text-sm text-text-muted">
 				{t(m.nothingRecorded)}
 			</p>
 		{/if}

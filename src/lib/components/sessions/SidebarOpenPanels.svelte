@@ -556,12 +556,12 @@
 		flex-direction: column;
 		gap: 0.125rem;
 		padding: 0.25rem;
-		border: 1px solid color-mix(in srgb, var(--color-accent-blue, #3b82f6) 35%, #fff);
+		border: 1px solid color-mix(in srgb, var(--color-accent-blue, #3b82f6) 35%, var(--color-surface-elevated));
 		border-radius: 0.5rem;
 		background: linear-gradient(
 			180deg,
-			color-mix(in srgb, var(--color-accent-blue, #3b82f6) 14%, #fff),
-			color-mix(in srgb, var(--color-accent-blue, #3b82f6) 7%, #fff)
+			color-mix(in srgb, var(--color-accent-blue, #3b82f6) 14%, var(--color-surface-elevated)),
+			color-mix(in srgb, var(--color-accent-blue, #3b82f6) 7%, var(--color-surface-elevated))
 		);
 		/* NO bottom margin — the parent column's gap spaces this box
 		   from the separator; a margin here would count as scrollable
@@ -613,7 +613,7 @@
 	}
 
 	.group-head:hover {
-		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 18%, #fff);
+		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 18%, var(--color-surface-elevated));
 	}
 
 	/* Keyboard focus gets a RING, not just the hover field — a visible
@@ -621,14 +621,14 @@
 	   50% accent-deep mix measured 3.98:1 — under the 3:1 an indicator
 	   needs to pop reliably at the ring's thin stroke). */
 	.group-head:focus-visible {
-		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 18%, #fff);
-		outline: 2px solid #1e3a8a;
+		background: color-mix(in srgb, var(--color-accent-blue, #3b82f6) 18%, var(--color-surface-elevated));
+		outline: 2px solid var(--color-navy-focus);
 		outline-offset: -2px;
 	}
 
 	.group-head :global(svg) {
 		flex-shrink: 0;
-		color: #1e3a8a;
+		color: var(--color-navy-focus);
 	}
 
 	/* Title — `Focused - <selected session name>`, exactly the row-label
@@ -648,6 +648,6 @@
 		overflow: hidden;
 		white-space: nowrap;
 		font-weight: 600;
-		color: #1e3a8a;
+		color: var(--color-navy-focus);
 	}
 </style>

@@ -170,13 +170,13 @@
 	title={t(m.attachImages)}
 	aria-label={t(m.attachImages)}
 	data-testid="attach-button"
-	class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 disabled:cursor-not-allowed disabled:opacity-30"
+	class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface-alt hover:text-text-secondary disabled:cursor-not-allowed disabled:opacity-30"
 >
 	<Paperclip size={16} />
 </button>
 
 {#if note}
-	<div role="alert" data-testid="attach-note" class="text-xs text-red-600">{note}</div>
+	<div role="alert" data-testid="attach-note" class="text-xs text-status-fail">{note}</div>
 {/if}
 
 {#if dragActive}
@@ -184,7 +184,7 @@
 		data-testid="drop-overlay"
 		class="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40"
 	>
-		<p class="rounded-lg bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-lg">
+		<p class="rounded-lg bg-surface-elevated px-4 py-2 text-sm font-medium text-text-primary shadow-lg">
 			{disabled
 				? t(m.cannotAttachLocked)
 				: t(() => m.dropImagesToAttach({ n: limits.maxImagesPerMessage, bytes: formatLimitBytes(limits.maxImageBytes) }))}

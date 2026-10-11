@@ -24,6 +24,7 @@
 	// Three Tongues W2 (ADR 2026-09-12): the locale row rides the dsi
 	// document through the same /api/settings seam — no side-channel write.
 	import LocaleSettingsRow from '$lib/components/language-menu/LocaleSettingsRow.svelte';
+	import ThemeSettingsRow from '$lib/components/panels/ThemeSettingsRow.svelte';
 	import type { YamlEditorHandle } from './settings-monaco';
 
 	let {
@@ -147,6 +148,7 @@
 	<div class="settings-toolbar">
 		<span class="settings-title">{title}{missing ? ' ' + t(m.newFile) : ''}</span>
 		{#if target === 'dsi'}
+			<ThemeSettingsRow />
 			<LocaleSettingsRow />
 		{/if}
 		<span class="settings-state" data-testid="settings-state">
@@ -200,8 +202,8 @@
 	.settings-error {
 		margin: 0;
 		padding: 0.4rem 0.75rem;
-		background: #45161c;
-		color: #ffb4bb;
+		background: var(--color-danger-editor-surface);
+		color: var(--color-danger-editor-ink);
 		font-size: 0.8rem;
 	}
 	.settings-editor-host {

@@ -39,7 +39,7 @@
 		color: inherit;
 	}
 	.shelf-reload-cancel:hover {
-		color: #cf222e;
-		border-color: #cf222e;
+		color: var(--color-danger-github);
+		border-color: var(--color-danger-github);
 	}
 </style>

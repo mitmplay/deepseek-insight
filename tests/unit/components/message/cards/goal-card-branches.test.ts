@@ -38,7 +38,7 @@ describe('GoalCard branch arms', () => {
 		});
 		const badge = view.target.querySelector('[data-testid="goal-phase"]');
 		expect(badge).not.toBeNull();
-		expect(badge!.className).toContain('bg-slate-50');
+		expect(badge!.className).toContain('bg-surface');
 		view.cleanup();
 
 		const blocked = { ...goal, phase: 'blocked', blockedReason: { code: 'no_progress', message: 'stuck' } };
@@ -47,7 +47,7 @@ describe('GoalCard branch arms', () => {
 			resultText: JSON.stringify({ goal: blocked })
 		});
 		const badge2 = view2.target.querySelector('[data-testid="goal-phase"]');
-		expect(badge2!.className).toContain('bg-red-50');
+		expect(badge2!.className).toContain('bg-danger-wash');
 		const note = view2.target.querySelector('[data-testid="goal-blocked"]');
 		expect(note).not.toBeNull();
 		expect(note!.textContent).toContain('stuck');

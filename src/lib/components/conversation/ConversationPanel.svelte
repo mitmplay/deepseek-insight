@@ -25,7 +25,7 @@
 	 * existing command banner. Catalog reads fire on first menu open,
 	 * never at mount (cold sessions stay cold).
 	 */
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { createConversationStore } from '$lib/services/conversation/store.svelte';
 	import { createPollingOrchestrator } from '$lib/services/conversation/polling-orchestrator.svelte';
 	import { invalidateSessionAttachmentUrls } from '$lib/services/conversation/attachment-urls.svelte';
@@ -43,24 +43,18 @@
 	import { setPanelMode } from '$lib/services/conversation/panel-context.svelte';
 	import { setConversationSession } from '$lib/services/conversation/session-context.svelte';
 	import { getCurrentModel } from '$lib/services/conversation/current-model';
-	import { parseCommand } from '$lib/services/chat/command-parser';
-	import {
-		executeCommand,
-		executeHostCommand,
-		resolveHostCommand,
-		sendPrompt
-	} from '$lib/services/chat/command-executor';
 	import { directoryFor, type SlashDirectory } from '$lib/services/chat/slash-directory.svelte';
-	import { macroRunner, macroRunState, TYPED_DRAFT_ID } from '$lib/services/chat/macro-runner.svelte';
-	import { isTypedRun } from '$lib/services/chat/macro-sections';
+	import { macroRunner, macroRunState } from '$lib/services/chat/macro-runner.svelte';
+	import { SubmitLadder } from './submit-ladder.svelte';
+	import { Popups } from './popups.svelte';
+	import { Paging } from './paging.svelte';
 	import MacroRunSheet from '$lib/components/conversation/MacroRunSheet.svelte';
 	import GoalBar from '$lib/components/conversation/GoalBar.svelte';
 	import type { DsiPermission } from '$lib/services/conversation/permission-state';
 	import type { DshRawEvent } from '$lib/services/conversation/dsh-events';
 	import { contextWindowOf } from '$lib/utils/context-window';
-	import { isTodoTool } from '$lib/utils/todo-lists';
 	import { groupTurns } from '$lib/utils/turn-grouping';
-	import { parseGoalView } from '$lib/utils/goals';
+	import { GoalBarMachine } from './goal-bar.svelte';
 	import type { DsiEntry, PendingAnswer, AnsweredSettlement, DsiA2aExchangeView } from '$lib/types';
 
 	let {
@@ -227,108 +221,27 @@
 	// svelte-ignore state_referenced_locally
 	store.seedPermission(permission, knobEvents);
 
-	let submitted = $state(false);
-
 	/** Chip popup state (2026-08-22, OCI pattern): ONE open chip at a time —
 	 * the id of the expanded entry; detail renders AFTER the chip row.
 	 * Per-panel by construction (moved here with the block). */
-	let openChipId: string | null = $state(null);
-	function toggleChip(id: string, autoOpen = false): void {
-		// Collapsing an AUTO-OPENED chip suppresses that slot until a newer
-		// target appears (the suppression is id-tied — stale ids never match).
-		if (autoOpen) {
-			if (id === autoPlanId) planSuppressedId = id;
-			else if (autoThinkId !== null && id === `r:${autoThinkId}`) thinkSuppressedId = autoThinkId;
-			return;
-		}
-		openChipId = openChipId === id ? null : id;
-		peekOpenRunKey = null; // peek and chip expansion are mutually exclusive
-	}
-
-	// ── Auto-open the live Think AND the current plan (2026-08-31) ──────
-	// While the panel STREAMS and the reader FOLLOWS the live end (stick),
-	// TWO auto-open slots run INDEPENDENTLY (neither flows through the
-	// single manual openChipId, so they never close each other):
-	//
-	//   think — the LATEST think chip (the one still thinking). Transient:
-	//   a newer think MOVES the open, and the turn ending (or leaving the
-	//   live end) closes it.
-	//
-	//   plan — the LATEST todo_write chip (the agent's current plan).
-	//   PERSISTENT: it survives newer thinks AND the turn ending — the plan
-	//   stays readable after the work is done. Only a NEWER todo_write
-	//   supersedes it (the open moves), or the user collapses it.
-	//
-	// Both recomputed on every poll; collapsing an auto chip suppresses
-	// THAT slot until its next target appears. Neither slot touches manual
-	// picks — an openChipId popup renders beside them.
-	let thinkSuppressedId: string | null = $state(null);
-	let planSuppressedId: string | null = $state(null);
-
-	/** The newest reasoning entry's id (wire order) while streaming AND
-	 *  stuck to the live end, else null — the transient think target. */
-	const autoThinkTargetId = $derived.by(() => {
-		if (!store.isStreaming || !stick) return null;
-		const renderEntries = store.renderEntries;
-		for (let i = renderEntries.length - 1; i >= 0; i--) {
-			const e = renderEntries[i]!;
-			if (e.kind === 'assistant-message' && e.reasoning !== undefined && e.reasoning !== '') return e.id;
-		}
-		return null;
-	});
-	/** Suppression-aware think target: null while the user kept THIS think
-	 *  collapsed (a newer think id simply stops matching). */
-	const autoThinkId = $derived(
-		autoThinkTargetId !== null && thinkSuppressedId === autoThinkTargetId ? null : autoThinkTargetId
-	);
-
-	/** The newest todo_write entry's id, STICKY: adopted only while
-	 *  streaming AND stuck (the detection window), then kept across newer
-	 *  thinks, turn end, and scroll-away — the plan stays on screen until
-	 *  a newer todo_write supersedes it or the user collapses it. */
-	let autoPlanIdRaw: string | null = $state(null);
-	$effect(() => {
-		if (!store.isStreaming || !stick) return;
-		const renderEntries = store.renderEntries;
-		for (let i = renderEntries.length - 1; i >= 0; i--) {
-			const e = renderEntries[i]!;
-			if (e.kind === 'tool-call' && isTodoTool(e.toolName)) {
-				autoPlanIdRaw = e.id;
-				break;
-			}
-		}
-	});
-	/** Suppression-aware plan target (same id-tied rule as the think). */
-	const autoPlanId = $derived(
-		planSuppressedId !== null && planSuppressedId === autoPlanIdRaw ? null : autoPlanIdRaw
-	);
-
-	/** Peek popup state (ToolPeekButton port, 2026-08-22): the run key whose
-	 * chip row has its list popup open — ONE at a time, and never while a
-	 * chip detail popup is open (OCI mutual-exclusion contract). */
-	let peekOpenRunKey: string | null = $state(null);
-	function togglePeek(runKey: string): void {
-		peekOpenRunKey = peekOpenRunKey === runKey ? null : runKey;
-		if (peekOpenRunKey !== null) openChipId = null;
-	}
+	// ── Popup state (ADR-0022 R2 W2) — moved WHOLE into popups.svelte.ts
+	// (ADR-0019): chip/peek mutual exclusion, the think/plan auto-open
+	// slots + id-tied suppression, and the sticky plan adoption effect
+	// ($effect.root + destroy(), proven-gates §1). The shell keeps the
+	// wiring; stick is a LIVE getter. ────────────────────────────────────
+	const popups = new Popups({ store, get stick() { return stick; } });
 
 	/** OCI two-group render (2026-08-21): prompt / context / assistant-turn. */
 	const groups = $derived(groupTurns(store.renderEntries));
 
-	// ── POC-2 W3: load-older paging (ledger truth, BC-4) ────────────────────
-	// hasMore drives the sentinel: hidden once the ledger head is reached.
-	// Intentional initial capture: hasMore is a property of the COLD LOAD's ledger
-	// page; later pages refresh it inside loadOlder. svelte-ignore state_referenced_locally
+	// ── Paging (ADR-0022 R2 W3) — moved WHOLE into paging.svelte.ts
+	// (ADR-0019): hasOlder/loadingOlder/olderError/firstSeq, the in-flight
+	// join, loadOlder, and the load-all drain. The shell keeps the wiring;
+	// sessionId is a LIVE getter. ─────────────────────────────────────────
+	// Intentional initial capture: hasMore is the COLD LOAD's sentinel; later
+	// pages refresh it inside the module (same capture the inline code had).
 	// svelte-ignore state_referenced_locally
-	let hasOlder = $state(hasMore);
-	let loadingOlder = $state(false);
-	let olderError = $state<string | null>(null);
-	/** First seq currently on screen — the page anchor for the next fetch. */
-	let firstSeq = $state(entriesFirstSeq());
-
-	function entriesFirstSeq(): number {
-		return store.entries.length > 0 ? store.entries[0].seq : -1;
-	}
+	const paging = new Paging({ store, get sessionId() { return sessionId; } }, hasMore);
 
 	/** Chat transcript viewport element (bound in markup). */
 	let viewport = $state<HTMLElement | undefined>(undefined);
@@ -355,72 +268,6 @@
 	// RAW scrollTop after the DOM grew, pointing into the freshly
 	// prepended page and fighting both native anchoring and stick.
 
-	// In-flight join (2026-08-26 shift-drain): loadOlder is reachable
-	// from THREE triggers — the sentinel's observer, the manual button,
-	// and the drain loop. The old boolean guard made concurrent callers
-	// silently no-op: a drain that started while the sentinel's page was
-	// mid-flight would see hasOlder still true, await nothing, and end
-	// "done" with pages left. Joining the shared promise instead makes
-	// every caller observe the SAME completion.
-	let olderInFlight: Promise<void> | null = null;
-
-	async function loadOlder(): Promise<void> {
-		if (olderInFlight) return olderInFlight;
-		const run = (async () => {
-			if (!hasOlder || firstSeq <= 0) return;
-			loadingOlder = true;
-			olderError = null;
-			try {
-				const url = `/api/dsh/session/${encodeURIComponent(sessionId)}/history?beforeSeq=${firstSeq}`;
-				const res = await fetch(url);
-				const body = (await res.json()) as {
-					ok: boolean;
-					entries?: DsiEntry[];
-					hasMore?: boolean;
-					error?: { code: string; message: string };
-				};
-				if (!res.ok || !body.ok) {
-					// Failure keeps the list intact — the user can scroll again to retry.
-					olderError = body.error?.message ?? `load older failed (${res.status})`;
-					return;
-				}
-				const added = store.prependOlder(body.entries ?? []);
-				hasOlder = body.hasMore === true && added;
-				firstSeq = entriesFirstSeq();
-			} catch (err) {
-					olderError = err instanceof Error ? err.message : String(err);
-			} finally {
-				loadingOlder = false;
-			}
-		})();
-		olderInFlight = run;
-		try {
-			await run;
-		} finally {
-			olderInFlight = null;
-		}
-	}
-
-	/** Shift+click far-edge jump (2026-08-26): drain EVERY remaining older
-	 *  page before the jump lands. Without it a plain "Back to top" reaches
-	 *  only the top of the loaded window — the sentinel auto-loads one page,
-	 *  the prepend anchor keeps the viewport put, and a long conversation
-	 *  costs one click per page. The drain ends on ledger truth (hasMore
-	 *  false, a duplicate page, or the head); the progress check is the
-	 *  belt-and-braces that can never loop on a standing answer, and the
-	 *  cap surfaces a lying server as an honest error, never a spinner. */
-	const LOAD_ALL_MAX_PAGES = 200;
-
-	async function loadAllOlder(): Promise<void> {
-		for (let i = 0; i < LOAD_ALL_MAX_PAGES; i += 1) {
-			if (!hasOlder || olderError !== null || firstSeq <= 0) return;
-			const before = firstSeq;
-			await loadOlder();
-			if (!hasOlder || olderError !== null) return;
-			if (firstSeq === before) return;
-		}
-		olderError = `stopped after ${LOAD_ALL_MAX_PAGES} pages — the ledger kept reporting more`;
-	}
 
 	onMount(() => {
 		// Runtime-added panel without cold data (W3 3.1): ask the floor owner
@@ -435,6 +282,7 @@
 		});
 		return () => {
 			orchestrator.stop();
+			popups.destroy();
 			// BC-A9 (task 3.4): the panel that showed this session's images
 			// owns their object URLs — closing it revokes them and bumps the
 			// cache generation so in-flight reads never publish.
@@ -442,193 +290,32 @@
 		};
 	});
 
-	/** Wave 2: images arrive serialized from the composer (Composer owns
-	 *  the only base64 moment — serialize-at-submit, BC-A2) and ride the
-	 *  widened submit; the boolean admits/denies draft clearing (BC-A3). */
-	/** Wave 2: images arrive serialized from the composer (Composer owns
-	 *  the only base64 moment — serialize-at-submit, BC-A2) and ride the
-	 *  widened submit; the boolean admits/denies draft clearing (BC-A3).
-	 * Commands delegate to the shared executor (Prompt Macro W1 1.2 — one
-	 * command/send surface for the typed path AND the macro runner); ordinary
-	 * sends flow through sendPrompt so the /use record guard lives in ONE
-	 * place (Suggest Strip ADR D5 contract, byte-identical). */
-	async function onsubmit(text: string, images: readonly { mediaType: string; data: string; name?: string }[]): Promise<boolean> {
-		// The Typed Run (2026-09-16, D3): a uniformly directive multi-line
-		// draft (every non-blank line starts /, @, or ? and there are at
-		// least two) enters the EXISTING runner as a synthetic row — the
-		// predicate routes BEFORE parseCommand, whose single whole-draft
-		// parse would otherwise bury line 2 in line 1's args. The runner
-		// applies slashBoundaries on the synthetic row's behalf (the single
-		// call-site divergence, macro-runner start); a refusal (live run,
-		// D4) banners through startMacro's existing note path. Single-line
-		// and mixed drafts fail the predicate and fall through byte-identical.
-		if (isTypedRun(text)) {
-			startMacro({ text, id: TYPED_DRAFT_ID }, false);
-			return true; // dispatch completed — drafts clear (BC-A7)
-		}
-		// Slash-command intercept (2026-08-25, OCI parser port): known
-		// commands run panel-side and never reach the model; unknown lines
-		// fall through as ordinary chat (the parser returns null).
-		const command = parseCommand(text);
-		if (command !== null) {
-			// onNote fires at the typed path's ORIGINAL banner points (the
-			// mention path notes at the prompt receipt, before the register);
-			// the final result covers everything else.
-			let bannered = false;
-			const result = await executeCommand(command, executorCtx(), (ok, note) => {
-				bannered = true;
-				noteCommand(ok ? 'ok' : 'error', note);
-			});
-			// The final note re-fires ONLY when no in-flight note landed
-			// (mention/permission bannered at their original points — a
-			// duplicate final fire would re-set the banner kind).
-			if (!bannered && result.note !== undefined) {
-				noteCommand(result.ok ? 'ok' : 'error', result.note);
-			}
-			return true; // completed dispatch clears drafts (BC-A7)
-		}
-		if (text.trim().length === 0 && images.length === 0) return false; // nothing to send
-		// Slash Menu ladder rung (Slash Menu ADR §3.2, task 2.3): the parser
-		// DECLINED — a first token naming a row of the CACHED command
-		// catalog executes through the native command route with the FULL
-		// line (arguments never re-parsed). Precedence is structural: the
-		// typed-gesture block above ran first; a name shared by a command
-		// and a skill resolves to the COMMAND because the ladder consults
-		// only the command rows (the native adjudication). result.ok
-		// admits/clears: a miss or error keeps the draft (BC-A3) — the
-		// honest banner note is the receipt, never a fallback model send.
-		if (slashCatalog?.state === 'ready') {
-			const hostCommand = resolveHostCommand(text, slashCatalog.commands);
-			if (hostCommand !== null) {
-				const result = await executeHostCommand(text, executorCtx(), (ok, note) =>
-					noteCommand(ok ? 'ok' : 'error', note)
-				);
-				return result.ok;
-			}
-		}
-		submitted = true;
-		try {
-			const result = await sendPrompt(text, executorCtx(), (t) =>
-				// Text-only on the macro path; manual sends with images keep the
-				// panel's own orchestration (optimistic bubble + poll cadence).
-				orchestrator.submit(t, images)
-			);
-			return result.ok;
-		} finally {
-			submitted = false;
-		}
-	}
+	// ── Submit ladder (ADR-0022 R2 W1) — moved WHOLE into
+	// submit-ladder.svelte.ts (ADR-0019): the onsubmit rungs (typed-run,
+	// parseCommand intercept, host-command rung, sendPrompt receipt),
+	// oncancel, the menu-pick twin, and the command banner. The shell keeps
+	// the wiring; deps are LIVE accessors (proven-gates §4). ─────────────
+	const ladder = new SubmitLadder({
+		ctx: executorCtx,
+		orchestrator,
+		get slashCatalog() {
+			return slashCatalog;
+		},
+		startMacro
+	});
 
-	async function oncancel(): Promise<void> {
-		await orchestrator.cancel();
-	}
-
-	// ── Slash commands (2026-08-25) — OCI ChatInput banner pattern ──────
-	/** Inline command feedback (role=status, auto-dismiss 5s) — the ONLY
-	 * command UI surface; the input has already cleared by intercept time.
-	 * The wire work lives in command-executor (Prompt Macro W1 1.2): the
-	 * /new create+swap, /permission route, and mention delivery are the
-	 * SAME bytes the typed path always sent — the panel now renders
-	 * outcomes only (banner kind from result.ok). */
-	let commandNote = $state<{ kind: 'ok' | 'error'; text: string } | null>(null);
-	let commandNoteTimer: ReturnType<typeof setTimeout> | undefined;
-
-	function noteCommand(kind: 'ok' | 'error', text: string): void {
-		commandNote = { kind, text };
-		if (commandNoteTimer !== undefined) clearTimeout(commandNoteTimer);
-		commandNoteTimer = setTimeout(() => (commandNote = null), 5_000);
-	}
-
-	// ── Goal bar wiring (ADR "The Goal Bar", 2026-09-08, D3 as amended
-	// 2026-09-08: actions ride the host's goals/* Remotes — commands/execute
-	// does not admit /goal on the web plane) ─────────────────────────────
-	/** True while a goals/* verb is in flight — the chip drops re-clicks
-	 *  (the CAS ref comes from the CURRENT rendered goal; a stale one loses
-	 *  host-side and the next projection delta corrects the bar). */
-	let goalBusy = $state(false);
-
-	/** Send one goals/<verb> mutation with the goal's CAS ref. The edit
-	 *  verb carries the changed-fields payload (Goal Editor ADR D3). */
-	async function runGoalVerb(
-		verb: 'pause' | 'resume' | 'clear' | 'edit',
-		payload?: { objective?: string; maxGoalRounds?: number }
-	): Promise<void> {
-		const goal = store.goal;
-		if (goalBusy || goal === null || goal === undefined) return;
-		goalBusy = true;
-		try {
-			const res = await fetch(`/api/dsh/session/${encodeURIComponent(sessionId)}/goal`, {
-				method: 'POST',
-				headers: { 'content-type': 'application/json' },
-				body: JSON.stringify({
-					verb,
-					ref: { id: goal.id, revision: goal.revision },
-					...(payload === undefined ? {} : { edit: payload })
-				})
-			});
-			const body = (await res.json().catch(() => null)) as
-				| { ok?: boolean; error?: { message?: string } }
-				| null;
-			if (body?.ok === true) {
-				// The RemoteResult's GoalView is HOST truth — apply it now so the
-				// chip's phase and CAS ref are fresh before the next poll (a
-				// quick second action then carries the new revision, not the
-				// stale one the host would honestly refuse).
-				const view = parseGoalView((body as { value?: unknown }).value);
-				if (view !== undefined) store.applyGoal(view);
-				if (verb === 'edit') goalEditor = null;
-				noteCommand('ok', `goal ${verb}`);
-			} else {
-				noteCommand('error', body?.error?.message ?? `goal ${verb} failed`);
-			}
-		} catch (err) {
-			noteCommand('error', `goal ${verb} failed (${err instanceof Error ? err.message : String(err)})`);
-		} finally {
-			goalBusy = false;
-		}
-	}
-
-	// ── Goal editor state (Goal Editor ADR D2/D4) — panel-owned; GoalBar
-	// renders the fields and emits callbacks. ─────────────────────────────
-	let goalEditor = $state<{ objective: string; maxGoalRounds: number } | null>(null);
-
-	/** Open the editor, pre-filled from the CURRENT projection. */
-	function openGoalEditor(): void {
-		const goal = store.goal;
-		if (goal === null || goal === undefined) return;
-		goalEditor = { objective: goal.objective, maxGoalRounds: goal.maxGoalRounds };
-	}
-
-	/** One form field changed — update the panel-owned editor state. */
-	function editGoalField(field: 'objective' | 'maxGoalRounds', value: string): void {
-		if (goalEditor === null) return;
-		if (field === 'objective') goalEditor.objective = value;
-		else {
-			const parsed = Number(value);
-			goalEditor.maxGoalRounds = Number.isFinite(parsed) ? parsed : goalEditor.maxGoalRounds;
-		}
-	}
-
-	/** Diff the editor against the CURRENT store goal at submit time (ADR
-	 *  D3 — a model-side edit between form-open and submit must not be
-	 *  clobbered by an untouched prefill) and submit the changed fields. */
-	function submitGoalEditor(): void {
-		const goal = store.goal;
-		const editor = goalEditor;
-		if (editor === null || goal === null || goal === undefined) return;
-		const objective = editor.objective.trim();
-		const changed: { objective?: string; maxGoalRounds?: number } = {};
-		if (objective.length > 0 && objective !== goal.objective) changed.objective = objective;
-		const rounds = Number(editor.maxGoalRounds);
-		if (Number.isSafeInteger(rounds) && rounds >= 1 && rounds !== goal.maxGoalRounds) {
-			changed.maxGoalRounds = rounds;
-		}
-		if (changed.objective === undefined && changed.maxGoalRounds === undefined) {
-			noteCommand('error', 'nothing changed — edit the objective or the round cap');
-			return;
-		}
-		void runGoalVerb('edit', changed);
-	}
+	// ── Goal bar (ADR-0022 R2 W4) — moved WHOLE into goal-bar.svelte.ts
+	// (ADR-0019): the goals/* CAS machine (goalBusy, runGoalVerb with the
+	// eager RemoteResult apply) and the panel-owned editor (open/edit/
+	// diff-submit). noteCommand is INJECTED from W1's ladder, never
+	// imported; sessionId is a LIVE getter. ──────────────────────────────
+	const goal = new GoalBarMachine({
+		store,
+		get sessionId() {
+			return sessionId;
+		},
+		noteCommand: (kind, text) => ladder.noteCommand(kind, text)
+	});
 
 	/** The executor context this panel's commands run under — live prop
 	 *  values read at call time (the /new successor swap may change them
@@ -653,16 +340,6 @@
 	 *  here would put it inside the caller's effect and loop it. */
 	function onslashopen(): void {
 		slashCatalog = directoryFor(sessionId);
-	}
-
-	/** Menu command pick: the SAME rung the ladder uses (one execution
-	 *  surface, D2), banner notes through the shared note path; the
-	 *  boolean admits the composer's draft clearing (BC-A3). */
-	async function onpickcommand(line: string): Promise<boolean> {
-		const result = await executeHostCommand(line, executorCtx(), (ok, note) =>
-			noteCommand(ok ? 'ok' : 'error', note)
-		);
-		return result.ok;
 	}
 
 	/**
@@ -869,11 +546,11 @@
 		// with a note — surface it on the panel's banner so the refusal is
 		// VISIBLE (one-run-at-a-time + fail-loud, D6).
 		if (result.phase === 'failed') {
-			noteCommand('error', result.note ?? 'macro refused');
+			ladder.noteCommand('error', result.note ?? 'macro refused');
 			return;
 		}
 		if (result.note !== null && result.note.includes('already running')) {
-			noteCommand('error', result.note);
+			ladder.noteCommand('error', result.note);
 		}
 	}
 </script>
@@ -927,16 +604,16 @@
 		bind:stick
 		entries={store.entries}
 		{groups}
-		hasMore={hasOlder}
-		{loadingOlder}
-		{olderError}
-		onloadolder={() => void loadOlder()}
-		{openChipId}
-		ontogglechip={toggleChip}
-		{autoThinkId}
-		{autoPlanId}
-		{peekOpenRunKey}
-		ontogglepeek={togglePeek}
+		hasMore={paging.hasOlder}
+		loadingOlder={paging.loadingOlder}
+		olderError={paging.olderError}
+		onloadolder={() => void paging.loadOlder()}
+		openChipId={popups.openChipId}
+		ontogglechip={(id, autoOpen) => popups.toggleChip(id, autoOpen)}
+		autoThinkId={popups.autoThinkId}
+		autoPlanId={popups.autoPlanId}
+		peekOpenRunKey={popups.peekOpenRunKey}
+		ontogglepeek={(runKey) => popups.togglePeek(runKey)}
 		{pendingCards}
 		{settledCards}
 		onanswer={(rpcId, payload) => void onanswer(rpcId, payload)}
@@ -953,13 +630,13 @@
 		{groups}
 		container={viewport}
 		todos={store.todos ?? null}
-		onloadall={() => loadAllOlder()}
+		onloadall={() => paging.loadAllOlder()}
 		onleavebottom={() => onStickToggle(false)}
 		shelfentries={store.entries}
 		shelfsessionid={sessionId}
 		shelfworkspace={workspace}
 		shelfpanelid={panelId}
-		onshelfnote={(ok, note) => noteCommand(ok ? 'ok' : 'error', note)}
+		onshelfnote={(ok, note) => ladder.noteCommand(ok ? 'ok' : 'error', note)}
 	/>
 
 	<!-- W4 4.2: the sender panel's a2a delegation chips — read-only join of
@@ -969,14 +646,14 @@
 
 	<!-- Slash-command feedback (2026-08-25, OCI banner pattern): the host's
 	     own reply text for /permission; /new's failures. 5s auto-dismiss. -->
-	{#if commandNote !== null}
+	{#if ladder.commandNote !== null}
 		<div
 			class="command-note"
-			class:command-note-error={commandNote.kind === 'error'}
+			class:command-note-error={ladder.commandNote.kind === 'error'}
 			data-testid="command-note"
 			role="status"
 		>
-			{commandNote.text}
+			{ladder.commandNote.text}
 		</div>
 	{/if}
 
@@ -1031,14 +708,14 @@
 	     Remotes with the CAS ref (paperwork stays silent). -->
 		<GoalBar
 			goal={store.goal}
-			onpause={() => void runGoalVerb('pause')}
-			onresume={() => void runGoalVerb('resume')}
-			onclear={() => void runGoalVerb('clear')}
-			onedit={openGoalEditor}
-			editor={goalEditor}
-			oneditinput={editGoalField}
-			oneditsubmit={submitGoalEditor}
-			oneditcancel={() => (goalEditor = null)}
+			onpause={() => void goal.runGoalVerb('pause')}
+			onresume={() => void goal.runGoalVerb('resume')}
+			onclear={() => void goal.runGoalVerb('clear')}
+			onedit={() => goal.openGoalEditor()}
+			editor={goal.goalEditor}
+			oneditinput={(field, value) => goal.editGoalField(field, value)}
+			oneditsubmit={() => goal.submitGoalEditor()}
+			oneditcancel={() => (goal.goalEditor = null)}
 		/>
 		<!-- Agent panels (2026-09): the stick toggle floats bottom-right
 	     OVER the transcript's bottom edge, directly above the composer —
@@ -1051,10 +728,10 @@
 				</div>
 			{/if}
 			<ConversationFooter
-				{onsubmit}
-				{oncancel}
+				onsubmit={(text, images) => ladder.onsubmit(text, images)}
+				oncancel={() => ladder.oncancel()}
 			isStreaming={store.isStreaming}
-			sending={submitted}
+			sending={ladder.submitted}
 			{sessionId}
 			{contextTokens}
 			{totalContextLimit}
@@ -1066,7 +743,7 @@
 			onrows={(rows) => (stripRowsMirror = rows)}
 			{slashCatalog}
 			{onslashopen}
-			{onpickcommand}
+			onpickcommand={(line) => ladder.onpickcommand(line)}
 			focusOnMount={focusComposer}
 			onfocused={() => oncomposerfocus?.()}
 				{focused}
@@ -1096,11 +773,11 @@
 		border-radius: 6px;
 		font-size: 0.75rem;
 		background: rgba(16, 185, 129, 0.12);
-		color: #047857;
+		color: var(--color-success-ink);
 	}
 	.command-note-error {
 		background: rgba(239, 68, 68, 0.12);
-		color: #b91c1c;
+		color: var(--si-run);
 	}
 	.composer-error {
 		display: flex;
@@ -1125,7 +802,7 @@
 		right: 0.5rem;
 		bottom: 1.75rem;
 		z-index: 20;
-		background: var(--color-surface, #fff);
+		background: var(--color-surface, var(--color-surface-elevated));
 		border-radius: 8px;
 		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
 		padding: 0.125rem;

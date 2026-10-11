@@ -80,7 +80,7 @@
 		font-size: 0.75rem;
 		font-family: ui-monospace, monospace;
 		color: var(--color-text-primary, #212529);
-		background: var(--color-surface-primary, #fff);
+		background: var(--color-surface-primary, var(--color-surface-elevated));
 	}
 
 	.add-panel input:focus-visible {

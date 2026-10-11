@@ -6,7 +6,7 @@
 	 * 2026-09-06 from PromptsManagerDialog ln 256-442): sticky toolbar +
 	 * head table, error strip, add-row, body table, footer — plus the
 	 * edit dialog, which travels with the panel because its form state
-	 * (editingRow/editText/…) is the table's own.
+	 * (the editor machine, ADR-0022 W3) is the table's own.
 	 *
 	 * Presentational: rows arrive via /api/prompts fetch, the panel owns
 	 * inline-edit + search + sort + selection state. Callbacks: onclose
@@ -27,14 +27,14 @@
 	import PromptManagerTDUses from './PromptManagerTDUses.svelte';
 	import PromptManagerEdit from './PromptManagerEdit.svelte';
 	import PromptManagerAdd from './PromptManagerAdd.svelte';
-	import { isValidTagWord, parseTagWords, type SuggestedPrompt } from '$lib/services/chat/prompt-trigger.js';
+	
 	import { appConfig, loadAppConfig } from '$lib/services/config/app-config.svelte';
 	import { getWorkspaceState } from '$lib/services/conversation/workspace-context.svelte';
-	import { loadTagFilter, saveTagFilter } from '$lib/utils/prompt-tag-prefs';
+	import { PromptTable } from './table.svelte';
+import { PromptFilters } from './filters.svelte';
+import { PromptEditor } from './editor.svelte';
 
-	type Row = SuggestedPrompt;
-
-	let {
+		let {
 		onclose,
 		onchanged,
 		escapeScope = 'window',
@@ -55,35 +55,17 @@
 		host?: 'modal' | 'panel';
 	} = $props();
 
-	let rows = $state<Row[]>([]);
-	let total = $state(0);
-	let searchQ = $state('');
-	/** Sort state: null = unsorted (server default), else {col, dir}.
-	 *  Clicking a column cycles: unsorted → asc → desc → unsorted. */
-	let sortState = $state<{ col: 'uses' | 'last_used' | 'display'; dir: 'asc' | 'desc' } | null>(null);
 	/** Label/text cell mode (2026-09-19): 'pre' — the raw text, 5 lines
 	 *  then scroll (the DEFAULT); 'norm' — the flowing preview. */
 	let textMode = $state<'norm' | 'pre'>('pre');
-	let loading = $state(false);
-	let editingId = $state<number | null>(null);
-	/** The row being edited — its table row stays highlighted while the
-	 *  edit dialog is open (OCI user spec 2026-08-14). */
-	let editingRow = $state<Row | null>(null);
-	let editText = $state('');
-	let editLabel = $state('');
-	let editUses = $state('1');
-	let editMacro = $state(false);
-	let editTags = $state('');
-	let addingNew = $state(false);
-	let newText = $state('');
-	let newLabel = $state('');
-	let newTags = $state('');
-	// Add-dialog uses/macro seeds (aligned with the Edit dialog's contract):
-	// defaults mirror createPrompt's own insert defaults (1 / not-macro).
-	let newUses = $state('1');
-	let newMacro = $state(false);
-	let errorMsg = $state<string | null>(null);
-	let searchTimer: ReturnType<typeof setTimeout> | null = null;
+	/** The editor machine (ADR-0022 W3): the edit-dialog + add-row form
+	 *  state, the PATCH/POST flows, the 409 duplicate note, the inline
+	 *  macro toggle, and the error strip. */
+	const editor = new PromptEditor(
+		() => table.rows,
+		() => onchanged?.(),
+		() => table.refresh()
+	);
 	/** The panel's root element — the CanvasCopyButton capture target. */
 	let rootEl = $state<HTMLElement | null>(null);
 
@@ -93,240 +75,29 @@
 	const profile = $derived(getWorkspaceState()?.profile ?? null);
 	/** The operator's vocabulary (settings.yaml prompts.tags via /api/config). */
 	const vocabulary = $derived(appConfig().prompts.tags);
-	/** Active filter words — lowercased, grammar-valid, deduped. */
-	let tagFilter = $state<string[]>([]);
-	const TAG_FILTER_KEY = 'dsi-prompt-tags-filter';
-
-	/** Plain (un-prefixed) words of the search box — the q param. */
-	function plainWords(v: string): string {
-		return v
-			.split(/[\s;]+/)
-			.filter((tok) => tok && !tok.startsWith('+'))
-			.join(' ');
-	}
-
-	/** Rewrite the box's +tokens from the filter state, keeping plain words. */
-	function rewritePlusTokens() {
-		const plain = plainWords(searchQ);
-		searchQ = [...tagFilter.map((w) => '+' + w), ...(plain ? [plain] : [])].join(' ');
-	}
-
-	/** Chip toggle (and the +word path's shared tail): flip the word in the
-	 *  filter, persist to the desk slot, mirror into the box, refresh. */
-	function toggleTag(word: string) {
-		tagFilter = tagFilter.includes(word)
-			? tagFilter.filter((w) => w !== word)
-			: [...tagFilter, word];
-		saveTagFilter(TAG_FILTER_KEY, tagFilter, profile);
-		rewritePlusTokens();
-		if (searchTimer) clearTimeout(searchTimer);
-		searchTimer = setTimeout(refresh, 300);
-	}
-	/** Selected row ids (checkbox column). */
-	let selected = $state<Set<number>>(new Set());
+	/** The filter machine (ADR-0022 W2): searchQ ⇄ tag chips, the 300 ms
+	 *  debounce, and the desk-slot persist/restore (D5/D11). It fires the
+	 *  table's refresh through the shell callback — no machine-to-machine
+	 *  import. */
+	const filters = new PromptFilters(() => profile, () => table.refresh());
+	/** The table machine (ADR-0022 W1): rows/total/loading, the sort
+	 *  cycle, selection, the refresh fetch, bulk delete. Injects the
+	 *  filter machine's state, the host callback, and the editor
+	 *  machine's error strip setter. */
+	const table = new PromptTable(
+		() => filters.tagFilter,
+		() => filters.plainQuery(),
+		() => onchanged?.(),
+		(msg) => {
+			editor.errorMsg = msg;
+		}
+	);
 
 	onMount(() => {
 		loadAppConfig(); // vocabulary rides the singleton config load
-		// D5 hard-reload restore: the desk slot is the authority; the box's
-		// +tokens are reconstructed FROM it (the textual twin, D11).
-		tagFilter = loadTagFilter(TAG_FILTER_KEY, profile);
-		if (tagFilter.length > 0) rewritePlusTokens();
-		refresh();
+		filters.restore();
+		table.refresh();
 	});
-
-	async function refresh() {
-		loading = true;
-		errorMsg = null;
-		try {
-			const params = new URLSearchParams({ limit: '200' });
-			if (sortState) {
-				params.set('sort', sortState.col);
-				params.set('dir', sortState.dir);
-			} else {
-				params.set('sort', 'last_used'); // server default
-			}
-			// D11 wire shape: plus-words and chips ride ONE request as the
-			// tags param; plain words stay the old q. A plus-free query with
-			// no chips is byte-identical to the old wire shape.
-			if (tagFilter.length > 0) params.set('tags', tagFilter.join(','));
-			const q = plainWords(searchQ).trim();
-			if (q) params.set('q', q);
-			const res = await fetch(`/api/prompts?${params}`);
-			if (!res.ok) {
-				errorMsg = 'Failed to load';
-				return;
-			}
-			const data = (await res.json()) as { rows: Row[]; total: number };
-			rows = data.rows;
-			total = data.total;
-		} catch {
-			errorMsg = 'Network error';
-		}
-		loading = false;
-	}
-
-	function onSearchInput() {
-		// D11: parse the +tokens OUT of the box into the filter state (the
-		// chips mirror them); grammar-invalid words are dropped silently.
-		const parsed = searchQ
-			.split(/[\s;]+/)
-			.filter((tok) => tok.startsWith('+'))
-			.map((tok) => tok.slice(1).toLowerCase())
-			.filter((w) => w && isValidTagWord(w));
-		const next = [...new Set(parsed)];
-		const changed =
-			next.length !== tagFilter.length || next.some((w) => !tagFilter.includes(w));
-		if (changed) {
-			tagFilter = next;
-			saveTagFilter(TAG_FILTER_KEY, tagFilter, profile);
-		}
-		if (searchTimer) clearTimeout(searchTimer);
-		searchTimer = setTimeout(refresh, 300);
-	}
-
-	function toggleSelected(id: number) {
-		const next = new Set(selected);
-		if (next.has(id)) next.delete(id);
-		else next.add(id);
-		selected = next;
-	}
-
-	/** Visible rows: the server-ordered list as loaded. */
-	let visibleRows = $derived(rows);
-
-	/** Bulk delete all selected — no confirmation (OCI parity). */
-	async function deleteSelected() {
-		if (selected.size === 0) return;
-		const ids = [...selected];
-		try {
-			await Promise.all(ids.map((id) => fetch(`/api/prompts/${id}`, { method: 'DELETE' })));
-			selected = new Set();
-			onchanged?.();
-			refresh();
-		} catch {
-			errorMsg = 'Network error';
-		}
-	}
-
-	function sortByCol(col: 'uses' | 'last_used' | 'display') {
-		if (!sortState || sortState.col !== col) {
-			sortState = { col, dir: 'asc' };
-		} else if (sortState.dir === 'asc') {
-			sortState = { col, dir: 'desc' };
-		} else {
-			sortState = null; // back to unsorted
-		}
-		refresh();
-	}
-
-	function startEdit(row: Row) {
-		editingId = row.id;
-		editingRow = row;
-		editText = row.text;
-		editLabel = row.label ?? '';
-		editUses = String(row.use_count);
-		editMacro = row.macro === 1;
-		editTags = row.tags ?? '';
-	}
-
-	function cancelEdit() {
-		editingId = null;
-		editingRow = null;
-	}
-
-	async function saveEdit(id: number) {
-		const row = editingRow ?? rows.find((r) => r.id === id);
-		if (!row) {
-			cancelEdit();
-			return;
-		}
-		const body: Record<string, unknown> = {};
-		if (editText !== row.text) body.text = editText;
-		if ((editLabel || null) !== (row.label ?? null)) {
-			body.label = editLabel.trim() || null;
-		}
-		const uses = parseInt(editUses, 10);
-		if (!isNaN(uses) && uses !== row.use_count) body.use_count = uses;
-		if (editMacro !== (row.macro === 1)) body.macro = editMacro;
-		if (editTags.trim() !== (row.tags ?? '')) body.tags = editTags;
-		if (Object.keys(body).length === 0) {
-			cancelEdit();
-			return;
-		}
-		try {
-			const res = await fetch(`/api/prompts/${id}`, {
-				method: 'PATCH',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(body)
-			});
-			if (!res.ok) {
-				const err = await res.json().catch(() => ({}));
-				errorMsg = (err as { error?: string }).error || 'Save failed';
-				return;
-			}
-			cancelEdit();
-			onchanged?.();
-			refresh();
-		} catch {
-			errorMsg = 'Network error';
-		}
-	}
-
-
-	/** Inline toggle: flip the macro flag without the edit dialog. */
-	async function toggleMacro(row: Row) {
-		try {
-			const res = await fetch(`/api/prompts/${row.id}`, {
-				method: 'PATCH',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ macro: row.macro !== 1 })
-			});
-			if (!res.ok) {
-				errorMsg = 'Save failed';
-				return;
-			}
-			row.macro = row.macro === 1 ? 0 : 1;
-			onchanged?.();
-		} catch {
-			errorMsg = 'Network error';
-		}
-	}
-	async function addPrompt() {
-		if (!newText.trim()) return;
-		try {
-			const res = await fetch('/api/prompts', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-				text: newText,
-				label: newLabel || undefined,
-				use_count: (() => { const n = parseInt(newUses, 10); return !isNaN(n) && n !== 1 ? n : undefined; })(),
-				macro: newMacro ? true : undefined,
-				tags: parseTagWords(newTags).length > 0 ? parseTagWords(newTags) : undefined
-			})
-			});
-			if (res.status === 409) {
-				const err = (await res.json()) as { existing?: { use_count?: number } };
-				errorMsg = `Already saved (${err.existing?.use_count ?? '?'} uses)`;
-				return;
-			}
-			if (!res.ok) {
-				errorMsg = 'Add failed';
-				return;
-			}
-			addingNew = false;
-			newText = '';
-			newLabel = '';
-			newTags = '';
-			newUses = '1';
-			newMacro = false;
-			errorMsg = null;
-			onchanged?.();
-			refresh();
-		} catch {
-			errorMsg = 'Network error';
-		}
-	}
 
 	/** Escape closes the manager only when no sub-form is open (the
 	 *  edit dialog and the add-row keep their own text). Scope per the
@@ -334,7 +105,7 @@
 	 *  (ADR D3 — per-mount window listeners multiply with embedded
 	 *  instances); the embedded root listens on its own element. */
 	function onKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape' && !addingNew && editingId === null) {
+		if (e.key === 'Escape' && !editor.addingNew && editor.editingId === null) {
 			e.stopPropagation();
 			onclose();
 		}
@@ -364,87 +135,70 @@
 	     keeps the state (selection, search, sort, add-mode); the component
 	     renders the toolbar + head table rows. -->
 	<PromptManagerHeader
-		selectedCount={selected.size}
+		selectedCount={table.selected.size}
 		{vocabulary}
 		dbPath={appConfig().prompts.dbPath}
-		{tagFilter}
-		{sortState}
+		tagFilter={filters.tagFilter}
+		sortState={table.sortState}
 		bind:textMode
-		{loading}
-		hasRows={rows.length > 0}
-		{addingNew}
-		bind:searchQ
-		ontoggle={toggleTag}
-		onsearchinput={onSearchInput}
-		ondeleteselected={deleteSelected}
+		loading={table.loading}
+		hasRows={table.rows.length > 0}
+		addingNew={editor.addingNew}
+		bind:searchQ={filters.searchQ}
+		ontoggle={(word) => filters.toggleTag(word)}
+		onsearchinput={() => filters.onSearchInput()}
+		ondeleteselected={() => table.deleteSelected()}
 		onunselectall={() => {
-			selected = new Set();
+			table.selected.clear();
 		}}
-		onsort={sortByCol}
-		onadd={() => {
-			addingNew = true;
-			errorMsg = null;
-		}}
-		oncanceladd={() => {
-			addingNew = false;
-			newText = '';
-			newLabel = '';
-			newTags = '';
-			errorMsg = null;
-		}}
+		onsort={(col) => table.sortByCol(col)}
+		onadd={() => editor.openAdd()}
+		oncanceladd={() => editor.cancelAdd(false)}
 	/>
 
-	{#if errorMsg}
+	{#if editor.errorMsg}
 		<!-- The NewChatButton selection-alert grammar: role=alert + a
 		     × dismiss (lucide X, aria-hidden, labeled button). Closing
 		     only hides the message — the next failing refresh re-raises. -->
 		<div class="mgr-error" role="alert">
-			<span class="mgr-error-msg">{errorMsg}</span>
+			<span class="mgr-error-msg">{editor.errorMsg}</span>
 			<button
 				type="button"
 				class="mgr-error-close"
 				aria-label={t(m.dismissAlert)}
 				title={t(m.dismiss)}
-				onclick={() => (errorMsg = null)}
+				onclick={() => (editor.errorMsg = null)}
 			>
 				<X size={11} aria-hidden="true" />
 			</button>
 		</div>
 	{/if}
 
-	{#if addingNew}
+	{#if editor.addingNew}
 		<!-- Add-row extracted to PromptManagerAdd (D8 seam): the panel keeps
 		     addingNew + the POST; the component owns the form. -->
 		<PromptManagerAdd
-			bind:uses={newUses}
-			bind:macro={newMacro}
-			bind:text={newText}
-			bind:label={newLabel}
-			bind:tags={newTags}
+			bind:uses={editor.newUses}
+			bind:macro={editor.newMacro}
+			bind:text={editor.newText}
+			bind:label={editor.newLabel}
+			bind:tags={editor.newTags}
 			portal={host === 'panel'}
-			onsave={addPrompt}
-			oncancel={() => {
-				addingNew = false;
-				newText = '';
-				newLabel = '';
-				newTags = '';
-				newUses = '1';
-				newMacro = false;
-				errorMsg = null;
-			}}
+			onsave={() => editor.addPrompt()}
+			oncancel={() => editor.cancelAdd(true)}
 		/>
 	{/if}
 
 	<PromptManagerContainer>
-		{#if loading}
+		{#if table.loading}
 			<div class="mgr-loading">{t(m.loading)}</div>
-		{:else if rows.length === 0}
-			<div class="mgr-empty">{searchQ ? t(m.noPromptsMatch) : t(m.noPromptsYet)}</div>
+		{:else if table.rows.length === 0}
+			<div class="mgr-empty">{filters.searchQ ? t(m.noPromptsMatch) : t(m.noPromptsYet)}</div>
 		{:else}
 			<table class="mgr-table mgr-body-table">
 			<tbody>
-				{#each visibleRows as row (row.id)}
-					{#if editingId === row.id}
+				{#each table.visibleRows as row (row.id)}
+					{#if editor.editingId === row.id}
 						<!-- Editing: row highlighted, fields live in the dialog form.
 						     The row is INERT (D9) — the dialog is the only edit surface. -->
 						<tr class="mgr-editing">
@@ -460,7 +214,7 @@
 						     The tr/td handlers are pointer-only supplements to the dialog's
 						     own keyboard path (its Save/Cancel are real buttons). -->
 						<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-						<tr class:sel={selected.has(row.id)} onclick={() => startEdit(row)}>
+						<tr class:sel={table.selected.has(row.id)} onclick={() => editor.startEdit(row)}>
 							<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 							<td
 								class="mgr-sel-col"
@@ -469,8 +223,8 @@
 								<input
 									type="checkbox"
 									class="mgr-check"
-									checked={selected.has(row.id)}
-									onchange={() => toggleSelected(row.id)}
+									checked={table.selected.has(row.id)}
+									onchange={() => table.toggleSelected(row.id)}
 									aria-label="Select prompt"
 								/>
 							</td>
@@ -483,7 +237,7 @@
 									class:on={row.macro === 1}
 									aria-pressed={row.macro === 1}
 									title={row.macro === 1 ? 'Macro — click to turn off' : 'Not a macro — click to turn on'}
-									onclick={(e) => { e.stopPropagation(); toggleMacro(row); }}
+									onclick={(e) => { e.stopPropagation(); editor.toggleMacro(row); }}
 								>{row.macro === 1 ? '✓' : '—'}</button
 								>
 							</td>
@@ -493,27 +247,27 @@
 				{/each}
 			</tbody>
 		</table>
-			{#if total > rows.length}
-				<div class="mgr-footer">{total - rows.length} {t(m.moreRefine)}</div>
+			{#if table.total > table.rows.length}
+				<div class="mgr-footer">{table.total - table.rows.length} {t(m.moreRefine)}</div>
 			{/if}
 		{/if}
 	</PromptManagerContainer>
 	</div>
 
-{#if editingRow}
+{#if editor.editingRow}
 	<!-- Edit dialog extracted to PromptManagerEdit (D8 seam): the panel keeps
 	     the dialog STATE (editUses/editMacro/editLabel/editText via $bindable),
 	     the component owns the form + portal pair. -->
 	<PromptManagerEdit
-		row={editingRow}
-		bind:uses={editUses}
-		bind:macro={editMacro}
-		bind:label={editLabel}
-		bind:text={editText}
-		bind:tags={editTags}
+		row={editor.editingRow}
+		bind:uses={editor.editUses}
+		bind:macro={editor.editMacro}
+		bind:label={editor.editLabel}
+		bind:text={editor.editText}
+		bind:tags={editor.editTags}
 		portal={host === 'panel'}
-		onsave={() => saveEdit(editingRow!.id)}
-		oncancel={cancelEdit}
+		onsave={() => editor.saveEdit(editor.editingRow!.id)}
+		oncancel={() => editor.cancelEdit()}
 	/>
 {/if}
 
@@ -531,10 +285,10 @@
 	.mgr-error {
 		padding: 0.375rem 0.5rem;
 		margin-bottom: 0.5rem;
-		background: #fef2f2;
-		border: 1px solid #fecaca;
+		background: var(--color-danger-wash);
+		border: 1px solid var(--color-danger-wash-border);
 		border-radius: 0.25rem;
-		color: #dc2626;
+		color: var(--si-run);
 		/* alert row: message left, × dismiss right (NewChatButton grammar) */
 		display: flex;
 		align-items: center;
@@ -550,13 +304,13 @@
 		padding: 0.125rem;
 		line-height: 1;
 		border-radius: 0.25rem;
-		color: #b91c1c;
+		color: var(--si-run);
 		display: inline-flex;
 		align-items: center;
 	}
 	.mgr-error-close:hover {
-		background: #fee2e2;
-		color: #991b1b;
+		background: var(--color-danger-wash-border);
+		color: var(--color-danger-wash-ink);
 	}
 
 	/* Add-row styles moved to PromptManagerAdd.svelte */

@@ -2,7 +2,7 @@
 	import * as m from '$lib/paraglide/messages';
 	import { t } from '$lib/services/locale/locale-state.svelte';
 	import { ArrowUp, Square, SquareCheck } from '@lucide/svelte';
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import TokenCounter from './sibling/TokenCounter.svelte';
 	import ModelSelector from './sibling/ModelSelector.svelte';
 	import PromptInputText from './sibling/PromptInputText.svelte';
@@ -12,7 +12,7 @@
 	import AttachmentChips from './attachment/AttachmentChips.svelte';
 	import AttachmentManager from './attachment/AttachmentManager.svelte';
 	import SuggestStrip from './menu/suggest-strip/SuggestStrip.svelte';
-	import SlashMenu, { slashMenuMatches } from './menu/SlashMenu.svelte';
+	import SlashMenu from './menu/SlashMenu.svelte';
 	import CommandHelpCard from '../card/CommandHelpCard.svelte';
 	import PromptsManagerDialog from '../prompt-manager/PromptsManagerDialog.svelte';
 	import type { AttachmentDraft, SerializedImage } from '$lib/services/chat/attachment-service.svelte';
@@ -24,16 +24,11 @@
 		triggerMode,
 		type SuggestedPrompt
 	} from '$lib/services/chat/prompt-trigger.js';
-	import {
-		commandHelpTopic,
-		gestureHelpCardView,
-		helpQuery,
-		hostHelpCardView,
-		MENU_GESTURES
-	} from '$lib/services/chat/command-help';
-	import { parseCommand } from '$lib/services/chat/command-parser';
+	import { MENU_GESTURES } from '$lib/services/chat/command-help';
+	import { KeyboardRouter } from './controller/keyboard-router.svelte';
 	import type { SlashDirectory } from '$lib/services/chat/slash-directory.svelte';
-	import { clearDraft, loadDraft, saveDraft } from '$lib/utils/draft-prefs';
+	import { loadDraft } from '$lib/utils/draft-prefs';
+import { DraftPersistence } from '$lib/services/chat/draft-persistence.svelte';
 	import {
 		isSyncChecked,
 		mirrorTextFor,
@@ -43,6 +38,9 @@
 		type SyncStripView
 	} from '$lib/services/chat/prompt-sync.svelte';
 	import { getLensMode } from '$lib/services/conversation/lens-context.svelte';
+	import { HelpController } from './controller/help-controller.svelte';
+	import { SlashController } from './controller/slash-controller.svelte';
+	import { StripController } from './controller/suggest-controller.svelte';
 
 	/**
 	 * Composer — the send surface (PRD §3.4: input → Cancel/dots UX).
@@ -218,33 +216,20 @@
 	/** In-flight submit awaiting its receipt (component-owned lock, BC-3). */
 	let awaiting = $state(false);
 
-	/** Debounced draft-save timer (non-reactive — scheduling detail). */
-	let draftTimer: ReturnType<typeof setTimeout> | null = null;
 	/** Whether the textarea owned the caret at the last focus/blur — the
 	 *  flag, not a live DOM read, is what a teardown-time flush saves
 	 *  (an element removed mid-HMR fires no blur). */
 	let textareaFocused = false;
-	/** Long enough to ride a typing burst; short enough that an HMR
-	 *  strike loses at most this window (the teardown flush covers the
-	 *  tail anyway). */
-	const DRAFT_DEBOUNCE_MS = 400;
+	/** Debounced draft save/clear (ADR-0018 W3 3.1): scheduling lives in
+	 *  the service; this composer instance owns its own timer instance. */
+	const draftPersistence = new DraftPersistence(400);
 
 	// Debounced save while typing; an emptied draft clears SYNCHRONOUSLY —
 	// send / macro run-accept must never let a submitted prompt resurrect
 	// from storage.
 	$effect(() => {
 		if (sessionId === undefined) return;
-		const text = value;
-		if (draftTimer !== null) clearTimeout(draftTimer);
-		draftTimer = null;
-		if (text.length === 0) {
-			clearDraft(sessionId);
-			return;
-		}
-		draftTimer = setTimeout(() => {
-			draftTimer = null;
-			saveDraft(sessionId, text, textareaFocused);
-		}, DRAFT_DEBOUNCE_MS);
+		draftPersistence.schedule(sessionId, value, () => textareaFocused);
 	});
 
 	// Teardown flush — no reactive reads in the body, so this runs ONCE
@@ -253,10 +238,10 @@
 	// up. The closure reads the CURRENT value/flag at teardown time.
 	$effect(() => {
 		return () => {
-			if (draftTimer !== null) clearTimeout(draftTimer);
-			draftTimer = null;
-			if (sessionId !== undefined && value.length > 0) {
-				saveDraft(sessionId, value, textareaFocused);
+			if (sessionId !== undefined) {
+				draftPersistence.flush(sessionId, value, textareaFocused);
+			} else {
+				draftPersistence.cancel();
 			}
 		};
 	});
@@ -276,54 +261,18 @@
 	 *  broadcast (the store is the one owner; the button only flips it). */
 	const syncChecked = $derived(sessionId !== undefined && isSyncChecked(sessionId));
 
-	// ── Suggest Strip state (ADR "The Suggest Strip", Wave 2) ──
-	/** Rows fetched for the live "?" query — strip-only (no ghost, ADR §6). */
-	let suggestRows = $state<SuggestedPrompt[]>([]);
-	/** Highlighted row in the strip (arrows wrap, Tab/Enter accept). */
-	let stripIndex = $state(0);
-	/** Live trigger query the rows belong to — threads to the strip for
-	 *  fragment highlighting (F4). Empty = plain rows. */
-	let stripQuery = $state('');
-	/** 120 ms debounce timer (non-reactive — scheduling detail). */
-	let suggestTimer: ReturnType<typeof setTimeout> | null = null;
-	/** Out-of-order response guard: only the newest fetch may write rows. */
-	let suggestSeq = 0;
-	/** Query the user explicitly rejected (Esc): the debounced refetch
-	 *  never resurrects it; typing one more character unlocks it. */
-	let dismissedQuery: string | null = null;
+	// ── Suggest Strip state (ADR "The Suggest Strip", Wave 2) — machine
+	// moved whole into StripController (ADR-0020 D1); the shell keeps the
+	// ladder rung, the lock gate, and the IME state. ──
 	/** IME composition state — suggest keys pass through while composing
 	 *  (BC-8); composition input events skip the debounce too. */
 	let isComposing = $state(false);
 
-	// ── Command help card (command-help, 2026-08-30) ──
-	/** Live help topic for the draft — non-null while the text is a known
-	 *  DSI gesture with `?` as its entire first argument (`/new ?` …).
-	 *  Derived from the whole value: the help intent is a whole-line
-	 *  shape, never caret-positioned (unlike the finder's trigger). */
-	const helpTopic = $derived(commandHelpTopic(value));
-	/** Host-vocabulary help (2026-08-30 extension): a declined `/token ?`
-	 *  draft resolved against the SAME cached catalog the menu reads —
-	 *  the card renders the wire's own copy, DSI invents nothing. Null
-	 *  while the catalog is idle/loading/failed or the token is unknown;
-	 *  the card's absence is then the honest answer (an unresolved `?`
-	 *  line rides the ladder like any unknown text). */
-	const hostHelp = $derived(
-		slashCatalog !== null && slashCatalog.state === 'ready'
-			? hostHelpCardView(value, slashCatalog.commands, slashCatalog.skills)
-			: null
-	);
-	/** Any `?`-shaped draft (DSI gesture or host row) — the menu stands
-	 *  down while a question is on the line, resolved or not. */
-	const helpShape = $derived(helpTopic !== null || helpQuery(value) !== null);
-	/** Esc memo: hide while the text keeps matching; any edit re-arms. */
-	let helpDismissed = $state(false);
-	$effect(() => {
-		if (helpTopic === null && hostHelp === null) helpDismissed = false;
-	});
-	const helpVisible = $derived((helpTopic !== null || hostHelp !== null) && !helpDismissed);
-	/** The card's view — the gesture copy, else the host row's own. */
-	const helpView = $derived(
-		helpTopic !== null ? gestureHelpCardView(helpTopic) : hostHelp !== null ? hostHelp : null
+	// ── Command help card (command-help, 2026-08-30) — machine moved whole
+	// into HelpController (ADR-0020 D1); the shell keeps the ladder rung. ──
+	const help = new HelpController(
+		{ getValue: () => value },
+		() => slashCatalog
 	);
 
 	// ── Prompts Manager (Wave 3, ADR E4): opened from the strip's ⚙ row ──
@@ -341,65 +290,6 @@
 		};
 	});
 
-	const SUGGEST_DEBOUNCE_MS = 120;
-	/** API search-mode limit clamp is 10 (W1 GET contract). */
-	const SUGGEST_MAX_RESULTS = 10;
-
-	/** Live query from the DOM — always read at decision points (keydown,
-	 *  accept, close): caret position is not reactive state. */
-	function liveQuery(): string | null {
-		const el = textareaEl;
-		return getTrigger(el?.value ?? value, el?.selectionStart ?? value.length);
-	}
-
-	/** Debounced search against GET /api/prompts?mode=contains (BC-3: DSI-local). */
-	function scheduleSuggest(): void {
-		if (suggestTimer) clearTimeout(suggestTimer);
-		suggestTimer = setTimeout(fetchSuggestions, SUGGEST_DEBOUNCE_MS);
-	}
-
-	async function fetchSuggestions(): Promise<void> {
-		const el = textareaEl;
-		// ALWAYS read live state — a stale timer may fire after user edits.
-		const caret = el?.selectionStart ?? value.length;
-		const current = el?.value ?? value;
-		const query = getTrigger(current, caret);
-		if (!query) {
-			suggestRows = [];
-			return;
-		}
-		if (query === dismissedQuery) return; // dismissed — never resurrect
-		if (dismissedQuery !== null && query.length > dismissedQuery.length) {
-			dismissedQuery = null; // longer query = fresh intent (unlock)
-		}
-		const seq = ++suggestSeq;
-		try {
-			const key = searchKey(query);
-			// Trigger-char macro split: `!` runs macros (macro=1), `?` finds
-			// ordinary prompts (macro=0) — each trigger sees only its shelf.
-			const macro = triggerMode(query) === 'run' ? 1 : 0;
-			const res = await fetch(
-				`/api/prompts?q=${encodeURIComponent(key)}&limit=${SUGGEST_MAX_RESULTS}&mode=contains&macro=${macro}`
-			);
-			if (seq !== suggestSeq) return; // stale response — discarded
-			if (!res.ok) {
-				suggestRows = []; // silent degrade (BC-5)
-				return;
-			}
-			const data = (await res.json()) as { results: SuggestedPrompt[] };
-			// Post-await guard: text/dismissal may have changed during the fetch.
-			const liveVal = el?.value ?? value;
-			const liveQ = getTrigger(liveVal, el?.selectionStart ?? liveVal.length);
-			if (liveQ !== query || liveQ === dismissedQuery) return;
-			suggestRows = data.results ?? [];
-			stripQuery = query;
-			stripIndex = 0;
-		} catch {
-			if (seq !== suggestSeq) return;
-			suggestRows = []; // silent degrade (BC-5)
-		}
-	}
-
 	/** Auto-grow clamp: default 15 rows (user spec, 2026-08-23; OCI clamps
 	 *  at ~12); operator-tunable via ~/.dsi/settings.yaml
 	 *  `chat.input.maxRows` (ADR-0007 access-chip follow-up, 2026-08-25). */
@@ -410,74 +300,66 @@
 	let isOverflow = $state(false);
 
 	/** Trigger active for the current text + caret — value-reactive for the
-	 *  strip's visibility; the keydown guard reads the LIVE textarea (see
-	 *  liveQuery) so a stale caret can never leak into interception.
-	 *  (Declared after textareaEl — derived reads it.) */
+	 *  strip's visibility; the keydown guard reads the LIVE textarea (the
+	 *  controller's liveQuery) so a stale caret can never leak into
+	 *  interception. (Declared after textareaEl — derived reads it.) */
 	const triggerActive = $derived(
 		getTrigger(value, textareaEl?.selectionStart ?? value.length) !== null
 	);
-	/** Rows the strip renders — trigger gone ⇒ no strip, stale rows or not. */
-	const stripRows = $derived(triggerActive ? suggestRows : []);
+	// The strip machine (ADR-0020 D1): constructed after textareaEl — the
+	// element reader and the lock gate close over it.
+	const strip = new StripController(
+		{ getElement: () => textareaEl, getValue: () => value, setValue: (v) => (value = v) },
+		{ active: () => triggerActive, locked: () => locked },
+		{
+			get onrunmacro() {
+				return onrunmacro;
+			},
+			get onrows() {
+				return onrows;
+			},
+			focus: () => textareaEl?.focus()
+		}
+	);
+	// The controller's $effect.root outlives nothing: stop its effects at
+	// unmount (panel close, /new remount, HMR strike).
+	onDestroy(() => strip.destroy());
 
-	// ── Slash Menu state (ADR "The Slash Menu", 2026-08-30) ──
-	/** The trimmed draft — the menu's query and its trigger share
-	 *  parseCommand's normalization, so the stand-down is decided on the
-	 *  same bytes the submit ladder will judge. */
-	const slashDraft = $derived(value.trim());
-	/** Parser stand-down (Resolved decision 6): the menu opens only on a
-	 *  `/` draft parseCommand DECLINES — `/permission`/`/new` drafts keep
-	 *  their byte-identical typed-gesture journeys, menu-free. */
-	const slashTrigger = $derived(
-		slashDraft.startsWith('/') && parseCommand(slashDraft) === null
+	// ── Slash Menu state (ADR "The Slash Menu", 2026-08-30) — machine moved
+	// whole into SlashController (ADR-0020 D1); the shell keeps the ladder
+	// rung, the cross-surface gates, and the catalog bridge effect. ──
+	/** The pre-move pickInsert re-focus: queued microtask, caret to the
+	 *  draft's end + focus (a gone composer owns no caret — the == null
+	 *  guard rides the microtask). */
+	const focusInsert = () =>
+		queueMicrotask(() => {
+			const el = textareaEl;
+			if (el == null) return;
+			el.selectionStart = value.length;
+			el.selectionEnd = value.length;
+			el.focus();
+		});
+	const slash = new SlashController(
+		{ getValue: () => value, setValue: (v) => (value = v) },
+		() => slashCatalog,
+		{ stripTriggerActive: () => triggerActive, helpVisible: () => help.visible, helpShape: () => help.shape },
+		{
+			// live getters — the pre-move shell read the PROPS at call time,
+			// so a late-arriving callback must be honored (and the BC-A3
+			// undefined check inside the controller stays honest).
+			get onpickcommand() {
+				return onpickcommand;
+			},
+			get onpickcommandwithhint() {
+				return onpickcommandwithhint;
+			},
+			get onpickskill() {
+				return onpickskill;
+			},
+			focusInsert,
+			focusExecute: () => textareaEl?.focus()
+		}
 	);
-	/** Dismiss memo (the strip's dismissedQuery grammar): Esc or a pick
-	 *  memo-closes the exact draft; a LONGER draft is fresh intent
-	 *  (unlocked in handleInput); trigger gone clears the memo. */
-	let slashDismissedQuery = $state<string | null>(null);
-	$effect(() => {
-		if (!slashTrigger) slashDismissedQuery = null;
-	});
-	/** The composer's THIRD floating surface — the strip's `?`/`!` and
-	 *  the help card keep their triggers (higher-priority surfaces win;
-	 *  both are mutually exclusive with the menu by trigger construction). */
-	const slashOpen = $derived(
-		slashTrigger &&
-			!triggerActive &&
-			!helpVisible &&
-			!helpShape &&
-			slashDraft !== slashDismissedQuery
-	);
-	/** Matched rows over ALL THREE sections — gestures first, then
-	 *  commands, then skills (§1.1's layers A→B→C; the composite index
-	 *  the menu highlights mirrors the submit ladder's own priority: a
-	 *  name the parser owns wins before the host is consulted). The SAME
-	 *  exported matcher the menu renders with — one source of truth, the
-	 *  key guard can never drift from the visible rows. Loading/failed/
-	 *  absent catalog ⇒ no rows ⇒ Enter falls through (loading rows
-	 *  never intercept). */
-	const slashRows = $derived.by(() => {
-		if (!slashOpen || slashCatalog === null || slashCatalog.state !== 'ready') return [];
-		return [
-			...MENU_GESTURES.filter((r) => slashMenuMatches(r, slashDraft)).map((r) => ({
-				kind: 'gesture' as const,
-				name: r.name,
-				seed: r.seed
-			})),
-			...slashCatalog.commands
-				.filter((r) => slashMenuMatches(r, slashDraft))
-				.map((r) => ({ kind: 'command' as const, name: r.name, hint: r.input?.hint !== undefined })),
-			...slashCatalog.skills
-				.filter((r) => slashMenuMatches(r, slashDraft))
-				.map((r) => ({ kind: 'skill' as const, name: r.name }))
-		];
-	});
-	/** Highlighted row over the matched set — arrows wrap, query change
-	 *  resets to the top (the strip's reset-per-fetch rule, per keystroke). */
-	let slashIndex = $state(0);
-	$effect(() => {
-		void slashDraft;
-		slashIndex = 0;
-	});
 	// Catalog bridge (props-only contract): while the menu is open-shaped —
 	// or a `?`-shaped draft asks about the host vocabulary — every query
 	// move asks the panel to re-read directoryFor — a cached read is a
@@ -486,24 +368,14 @@
 	// the menu (and never asks a host `?`) wakes nothing (ADR §3.3, cold
 	// sessions stay cold — an explicit `?` about a command IS the ask).
 	$effect(() => {
-		if (!slashOpen && !helpShape) return;
-		void slashDraft; // re-query per keystroke, not only on the open edge
+		if (!slash.open && !help.shape) return;
+		void slash.draft; // re-query per keystroke, not only on the open edge
 		onslashopen?.();
 	});
 
-	// Panel row mirror (Prompt Macro W2 2.2): report the live strip rows
-	// upward whenever they change — the panel resolves accepted indices
-	// into row text/id at accept time. Effect (not derived) on purpose:
-	// the callback is an intent OUT, fired on change only.
-	$effect(() => {
-		const rows = stripRows;
-		onrows?.(rows);
-	});
-	/** Strip mode for the live query (`!` → run, `?`/other → find) — read at
-	 *  decision points from the LIVE textarea (accept + strip props), so a
-	 *  stale caret can never run what the operator meant to insert. */
-	const liveMode = () => triggerMode(liveQuery() ?? '?');
-
+	// Panel row mirror (Prompt Macro W2 2.2) and the lock-clears-strip
+	// effect moved INTO the controller (ADR-0020 D1) — driven by the gates
+	// and the onrows callback injected above.
 	// Config load: singleton GET /api/config — every mount may kick it, the
 	// store dedupes to one fetch per page load. SSR-safe (onMount is a no-op
 	// server-side); failures keep the default inside the store.
@@ -553,195 +425,13 @@
 		isOverflow = textareaEl.scrollHeight > maxHeight;
 	});
 
-	/** Strip-only Esc (BC-9): close the strip and memo the exact query so
-	 *  the 120 ms debounce never re-opens it; a longer query unlocks.
-	 *  `refocus` false is the broadcast replay's hand — the box drives the
-	 *  accept from the sidebar, and the panel must not steal the caret. */
-	function closeStrip(refocus = true): void {
-		const query = liveQuery();
-		if (query) dismissedQuery = query;
-		suggestRows = [];
-		if (refocus) textareaEl?.focus();
-	}
-
-	/** Strip-only accept (Tab/Enter press 1, BC-2): replace the QUERY SPAN
-	 *  [queryStart, queryEnd) with the row's full text — never the whole
-	 *  value; trailing text and drafts survive. Caret lands at the end of
-	 *  the inserted text; Enter press 2 then sends (the strip is closed).
-	 *  RUN mode (Prompt Macro, D1): accepting never inserts — the row RUNS:
-	 *  strip closes, the DRAFT CLEARS entirely (the query was the draft by
-	 *  construction — the trigger is active only with the caret on a
-	 *  single-line query), and onrunmacro fires with the row index.
-	 *  `refocus` false is the broadcast replay's hand (see closeStrip). */
-	function acceptRow(i: number, refocus = true): void {
-		const el = textareaEl;
-		if (!el) return;
-		const query = getTrigger(el.value, el.selectionStart);
-		if (!query) return;
-		const row = suggestRows[i];
-		if (!row) return;
-		if (liveMode() === 'run' && onrunmacro !== undefined) {
-			// Run-accept (ADR D1): prevent default happens in the keydown
-			// guard; here the strip closes, the draft clears, the macro fires.
-			value = '';
-			suggestRows = [];
-			dismissedQuery = null; // fresh intent — a re-typed query re-searches
-			if (refocus) textareaEl?.focus();
-			onrunmacro(i);
-			return;
-		}
-		const queryStart = el.selectionStart - query.length;
-		const queryEnd = Math.max(el.selectionEnd, el.selectionStart);
-		value = value.slice(0, queryStart) + row.text + value.slice(queryEnd);
-		suggestRows = [];
-		queueMicrotask(() => {
-			const caret = queryStart + row.text.length;
-			el.selectionStart = caret;
-			el.selectionEnd = caret;
-			if (refocus) el.focus();
-		});
-	}
-
-	/** Cycle the highlighted row — wraps both directions (arrows/Shift+Tab). */
-	function cycleStrip(delta: number): void {
-		const n = stripRows.length;
-		if (n === 0) return;
-		stripIndex = ((stripIndex + delta) % n + n) % n;
-	}
-
-	/** Cycle the menu's highlighted row over the MATCHED set (wraps). */
-	function cycleSlash(delta: number): void {
-		const n = slashRows.length;
-		if (n === 0) return;
-		slashIndex = ((slashIndex + delta) % n + n) % n;
-	}
-
-	/** Pick the highlighted row (Enter/Tab press 1, ADR §3.3) — the same
-	 *  kind-aware branch both keys run, so Tab accepts exactly like Enter
-	 *  (the strip's Tab-accept parity; Shift+Tab cycles back instead). */
-	function pickHighlighted(): void {
-		const row = slashRows[slashIndex];
-		if (row === undefined) return;
-		if (row.kind === 'gesture') {
-			pickInsert(row.seed);
-		} else if (row.kind === 'skill') {
-			pickInsert(`/${row.name} `, () => onpickskill?.(row.name));
-		} else if (row.hint) {
-			pickInsert(`/${row.name} `, () => onpickcommandwithhint?.(row.name));
-		} else {
-			void pickExecute(row.name);
-		}
-	}
-
-	// ── Slash Menu picks (kind-aware, ADR §3.3) ──
-	/** The line a command pick executes: the draft VERBATIM when its first
-	 *  token already names the row (case-insensitive — the rung matches
-	 *  the same way), else the row's canonical name + the draft's raw
-	 *  remainder (a `/comp` filter match still executes `/compact`).
-	 *  Arguments are never re-parsed — the remainder rides untouched
-	 *  (ADR §4.4; the host owns every grammar decision). */
-	function slashLineFor(name: string): string {
-		const at = slashDraft.search(/\s/);
-		const token = at === -1 ? slashDraft : slashDraft.slice(0, at);
-		if (token.slice(1).toLowerCase() === name.toLowerCase()) return slashDraft;
-		return `/${name}${at === -1 ? '' : slashDraft.slice(at)}`;
-	}
-
-	/** Insert pick (gesture seed / hint command / skill): the seed lands
-	 *  at draft start with the caret after it (`/name ` for name rows,
-	 *  the gesture's own seed — `@session-` scaffolds the mention
-	 *  grammar); the menu memo-closes on the new draft so the operator's
-	 *  own Enter is press 2 (the two-press rule — the insert itself
-	 *  never sends). Draft persistence is untouched: the assignment IS
-	 *  the draft, the debounced save rides it. */
-	function pickInsert(seed: string, fire?: (picked: string) => void, refocus = true): void {
-		value = seed;
-		slashDismissedQuery = slashDraft;
-		slashIndex = 0;
-		if (refocus)
-			queueMicrotask(() => {
-				const el = textareaEl;
-				// `== null` (not `=== undefined`): the microtask can fire after an
-				// unmount zeroed bind:this (the restore-draft microtask's guard).
-				if (el == null) return;
-				el.selectionStart = value.length;
-				el.selectionEnd = value.length;
-				el.focus();
-			});
-		fire?.(seed);
-	}
-
-	/** Execute pick (hint-less command): the draft clears only on an
-	 *  ADMITTED execution (BC-A3 — the panel's boolean); a miss or error
-	 *  keeps the draft and memo-closes the menu — the honest banner note
-	 *  is the receipt, the kept draft is the operator's to fix or send.
-	 *  `refocus` false is the broadcast replay's hand (see pickInsert). */
-	async function pickExecute(name: string, refocus = true): Promise<void> {
-		if (onpickcommand === undefined) return;
-		const line = slashLineFor(name);
-		slashIndex = 0;
-		const cleared = await onpickcommand(line);
-		if (cleared !== false) {
-			value = '';
-			slashDismissedQuery = null;
-		} else {
-			slashDismissedQuery = slashDraft;
-		}
-		if (refocus) textareaEl?.focus();
-	}
-
-	/** Strip-row rename (⋯ menu Save): PATCH the subset that changed, then
-	 *  refetch rows + refocus (409 keeps the old fields — just re-fetch). */
-	async function renameRow(
-		row: SuggestedPrompt,
-		fields: { uses: string; label: string; text: string }
-	): Promise<void> {
-		const body: Record<string, unknown> = {};
-		const uses = parseInt(fields.uses, 10);
-		if (!Number.isNaN(uses) && uses !== row.use_count) body.use_count = uses;
-		const cleanLabel = fields.label.trim().slice(0, 60);
-		if ((cleanLabel || null) !== (row.label ?? null)) body.label = cleanLabel || null;
-		const cleanText = fields.text.trim();
-		if (cleanText && cleanText !== row.text) body.text = cleanText;
-		if (Object.keys(body).length > 0) {
-			try {
-				const res = await fetch(`/api/prompts/${row.id}`, {
-					method: 'PATCH',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify(body)
-				});
-				if (!res.ok && res.status !== 409) return;
-			} catch {
-				/* offline: keep UI as-is (silent degrade, BC-5) */
-			}
-		}
-		await fetchSuggestions();
-		textareaEl?.focus();
-	}
-
-	/** Strip-row delete (⋯ menu): fire-and-forget DELETE, then refetch. */
-	async function deleteRow(row: SuggestedPrompt): Promise<void> {
-		try {
-			await fetch(`/api/prompts/${row.id}`, { method: 'DELETE' });
-			await fetchSuggestions();
-		} catch {
-			/* offline: keep UI as-is (silent degrade, BC-5) */
-		}
-	}
-
-	// Streaming/submit lock clears the strip (PRD edge: the strip clears
-	// when the textarea locks; the query dies with the cleared draft).
-	$effect(() => {
-		if (!locked) return;
-		suggestRows = [];
-		stripIndex = 0;
-		if (suggestTimer) clearTimeout(suggestTimer);
-		suggestSeq++; // invalidate any in-flight fetch
-	});
+	// Strip accept/close/cycle/rename/delete and the lock-clears-strip
+	// effect moved INTO StripController (ADR-0020 D1); sync delegates below
+	// forward into it.
 
 	async function submit(): Promise<boolean> {
 		if (isStreaming || locked) return false;
-		if (helpTopic !== null || helpShape) return false; // a `?` help line is a question, never a send
+		if (help.handles()) return false; // a `?` help line is a question, never a send
 		// A run-shaped draft is macro traffic, never a send (Prompt Sync
 		// amendment 2026-09-04): the strip's run accept is a `!` line's
 		// only executor — the line itself must not ride the wire as a
@@ -776,65 +466,13 @@
 		}
 	}
 
-	/** The Prompt Sync member's submit (ADR D5): the SAME ladder, the
-	 *  boolean the broadcast pass counts — a refusal here is what keeps
-	 *  a panel's mirrored draft and lands it in `kept`. */
-	function submitForSync(): Promise<boolean> {
-		return submit();
-	}
-
-	// The broadcast strip hand (amended 2026-09-04): the box's navigation
-	// fans out through the store, and the grammar stays THIS panel's own —
-	// cycle moves the highlight, accept runs the same acceptRow (the pick
-	// path, run mode included) minus the focus steal, dismiss memoizes the
-	// query exactly like a local Esc (BC-9).
-	function syncStripState(): SyncStripView | null {
-		return stripRows.length > 0
-			? { rows: stripRows, index: stripIndex, query: stripQuery, mode: liveMode() }
-			: null;
-	}
-	function syncCycleStrip(delta: number): void {
-		cycleStrip(delta);
-	}
-	function syncAcceptStrip(): void {
-		acceptRow(stripIndex, false);
-	}
-	function syncDismissStrip(): void {
-		closeStrip(false);
-	}
-
-	// The broadcast slash hand (amended 2026-09-04 — the third surface
-	// joins the box): the same replay shape as the strip's. The view is
-	// THIS member's own menu (its catalog, its matched composite, its
-	// highlight); the box renders it verbatim and fans intents back.
-	function syncSlashState(): SyncSlashView | null {
-		return slashOpen
-			? {
-					gestures: MENU_GESTURES,
-					commands: slashCatalog?.commands ?? [],
-					skills: slashCatalog?.skills ?? [],
-					state: slashCatalog?.state ?? 'idle',
-					query: slashDraft,
-					index: slashIndex
-				}
-			: null;
-	}
-	function syncCycleSlash(delta: number): void {
-		cycleSlash(delta);
-	}
-	function syncDismissSlash(): void {
-		slashDismissedQuery = slashDraft; // the menu's own Esc: memoize the exact draft
-	}
-	function syncAcceptSlashInsert(text: string): void {
-		pickInsert(text, undefined, false);
-	}
-	function syncAcceptSlashExecute(name: string): void | Promise<void> {
-		return pickExecute(name, false);
-	}
-
 	// Membership (ADR D1/D2): the composer joins the sync store keyed by
 	// its session; the disposer rides the effect cleanup — unmount (panel
-	// close, /new remount) unregisters.
+	// close, /new remount) unregisters. The broadcast hands (amended
+	// 2026-09-04) are one-line forwards into the surface controllers
+	// (ADR-0020 D3): cycle/accept/dismiss minus the focus steal — the
+	// box drives the accept from the sidebar, the panel never steals
+	// the caret.
 	$effect(() => {
 		if (sessionId === undefined) return;
 		return registerSyncMember(sessionId, {
@@ -842,16 +480,32 @@
 			setText: (text: string) => {
 				value = text;
 			},
-			submit: submitForSync,
-			syncStripState,
-			syncCycleStrip,
-			syncAcceptStrip,
-			syncDismissStrip,
-			syncSlashState,
-			syncCycleSlash,
-			syncDismissSlash,
-			syncAcceptSlashInsert,
-			syncAcceptSlashExecute
+			// ADR D5: the SAME submit ladder — the boolean the broadcast
+			// pass counts; a refusal keeps the mirrored draft and lands
+			// the panel in `kept`.
+			submit: () => submit(),
+			syncStripState: () =>
+				strip.rows.length > 0
+					? { rows: strip.rows, index: strip.index, query: strip.query, mode: strip.liveMode() }
+					: null,
+			syncCycleStrip: (delta) => strip.cycle(delta),
+			syncAcceptStrip: () => strip.accept(strip.index, false),
+			syncDismissStrip: () => strip.close(false),
+			syncSlashState: () =>
+				slash.open
+					? {
+							gestures: MENU_GESTURES,
+							commands: slashCatalog?.commands ?? [],
+							skills: slashCatalog?.skills ?? [],
+							state: slashCatalog?.state ?? 'idle',
+							query: slash.draft,
+							index: slash.index
+						}
+					: null,
+			syncCycleSlash: (delta) => slash.cycle(delta),
+			syncDismissSlash: () => slash.memoize(), // the menu's own Esc
+			syncAcceptSlashInsert: (text) => slash.pickInsert(text, undefined, false),
+			syncAcceptSlashExecute: (name) => slash.pickExecute(name, false)
 		});
 	});
 
@@ -889,7 +543,7 @@
 		// 120 ms debounce also lands the bind's DOM value ahead of
 		// fetchSuggestions' live read. A locked composer stays strip-free
 		// (the lock clears the strip).
-		if (!locked && getTrigger(text, text.length) !== null) scheduleSuggest();
+		if (!locked && getTrigger(text, text.length) !== null) strip.schedule();
 	});
 
 	/** Paste forwarding: image clipboard items become drafts; text stays text. */
@@ -904,10 +558,8 @@
 	 *  is not relied on (the file's live-read convention). */
 	function handleInput(): void {
 		const draft = (textareaEl?.value ?? value).trim();
-		if (slashDismissedQuery !== null && draft.length > slashDismissedQuery.length) {
-			slashDismissedQuery = null;
-		}
-		scheduleSuggest();
+		slash.noteInput();
+		strip.schedule();
 	}
 
 	/** Blur = the operator looked away: flush immediately with
@@ -916,137 +568,24 @@
 	function handleBlur(): void {
 		textareaFocused = false;
 		if (sessionId === undefined) return;
-		if (draftTimer !== null) clearTimeout(draftTimer);
-		draftTimer = null;
-		if (value.length > 0) saveDraft(sessionId, value, false);
-		else clearDraft(sessionId);
+		draftPersistence.flush(sessionId, value, false);
 	}
 
-	async function onkeydown(event: KeyboardEvent): Promise<void> {
-		// Suggest keys first (BC-6: guard is EXACTLY triggerActive &&
-		// rows.length > 0 — ghost absent by construction; IME passes through,
-		// BC-8). Enter press 1 accepts, press 2 sends (BC-2).
-		const intercept =
-			!isComposing &&
-			!event.metaKey &&
-			!event.ctrlKey &&
-			!event.altKey &&
-			liveQuery() !== null &&
-			stripRows.length > 0;
-		if (intercept) {
-			if (event.key === 'Tab' && event.shiftKey) {
-				if (stripRows.length > 1) {
-					event.preventDefault();
-					cycleStrip(-1);
-				}
-				return;
-			}
-			if (event.key === 'Tab' || (event.key === 'Enter' && !event.shiftKey)) {
-				event.preventDefault();
-				acceptRow(stripIndex);
-				return;
-			}
-			if (event.key === 'Escape') {
-				event.preventDefault();
-				closeStrip();
-				return;
-			}
-			if (event.key === 'ArrowDown' && stripRows.length > 1) {
-				event.preventDefault();
-				cycleStrip(1);
-				return;
-			}
-			if (event.key === 'ArrowUp' && stripRows.length > 1) {
-				event.preventDefault();
-				cycleStrip(-1);
-				return;
-			}
-		}
-		// A run-shaped draft with no live rows is a macro command standing
-		// by (BC-9 memoized, or the fetch has not landed): Enter re-arms
-		// the strip instead of shipping the line — the help card's own
-		// dismissed-reopen rule, extended to the fetch-driven surface.
-		// A zero-match query re-arms to nothing (the strip stays dark,
-		// the silent-degrade posture, BC-5) and the draft stays for
-		// editing. Find-shape (`?`) keeps its pinned press-through: an
-		// unmatched finder question submits as chat.
-		if (
-			!isComposing &&
-			liveQuery() !== null &&
-			triggerMode(liveQuery() ?? '?') === 'run' &&
-			stripRows.length === 0
-		) {
-			if (event.key === 'Enter' && !event.shiftKey) {
-				event.preventDefault();
-				dismissedQuery = null;
-				void fetchSuggestions();
-				return;
-			}
-		}
-		// Command help keys (command-help, 2026-08-30): the card is
-		// information-only — Esc hides it while the text keeps matching,
-		// and Enter never sends a `?` help line: with the card up the press
-		// is already answered; dismissed, it re-opens the card instead.
-		// The shape owns its keys even while the catalog is still loading
-		// (a `?` line must never ride the wire as bogus arguments).
-		if (!isComposing && (helpTopic !== null || helpShape)) {
-			if (event.key === 'Escape') {
-				event.preventDefault();
-				helpDismissed = true;
-				return;
-			}
-			if (event.key === 'Enter' && !event.shiftKey) {
-				event.preventDefault();
-				helpDismissed = false;
-				return;
-			}
-		}
-		// Slash Menu keys (ADR "The Slash Menu", 2026-08-30): ROW-GATED
-		// interception — the strip's shipped guard shape (matched rows only).
-		// Tab/Enter accept the highlighted row, arrows cycle, Esc dismisses.
-		// With zero matching rows (and while loading/failed) Enter falls
-		// through to submit and the menu closes with the cleared draft —
-		// unknown /nope ships as chat exactly as today; IME composes pass
-		// through untouched (the strip's guard, verbatim).
-		if (!isComposing && !event.metaKey && !event.ctrlKey && !event.altKey && slashOpen) {
-			if (event.key === 'Escape') {
-				event.preventDefault();
-				slashDismissedQuery = slashDraft;
-				return;
-			}
-			if (slashRows.length > 0) {
-				if (event.key === 'Tab' && event.shiftKey) {
-					// The strip's Shift+Tab: cycle back; with one row the press
-					// is swallowed (no focus escape from an open menu).
-					event.preventDefault();
-					if (slashRows.length > 1) cycleSlash(-1);
-					return;
-				}
-				if (event.key === 'ArrowDown' && slashRows.length > 1) {
-					event.preventDefault();
-					cycleSlash(1);
-					return;
-				}
-				if (event.key === 'ArrowUp' && slashRows.length > 1) {
-					event.preventDefault();
-					cycleSlash(-1);
-					return;
-				}
-				// Tab and Enter are the SAME accept (the strip's rule): the
-				// kind-aware pick — gesture/hint/skill insert the seed (the
-				// operator's own Enter is press 2), a hint-less command
-				// executes. Tab never moves focus while rows intercept it.
-				if (event.key === 'Tab' || (event.key === 'Enter' && !event.shiftKey)) {
-					event.preventDefault();
-					pickHighlighted();
-					return;
-				}
-			}
-		}
-		if (event.key === 'Enter' && !event.shiftKey) {
-			event.preventDefault();
-			await submit();
-		}
+	// The keyboard priority ladder moved whole into KeyboardRouter
+	// (ADR-0020 D2 as amended 2026-10-10): a NEUTRAL party owning no
+	// surface — the shell still constructs it with the controllers, the
+	// IME gate, and the submit ladder, so the precedence stays a
+	// contract between equals and the shell remains the wiring point.
+	const keyboard = new KeyboardRouter({
+		strip,
+		slash,
+		help,
+		isComposing: () => isComposing,
+		submit
+	});
+	/** Keydown forwarding — the ladder lives in the router. */
+	function onkeydown(event: KeyboardEvent): void {
+		void keyboard.onKey(event);
 	}
 </script>
 
@@ -1068,7 +607,7 @@
 					data-testid="prompt-sync-check"
 					aria-pressed={syncChecked}
 					title={t(m.syncComposer)}
-					class="prompt-sync-check flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
+					class="prompt-sync-check flex h-8 w-8 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface-alt hover:text-text-secondary disabled:cursor-not-allowed disabled:opacity-50"
 					class:on={syncChecked}
 					disabled={lens}
 					onclick={() => setSyncChecked(sessionId, !syncChecked)}
@@ -1094,8 +633,8 @@
 			     catalog row's own wire copy). Mutually exclusive with the
 			     strip by construction (`?`/`!` lead vs a `/`- or
 			     `@token ?`-shaped draft). -->
-			{#if helpVisible && helpView !== null}
-				<CommandHelpCard view={helpView} />
+			{#if help.visible && help.view !== null}
+				<CommandHelpCard view={help.view} />
 			{/if}
 			<!-- Slash Menu (ADR "The Slash Menu", 2026-08-30): the composer's
 			     THIRD floating surface — same geometry as strip/help card
@@ -1103,30 +642,30 @@
 			     exclusive with both by trigger construction. Presentational
 			     rows only: catalog state rides props from the panel, the
 			     keyboard lifecycle is the row-gated onkeydown guard above. -->
-			{#if slashOpen}
+			{#if slash.open}
 				<SlashMenu
 					gestures={MENU_GESTURES}
 					commands={slashCatalog?.commands ?? []}
 					skills={slashCatalog?.skills ?? []}
 					state={slashCatalog?.state ?? 'idle'}
-					query={slashDraft}
-					activeIndex={slashIndex}
-					onpickgesture={(seed) => pickInsert(seed)}
-					onpickcommand={(name) => void pickExecute(name)}
+					query={slash.draft}
+					activeIndex={slash.index}
+					onpickgesture={(seed) => slash.pickInsert(seed)}
+					onpickcommand={(name) => void slash.pickExecute(name)}
 					onpickcommandwithhint={(name) =>
-						pickInsert(`/${name} `, () => onpickcommandwithhint?.(name))}
-					onpickskill={(name) => pickInsert(`/${name} `, () => onpickskill?.(name))}
+						slash.pickInsert(`/${name} `, () => onpickcommandwithhint?.(name))}
+					onpickskill={(name) => slash.pickInsert(`/${name} `, () => onpickskill?.(name))}
 				/>
 			{/if}
 			<!-- Suggest Strip (ADR "The Suggest Strip", W2): floating above the
 			     textarea wrapper — never joins layout (BC-1). Renders nothing
 			     while no rows (component-level {#if}). -->
 			<SuggestStrip
-				rows={stripRows}
-				activeIndex={stripIndex}
-				query={stripQuery}
-				mode={liveMode()}
-				onpick={acceptRow}
+				rows={strip.rows}
+				activeIndex={strip.index}
+				query={strip.query}
+				mode={strip.liveMode()}
+				onpick={(i) => strip.accept(i)}
 				// ⏯ Step starts the run too (held) — same composer hygiene as
 				// run-accept: strip closes, draft clears, focus returns.
 				onstep={
@@ -1134,14 +673,13 @@
 						? undefined
 						: (i: number) => {
 								value = '';
-								suggestRows = [];
-								dismissedQuery = null;
+								strip.forgetRows();
 								textareaEl?.focus();
 								onstep(i);
 							}
 				}
-				onrename={renameRow}
-				ondelete={deleteRow}
+				onrename={(row, fields) => strip.rename(row, fields)}
+				ondelete={(row) => strip.remove(row)}
 				onmanage={() => {
 					managerOpen = true;
 					textareaEl?.focus();
@@ -1172,7 +710,7 @@
 				oncompositionstart={() => (isComposing = true)}
 				oncompositionend={() => {
 					isComposing = false;
-					scheduleSuggest(); // the composed text is final — search it
+					strip.schedule(); // the composed text is final — search it
 				}}
 			/>
 			{#if isStreaming || awaiting}
@@ -1191,7 +729,7 @@
 				type="button"
 				onclick={() => void oncancel()}
 				data-testid="cancel-button"
-				class="cancel-btn flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-red-500 text-white transition-[background-color,transform] hover:bg-red-600 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-30"
+				class="cancel-btn flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-status-fail text-status-fail-ink transition-[background-color,transform] hover:bg-status-fail hover:scale-105 disabled:cursor-not-allowed disabled:opacity-30"
 				disabled={locked}
 				title={t(m.stopStreaming)}
 				aria-label={t(m.stopStreaming)}
@@ -1206,7 +744,7 @@
 				onclick={() => void submit()}
 				disabled={disabled}
 				data-testid="send-button"
-				class="send-btn flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-blue-600 text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-30"
+				class="send-btn flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-accent-blue text-white transition-colors hover:bg-accent-blue disabled:cursor-not-allowed disabled:opacity-30"
 				title={t(m.sendMessage)}
 				aria-label={t(m.sendMessage)}
 			>
@@ -1279,6 +817,6 @@
 	}
 	.prompt-sync-check.on:hover {
 		color: color-mix(in srgb, yellowgreen 70%, black);
-		background-color: color-mix(in srgb, yellowgreen 12%, #fff);
+		background-color: color-mix(in srgb, var(--color-status-pass) 12%, var(--color-surface-elevated));
 	}
 </style>

@@ -193,7 +193,7 @@
 		padding: 0.25rem;
 		border: 1px solid color-mix(in srgb, var(--color-surface-border, #dee2e6) 75%, transparent);
 		border-radius: 0.5rem;
-		background: linear-gradient(45deg, #10b98142, transparent);
+		background: linear-gradient(45deg, color-mix(in srgb, var(--color-status-pass) 26%, transparent), transparent);
 		/* NO margins — the parent column's gap spaces this box; a margin
 		   here would count as scrollable overflow inside the column. */
 	}
@@ -237,7 +237,7 @@
 	   the same navy the Panels header rings with. */
 	.group-toggle:focus-visible {
 		background: var(--color-surface-hover, #e9ecef);
-		outline: 2px solid #1e3a8a;
+		outline: 2px solid var(--color-navy-focus);
 		outline-offset: -2px;
 	}
 
@@ -264,7 +264,7 @@
 		padding: 0 0.375rem;
 		border: 1px solid color-mix(in srgb, var(--color-surface-border, #dee2e6) 75%, transparent);
 		border-radius: 0.375rem;
-		background: var(--color-surface-elevated, #fff);
+		background: var(--color-surface-elevated, var(--color-surface-elevated));
 		font-size: 0.6875rem;
 		color: var(--color-text-primary, #212529);
 	}
@@ -274,7 +274,7 @@
 	}
 
 	.filter-input:focus-visible {
-		outline: 2px solid #1e3a8a;
+		outline: 2px solid var(--color-navy-focus);
 		outline-offset: -1px;
 	}
 
@@ -309,7 +309,7 @@
 
 	.row-btn.active {
 		opacity: 1;
-		color: #1e3a8a;
+		color: var(--color-navy-focus);
 	}
 
 	/* Rows scroll pane (moved down one level, 2026-09-01): owns the
