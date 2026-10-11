@@ -6,7 +6,7 @@
  * 'other' fallback — plus the isCodeFileType guard both ways.
  */
 import { describe, it, expect } from 'vitest';
-import { classifyFileType, isCodeFileType } from '$lib/components/panels/dsh-file-type';
+import { classifyFileType, isCodeFileType } from '$lib/components/common/file-icons/dsh-file-type';
 
 describe('dsh-file-type — classification chain arms', () => {
 	it('a basename with NO dot falls to the exact table or other (fileExtension empty arm)', () => {

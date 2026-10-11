@@ -1,5 +1,19 @@
 # Releases
 
+## v0.6.15
+
+Bumped from v0.6.14 — the theme token wave finishes (every gradient rides the layer) and the per-file 80% coverage floor holds across the five weakest files.
+
+### Features
+
+- **Panels split into focused modules (2632556)** — `components/panels/` decomposed into `workspace-explorer`, `workspace-file`, `monaco`, and `common/file-icons`, so each panel owns its file; existing panel tests retargeted and green.
+- **Per-file 80% coverage floor lifted on the five weakest files (6a6fe3b)** — new regression tests: `workspace-file-tabs.test.ts`, `explorer-git-events.test.ts` (+102 lines), `file-write-route.test.ts`, `git-file-head-route.test.ts`, `terminal-stream-coverage.test.ts` (189 lines).
+
+### Bug fixes
+
+- **Dark gradient ramp gains perceptible spread (285cea6)** — the dark gradient was visually flat; the token ramp now steps noticeably between stops.
+- **Every hardcoded gradient background rides the token layer (99618b0, c150555)** — sub-agent tints and the Monaco theme join the token layer, so gradients follow the active light/dark palette instead of staying fixed.
+
 ## v0.6.14
 
 Bumped from v0.6.13 — the Three-State Lamp theme wave lands (dark palette, theme toggle, pre-paint), and file-link/markdown fixes harden chat surfaces.

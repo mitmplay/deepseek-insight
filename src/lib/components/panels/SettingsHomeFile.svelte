@@ -14,7 +14,7 @@
 	 * directly; the dynamic import keeps the lazy chunk (monaco-lazy-chunk
 	 * build gate). Language is guessed from the file extension.
 	 */
-	import type { YamlEditorHandle } from './settings-monaco';
+	import type { YamlEditorHandle } from '../monaco/settings-monaco';
 	import SettingsHomeToolbar from './SettingsHomeToolbar.svelte';
 	import { appConfig } from '$lib/services/config/app-config.svelte';
 
@@ -101,7 +101,7 @@
 			const host = editorHost;
 			if (host !== null) {
 				// The shared lazy seam — the ONLY legal route to monaco-editor.
-				const { createTextEditor } = await import('./settings-monaco');
+				const { createTextEditor } = await import('../monaco/settings-monaco');
 				if (editor !== null) {
 					// A tab switch re-runs load() on the SAME instance: the
 					// language rides the extension, so dispose + recreate.

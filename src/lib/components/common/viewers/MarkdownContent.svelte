@@ -35,7 +35,7 @@
 	import CanvasCopyButton from '$lib/components/common/buttons/CanvasCopyButton.svelte';
 	import CopyButton from '$lib/components/common/buttons/CopyButton.svelte';
 	import RawPreviewToggle from '$lib/components/common/viewers/RawPreviewToggle.svelte';
-import FileTypeIcon from '$lib/components/panels/FileTypeIcon.svelte';
+	import FileTypeIcon from '$lib/components/common/file-icons/FileTypeIcon.svelte';
 
 	let {
 		content,

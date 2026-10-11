@@ -17,8 +17,8 @@
 	import PluginManagerPanel from '$lib/components/settings-plugins/PluginManagerPanel.svelte';
 	import SettingsEditorPanel from '$lib/components/panels/SettingsEditorPanel.svelte';
 	import InjectedDocPanel from '$lib/components/panels/InjectedDocPanel.svelte';
-	import WorkspaceExplorerPanel from '$lib/components/panels/WorkspaceExplorerPanel.svelte';
-	import WorkspaceFilePanel from '$lib/components/panels/WorkspaceFilePanel.svelte';
+	import WorkspaceExplorerPanel from '$lib/components/workspace-explorer/WorkspaceExplorerPanel.svelte';
+	import WorkspaceFilePanel from '$lib/components/workspace-file/WorkspaceFilePanel.svelte';
 	import PanelsZoom from '$lib/components/panels/PanelsZoom.svelte';
 	import PanelColumn from '$lib/components/panels/PanelColumn.svelte';
 	import PanelLoupe from '$lib/components/panels/PanelLoupe.svelte';

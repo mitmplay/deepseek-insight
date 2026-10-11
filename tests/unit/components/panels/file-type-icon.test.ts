@@ -8,7 +8,7 @@
  */
 import { mount, unmount, flushSync } from 'svelte';
 import { describe, expect, it } from 'vitest';
-import FileTypeIcon from '$lib/components/panels/FileTypeIcon.svelte';
+import FileTypeIcon from '$lib/components/common/file-icons/FileTypeIcon.svelte';
 
 function mountIcon(name: string, size?: number) {
 	const target = document.createElement('div');

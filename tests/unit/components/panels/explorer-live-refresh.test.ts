@@ -10,7 +10,7 @@ import { flushSync } from 'svelte';
 import { mount, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import WorkspaceExplorerPanel from '$lib/components/panels/WorkspaceExplorerPanel.svelte';
+import WorkspaceExplorerPanel from '$lib/components/workspace-explorer/WorkspaceExplorerPanel.svelte';
 
 /** Minimal EventSource stub: records instances, lets tests fire events. */
 class StubEventSource {

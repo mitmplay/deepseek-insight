@@ -82,4 +82,22 @@ describe('GET /api/workspace/git-file-head', () => {
 		expect(res.status).toBe(200);
 		expect(await res.json()).toMatchObject({ ok: false, code: 'git-unavailable' });
 	});
+
+	it('a plain head failure is a 503 head-failed with the error message', async () => {
+		resolveSpy.mockResolvedValueOnce({ repo: '/ws/app', rel: 'a.ts' });
+		insideSpy.mockResolvedValueOnce(true);
+		headSpy.mockRejectedValueOnce(new Error('git show exploded'));
+		const res = await get(PARAMS);
+		expect(res.status).toBe(503);
+		expect(await res.json()).toMatchObject({ ok: false, error: { code: 'head-failed', message: 'git show exploded' } });
+	});
+
+	it('a non-Error head failure still answers a 503 head-failed', async () => {
+		resolveSpy.mockResolvedValueOnce({ repo: '/ws/app', rel: 'a.ts' });
+		insideSpy.mockResolvedValueOnce(true);
+		headSpy.mockRejectedValueOnce('just a string');
+		const res = await get(PARAMS);
+		expect(res.status).toBe(503);
+		expect(await res.json()).toMatchObject({ ok: false, error: { code: 'head-failed', message: 'head read failed' } });
+	});
 });

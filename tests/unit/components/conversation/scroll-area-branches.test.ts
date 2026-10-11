@@ -137,7 +137,7 @@ describe('ConversationScrollArea — sub-agent panels', () => {
 		const { target, instance } = mountArea([assistant('a1', 'child work')], { subagent: true, depth: 2 });
 		await settle();
 		const main = target.querySelector('[data-testid="transcript"]') as HTMLElement;
-		expect(main.className).toContain('bg-[#E9E3C9]');
+		expect(main.className).toContain('bg-[var(--color-subagent-tint-2)]');
 		unmount(instance);
 	});
 

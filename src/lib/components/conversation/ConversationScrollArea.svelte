@@ -124,7 +124,11 @@
 
 	/** Depth-graded sub-agent tints: beige at depth 1, one step darker
 	 *  per nesting level, darkest from depth 3 on (the cap). */
-	const SUBAGENT_TINTS = ['bg-[#F5F5DC]', 'bg-[#E9E3C9]', 'bg-[#DDD3B0]'] as const;
+	const SUBAGENT_TINTS = [
+		'bg-[var(--color-subagent-tint-1)]',
+		'bg-[var(--color-subagent-tint-2)]',
+		'bg-[var(--color-subagent-tint-3)]'
+	] as const;
 	const tint = $derived(
 		subagent ? SUBAGENT_TINTS[Math.min(Math.max(depth, 1), 3) - 1] : ''
 	);

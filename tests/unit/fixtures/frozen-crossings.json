@@ -1,5 +1,5 @@
 {
-  "_comment": "ADR-0018 D1 frozen budget — component-to-component cross-domain imports as measured 2026-10-08. Regenerate ONLY with operator sign-off.",
+  "_comment": "ADR-0018 D1 frozen budget - component-to-component cross-domain imports as measured 2026-10-11 (after moving WorkspaceExplorer*/WorkspaceFile* out of panels/ and the monaco glue/workers to components/monaco/; same import edges, new addresses). Regenerate ONLY with operator sign-off.",
   "crossings": [
     {
       "from": "components/common/layout/AppSidebar.svelte",
@@ -16,6 +16,18 @@
     {
       "from": "components/conversation/DisplayWorkspace.svelte",
       "to": "components/common/WorkspaceChip.svelte"
+    },
+    {
+      "from": "components/panels/InjectedDocPanel.svelte",
+      "to": "components/monaco/settings-monaco.ts"
+    },
+    {
+      "from": "components/panels/SettingsEditorPanel.svelte",
+      "to": "components/monaco/settings-monaco.ts"
+    },
+    {
+      "from": "components/panels/SettingsHomeFile.svelte",
+      "to": "components/monaco/settings-monaco.ts"
     },
     {
       "from": "components/sessions/SessionFilterHeader.svelte",
@@ -36,6 +48,34 @@
     {
       "from": "components/sessions/WorkspaceRowItem.svelte",
       "to": "components/common/WorkspaceChip.svelte"
+    },
+    {
+      "from": "components/workspace-explorer/WorkspaceExplorerPanel.svelte",
+      "to": "components/workspace-file/WorkspaceFilePanel.svelte"
+    },
+    {
+      "from": "components/workspace-explorer/WorkspaceExplorerPanel.svelte",
+      "to": "components/panels/SettingsHomeFile.svelte"
+    },
+    {
+      "from": "components/workspace-explorer/WorkspaceExplorerPanel.svelte",
+      "to": "components/workspace-file/WorkspaceFileTabs.svelte"
+    },
+    {
+      "from": "components/workspace-explorer/WorkspaceExplorerPanel.svelte",
+      "to": "components/panels/ResizeGutter.svelte"
+    },
+    {
+      "from": "components/workspace-explorer/WorkspaceExplorerTree.svelte",
+      "to": "components/common/file-icons/FileTypeIcon.svelte"
+    },
+    {
+      "from": "components/workspace-file/WorkspaceFile.svelte",
+      "to": "components/panels/MarkdownPanel.svelte"
+    },
+    {
+      "from": "components/workspace-file/WorkspaceFilePanel.svelte",
+      "to": "components/monaco/settings-monaco.ts"
     }
   ]
 }

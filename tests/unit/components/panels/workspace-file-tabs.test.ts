@@ -7,7 +7,7 @@
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import WorkspaceFileTabs from '$lib/components/panels/WorkspaceFileTabs.svelte';
+import WorkspaceFileTabs from '$lib/components/workspace-file/WorkspaceFileTabs.svelte';
 
 function mountTabs(
 	tabs: Array<{ path: string }>,
@@ -135,5 +135,46 @@ describe('WorkspaceFileTabs — the Explorer Layout tab strip', () => {
 			flushSync();
 			unmount(instance);
 		}).toThrow();
+	});
+
+	// The compiled template reads `tab.path` FRESH at every use site (each
+	// key, leaf() label, class:active, data-testid, title, aria-selected,
+	// tabclose-testid). A nullish path crashes leaf() BEFORE the effect
+	// body runs (the test above renders NOTHING), so the `?? ""` fallback
+	// arms of the two data-testid expressions are NOT reachable that way.
+	// They ARE reachable by a path that is a valid string on its FIRST
+	// read (satisfying leaf()) and nullish on every later read: the label
+	// keeps the cached leaf value while both testid expressions take the
+	// `?? ""` arm -- the tab still renders, minus its testid suffixes.
+	it('a path gone nullish after the leaf read takes both ?? "" testid fallback arms', () => {
+		let reads = 0;
+		const vanishing = {
+			get path(): string {
+				// Read order (Svelte 5.56 compiled template): 1-2 each-key,
+				// 3 leaf(), 4 class:active, 5 tab data-testid, 6 title,
+				// 7 aria-selected, 8 tabclose data-testid. Vanish exactly on
+				// the two testid reads; every other read (including the keyed
+				// each's idempotency re-checks) must stay a STABLE key or
+				// Svelte throws each_key_volatile.
+				reads += 1;
+				if (reads === 5 || reads === 8) return undefined as never;
+				return 'vanish/gone.ts';
+			}
+		};
+		const { target, instance } = mountTabs([vanishing], null, {
+			activate: [],
+			close: []
+		});
+		const tab = target.querySelector('[role="tab"]') as HTMLElement;
+		// Both fallback arms ran: the testid suffixes are the empty string.
+		expect(tab.getAttribute('data-testid')).toBe('workspace-file-tab-');
+		const close = tab.querySelector('.close') as HTMLElement;
+		expect(close.getAttribute('data-testid')).toBe('workspace-file-tabclose-');
+		// The label keeps the value leaf() saw on the first read.
+		const label = tab.querySelector('.label') as HTMLElement;
+		expect(label.textContent).toBe('gone.ts');
+		// No highlight, no crash -- the strip rendered honestly.
+		expect(tab.classList.contains('active')).toBe(false);
+		unmount(instance);
 	});
 });

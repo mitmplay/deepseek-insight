@@ -222,7 +222,15 @@ import * as m from '$lib/paraglide/messages';
 		pointer-events: none; /* the gutter and header own their pointers */
 		border-radius: 0.75rem;
 		padding: 5px;
-		background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 45%, lch(38.63% 66.68 19.97) 100%);
+		/* Themed (ADR-0023 sweep): the stops were literal hexes (the dark
+		   accents) that never followed the mode — the tokens re-point on
+		   data-theme, so the ring reads in both. */
+		background: linear-gradient(
+			135deg,
+			var(--color-accent-blue) 0%,
+			var(--color-accent-purple) 45%,
+			var(--color-accent-rose) 100%
+		);
 		-webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
 		-webkit-mask-composite: xor;
 		mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);

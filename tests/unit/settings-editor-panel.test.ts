@@ -24,7 +24,7 @@ const glueState = {
 	disposed: false
 };
 
-vi.mock('$lib/components/panels/settings-monaco', () => ({
+vi.mock('$lib/components/monaco/settings-monaco', () => ({
 	createYamlEditor: (
 		_container: HTMLElement,
 		initial: string,

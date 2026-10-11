@@ -8,7 +8,7 @@ import { flushSync } from 'svelte';
 import { mount, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('$lib/components/panels/settings-monaco', () => ({
+vi.mock('$lib/components/monaco/settings-monaco', () => ({
 	createTextEditor: vi.fn(() => ({
 		getValue: () => '',
 		setValue: vi.fn(),
@@ -16,7 +16,7 @@ vi.mock('$lib/components/panels/settings-monaco', () => ({
 	}))
 }));
 
-import WorkspaceFilePanel from '$lib/components/panels/WorkspaceFilePanel.svelte';
+import WorkspaceFilePanel from '$lib/components/workspace-file/WorkspaceFilePanel.svelte';
 import { PANEL_PREFS_KEY, loadPanelPrefs } from '$lib/utils/panel-prefs';
 
 const fetchMock = vi.fn<typeof fetch>();

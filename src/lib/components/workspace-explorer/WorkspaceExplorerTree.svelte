@@ -12,7 +12,7 @@
 	 */
 	import { t } from '$lib/services/locale/locale-state.svelte';
 import * as m from '$lib/paraglide/messages';
-	import FileTypeIcon from './FileTypeIcon.svelte';
+	import FileTypeIcon from '../common/file-icons/FileTypeIcon.svelte';
 
 	/** One listing row (workspaceFiles/list WorkspaceDirectoryEntry). */
 	export interface DirEntry {

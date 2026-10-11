@@ -43,6 +43,34 @@ describe('POST /api/workspace/file-write', () => {
 		expect((await post({ sessionId: 's1', root: '/ws', path: 'a.txt' })).status).toBe(400);
 	});
 
+	it('rejects a missing or blank sessionId with 400 bad-session', async () => {
+		const missing = await post({ root: '/ws', path: 'a.txt', content: 'x' });
+		expect(missing.status).toBe(400);
+		expect((await missing.json()).error.code).toBe('bad-session');
+		const blank = await post({ sessionId: '   ', root: '/ws', path: 'a.txt', content: 'x' });
+		expect(blank.status).toBe(400);
+		expect((await blank.json()).error.code).toBe('bad-session');
+		expect(gateSpy).not.toHaveBeenCalled();
+	});
+
+	it('rejects a non-string or empty path with 400 bad-path', async () => {
+		const notString = await post({ sessionId: 's1', root: '/ws', path: 42, content: 'x' });
+		expect(notString.status).toBe(400);
+		expect((await notString.json()).error.code).toBe('bad-path');
+		const empty = await post({ sessionId: 's1', root: '/ws', path: '', content: 'x' });
+		expect(empty.status).toBe(400);
+		expect((await empty.json()).error.code).toBe('bad-path');
+		expect(gateSpy).not.toHaveBeenCalled();
+	});
+
+	it('surfaces a gate probe failure through mapRpcFailure with statusFor', async () => {
+		gateSpy.mockRejectedValueOnce(new Error('rpc unavailable'));
+		const res = await post({ sessionId: 's1', root: '/ws', path: 'a.txt', content: 'x' });
+		// real statusFor() maps an unavailable RPC to 503
+		expect(res.status).toBe(503);
+		expect((await res.json()).error.message).toBe('rpc unavailable');
+	});
+
 	it('a closed gate is a 403 gate-closed BEFORE the filesystem is touched', async () => {
 		gateSpy.mockResolvedValueOnce(false);
 		const res = await post({ sessionId: 's1', root: '/ws', path: 'a.txt', content: 'x' });

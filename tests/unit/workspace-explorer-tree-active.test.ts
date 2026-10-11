@@ -3,7 +3,7 @@
 import { flushSync, mount, unmount } from 'svelte';
 import { describe, expect, it } from 'vitest';
 
-import WorkspaceExplorerTree, { type Level } from '../../src/lib/components/panels/WorkspaceExplorerTree.svelte';
+import WorkspaceExplorerTree, { type Level } from '../../src/lib/components/workspace-explorer/WorkspaceExplorerTree.svelte';
 
 const LEVELS: Record<string, Level> = {
 	'': { kind: 'ready', entries: [{ name: 'src', type: 'directory' }], truncated: false },

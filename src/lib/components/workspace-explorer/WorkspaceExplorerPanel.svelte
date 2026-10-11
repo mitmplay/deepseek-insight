@@ -27,10 +27,10 @@
 	 */
 	import { onDestroy } from 'svelte';
 	import WorkspaceExplorer from './WorkspaceExplorer.svelte';
-	import WorkspaceFilePanel from './WorkspaceFilePanel.svelte';
-	import SettingsHomeFile from './SettingsHomeFile.svelte';
-	import WorkspaceFileTabs from './WorkspaceFileTabs.svelte';
-	import ResizeGutter from './ResizeGutter.svelte';
+	import WorkspaceFilePanel from '../workspace-file/WorkspaceFilePanel.svelte';
+	import SettingsHomeFile from '../panels/SettingsHomeFile.svelte';
+	import WorkspaceFileTabs from '../workspace-file/WorkspaceFileTabs.svelte';
+	import ResizeGutter from '../panels/ResizeGutter.svelte';
 	import { clampTreePct, TREE_PCT_DEFAULT, TREE_PCT_MAX, TREE_PCT_MIN } from '$lib/utils/panel-prefs';
 	import type { DirEntry, Level } from './WorkspaceExplorerTree.svelte';
 	import type { ChangeStatus } from './WorkspaceExplorerRepo.svelte';

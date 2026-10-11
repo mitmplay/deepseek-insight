@@ -16,7 +16,7 @@
 	 * page-level scrollbar stole the height.
 	 */
 	import WorkspaceFileToolbar from './WorkspaceFileToolbar.svelte';
-	import MarkdownPanel from './MarkdownPanel.svelte';
+	import MarkdownPanel from '../panels/MarkdownPanel.svelte';
 
 	let {
 		tab = $bindable(),

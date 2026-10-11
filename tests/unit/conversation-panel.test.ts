@@ -1819,19 +1819,19 @@ describe('ConversationPanel — sub-agent read-only surface (host agent-busy fen
 		const { target, instance } = await mountPanel(coldProps({ subagent: true }));
 		const transcript = target.querySelector('[data-testid="transcript"]');
 		expect(transcript).not.toBeNull();
-		expect(transcript!.className).toContain('bg-[#F5F5DC]');
+		expect(transcript!.className).toContain('bg-[var(--color-subagent-tint-1)]');
 		unmount(instance);
 	});
 
 	it('deepens the tint per nesting level: depth 2 darker, depth 3+ capped darkest', async () => {
 		const d2 = await mountPanel(coldProps({ subagent: true, depth: 2 }));
-		expect(d2.target.querySelector('[data-testid="transcript"]')?.className).toContain('bg-[#E9E3C9]');
+		expect(d2.target.querySelector('[data-testid="transcript"]')?.className).toContain('bg-[var(--color-subagent-tint-2)]');
 		unmount(d2.instance);
 		const d3 = await mountPanel(coldProps({ subagent: true, depth: 3 }));
-		expect(d3.target.querySelector('[data-testid="transcript"]')?.className).toContain('bg-[#DDD3B0]');
+		expect(d3.target.querySelector('[data-testid="transcript"]')?.className).toContain('bg-[var(--color-subagent-tint-3)]');
 		unmount(d3.instance);
 		const d5 = await mountPanel(coldProps({ subagent: true, depth: 5 }));
-		expect(d5.target.querySelector('[data-testid="transcript"]')?.className).toContain('bg-[#DDD3B0]');
+		expect(d5.target.querySelector('[data-testid="transcript"]')?.className).toContain('bg-[var(--color-subagent-tint-3)]');
 		unmount(d5.instance);
 	});
 
@@ -1851,7 +1851,7 @@ describe('ConversationPanel — sub-agent read-only surface (host agent-busy fen
 	it('keeps the ordinary panel untouched: composer present, no beige tint', async () => {
 		const { target, instance } = await mountPanel(coldProps());
 		expect(target.querySelector('[data-testid="prompt-input"], [data-testid="prompt-input-textarea"]')).not.toBeNull();
-		expect(target.querySelector('[data-testid="transcript"]')?.className).not.toContain('#F5F5DC');
+		expect(target.querySelector('[data-testid="transcript"]')?.className).not.toContain('--color-subagent-tint');
 		unmount(instance);
 	});
 });

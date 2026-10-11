@@ -19,6 +19,31 @@ import JsonWorker from './settings-json-worker?worker';
 import YamlWorker from './yaml-worker-entry?worker';
 import { configureMonacoYaml } from 'monaco-yaml';
 
+/**
+ * Monaco theme follows the Three-State Lamp (html[data-theme], ADR-0023):
+ * the literal 'vs' at every create call made every editor glare white in
+ * dark mode. monaco themes are GLOBAL — editor.setTheme retargets all
+ * live instances — so one mapping helper plus one MutationObserver on
+ * data-theme keeps every editor (text, yaml, diff) on the right palette
+ * without each panel wiring its own listener.
+ */
+export function monacoThemeFor(dataTheme: string | null | undefined): 'vs' | 'vs-dark' {
+	return dataTheme === 'dark' ? 'vs-dark' : 'vs';
+}
+// Guarded: unit tests stub monaco with a partial editor mock (no
+// setTheme), and non-DOM environments have no documentElement to watch.
+function applyThemeFromDocument(): void {
+	if (typeof monaco.editor.setTheme !== 'function') return;
+	monaco.editor.setTheme(monacoThemeFor(document.documentElement?.dataset.theme));
+}
+applyThemeFromDocument();
+if (typeof MutationObserver !== 'undefined' && document.documentElement) {
+	new MutationObserver(applyThemeFromDocument).observe(document.documentElement, {
+		attributes: true,
+		attributeFilter: ['data-theme']
+	});
+}
+
 // One worker set per app: Monaco's editor worker (diff/completion
 // plumbing) plus the LANGUAGE workers — hover/validation/diagnostic
 // requests are routed by language LABEL: routing them to the editor
@@ -125,7 +150,7 @@ export function createYamlEditor(
 	const editor = monaco.editor.create(container, {
 		value: initialValue,
 		language: 'yaml',
-		theme: 'vs',
+		theme: monacoThemeFor(document.documentElement.dataset.theme),
 		automaticLayout: true,
 		fontSize: 13,
 		minimap: { enabled: false },
@@ -167,7 +192,7 @@ export function createTextEditor(
 		value: initialValue,
 		language: options?.language ?? 'plaintext',
 		readOnly: options?.readOnly ?? false,
-		theme: 'vs',
+		theme: monacoThemeFor(document.documentElement.dataset.theme),
 		automaticLayout: true,
 		fontSize: 13,
 		minimap: { enabled: false },
@@ -232,7 +257,7 @@ export function createDiffEditor(
 	const originalModel = monaco.editor.createModel(original, language);
 	const modifiedModel = monaco.editor.createModel(modified, language);
 	const editor = monaco.editor.createDiffEditor(container, {
-		theme: 'vs',
+		theme: monacoThemeFor(document.documentElement.dataset.theme),
 		automaticLayout: true,
 		fontSize: 13,
 		minimap: { enabled: false },

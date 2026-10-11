@@ -10,7 +10,7 @@ import { flushSync } from 'svelte';
 import { mount, unmount } from 'svelte';
 import { describe, expect, it, vi } from 'vitest';
 
-import WorkspaceExplorerToolbar from '$lib/components/panels/WorkspaceExplorerToolbar.svelte';
+import WorkspaceExplorerToolbar from '$lib/components/workspace-explorer/WorkspaceExplorerToolbar.svelte';
 
 function mounted() {
 	const target = document.createElement('div');

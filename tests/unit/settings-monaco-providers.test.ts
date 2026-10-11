@@ -23,12 +23,12 @@ vi.mock('monaco-editor', () => ({
 	}
 }));
 vi.mock('monaco-yaml', () => ({ configureMonacoYaml: vi.fn() }));
-vi.mock('$lib/components/panels/settings-editor-worker?worker', () => ({ default: class {} }));
-vi.mock('$lib/components/panels/settings-ts-worker?worker', () => ({ default: class {} }));
-vi.mock('$lib/components/panels/settings-css-worker?worker', () => ({ default: class {} }));
-vi.mock('$lib/components/panels/settings-html-worker?worker', () => ({ default: class {} }));
-vi.mock('$lib/components/panels/settings-json-worker?worker', () => ({ default: class {} }));
-vi.mock('$lib/components/panels/yaml-worker-entry?worker', () => ({ default: class {} }));
+vi.mock('$lib/components/monaco/settings-editor-worker?worker', () => ({ default: class {} }));
+vi.mock('$lib/components/monaco/settings-ts-worker?worker', () => ({ default: class {} }));
+vi.mock('$lib/components/monaco/settings-css-worker?worker', () => ({ default: class {} }));
+vi.mock('$lib/components/monaco/settings-html-worker?worker', () => ({ default: class {} }));
+vi.mock('$lib/components/monaco/settings-json-worker?worker', () => ({ default: class {} }));
+vi.mock('$lib/components/monaco/yaml-worker-entry?worker', () => ({ default: class {} }));
 
 import * as monaco from 'monaco-editor';
 
@@ -47,7 +47,7 @@ describe('settings-monaco module-body providers + warmup', () => {
 	});
 
 	it('registers four no-op yaml providers whose callbacks return empty payloads', async () => {
-		await import('$lib/components/panels/settings-monaco');
+		await import('$lib/components/monaco/settings-monaco');
 		for (const key of ['registerFoldingRangeProvider', 'registerDocumentSymbolProvider', 'registerLinkProvider', 'registerCodeActionProvider']) {
 			expect(reg[key]).toHaveBeenCalledWith('yaml', expect.anything());
 		}
@@ -70,7 +70,7 @@ describe('settings-monaco module-body providers + warmup', () => {
 		const fakeModel = { disposed: false, dispose() { this.disposed = true; } };
 		createModel.mockReturnValueOnce(fakeModel);
 		vi.resetModules(); // a fresh module body schedules a fresh warmup timer
-		await import('$lib/components/panels/settings-monaco');
+		await import('$lib/components/monaco/settings-monaco');
 		expect(createModel).toHaveBeenCalledWith('prewarm: true', 'yaml', expect.anything());
 		expect(fakeModel.disposed).toBe(false);
 		vi.advanceTimersByTime(5000);

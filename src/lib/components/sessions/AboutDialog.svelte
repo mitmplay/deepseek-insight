@@ -78,7 +78,11 @@
 		   .rail-header grammar): the pastel gradient is oversized
 		   (300% x 300%) and panned by background-position — gradients
 		   can't transition directly, the animation is the transition.
-		   Stops are AA-checked against the var(--color-text-secondary) secondary inks below. */
+		   Stops are AA-checked against the var(--color-text-secondary) secondary inks below.
+		   Theming (ADR-0023 sweep): the light pastels are the default;
+		   [data-theme='dark'] re-points the SAME custom property to a
+		   deepened pastel ramp — same hue order, dark surfaces that keep
+		   --color-text-secondary (#9aa3ad) at >= 5:1. */
 		--about-gradient: linear-gradient(
 			120deg,
 			#ffe9d6,
@@ -93,6 +97,21 @@
 		border: 1px solid var(--color-surface-border, #dee2e6);
 		border-radius: 0.5rem;
 		box-shadow: 0 4px 16px rgb(0 0 0 / 0.12);
+	}
+
+	/* Dark-theme ramp — re-points the gradient custom property only; the
+	   pan animation, size, and layout carry over untouched. */
+	:global([data-theme='dark']) .about-modal {
+		/* Same stops as AppSidebar/AppSidebarHeader's dark rail ramp —
+		   one shared surface language, one sync note. */
+		--about-gradient: linear-gradient(
+			120deg,
+			#382c20,
+			#1e2b3e,
+			#2c2340,
+			#1b332a,
+			#382c20
+		);
 	}
 
 	@keyframes about-gradient-pan {

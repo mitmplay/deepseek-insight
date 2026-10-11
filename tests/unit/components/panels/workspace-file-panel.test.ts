@@ -12,7 +12,7 @@
  */
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import WorkspaceFilePanel from '$lib/components/panels/WorkspaceFilePanel.svelte';
+import WorkspaceFilePanel from '$lib/components/workspace-file/WorkspaceFilePanel.svelte';
 
 const glueCalls: Array<{ initial: string; language?: string }> = [];
 const glueDisposed: boolean[] = [];
@@ -21,7 +21,7 @@ let diffDisposed = false;
 /** The mounted editor handles, in creation order — tests drive setValue. */
 const glueHandles: Array<{ getValue(): string; setValue(t: string): void }> = [];
 
-vi.mock('$lib/components/panels/settings-monaco', () => ({
+vi.mock('$lib/components/monaco/settings-monaco', () => ({
 	createTextEditor: (
 		_container: HTMLElement,
 		initial: string,

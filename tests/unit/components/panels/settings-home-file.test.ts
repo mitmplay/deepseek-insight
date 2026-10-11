@@ -30,7 +30,7 @@ const glue = {
 	disposed: false
 };
 
-vi.mock('$lib/components/panels/settings-monaco', () => ({
+vi.mock('$lib/components/monaco/settings-monaco', () => ({
 	createTextEditor: (
 		_container: HTMLElement,
 		initial: string,

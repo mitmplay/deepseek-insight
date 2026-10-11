@@ -15,7 +15,7 @@ import type { DsiEntry } from '$lib/types';
 const glueCalls: Array<{ initial: string; options: { readOnly?: boolean } | undefined }> = [];
 const glueDisposed: boolean[] = [];
 
-vi.mock('$lib/components/panels/settings-monaco', () => ({
+vi.mock('$lib/components/monaco/settings-monaco', () => ({
 	createYamlEditor: (
 		_container: HTMLElement,
 		initial: string,

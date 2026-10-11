@@ -4,7 +4,7 @@
 	so tests can drive tab-navigation prop changes the way the floor does.
 -->
 <script lang="ts">
-	import WorkspaceExplorerPanel from '$lib/components/panels/WorkspaceExplorerPanel.svelte';
+	import WorkspaceExplorerPanel from '$lib/components/workspace-explorer/WorkspaceExplorerPanel.svelte';
 
 	let { onPendingOpenConsumed }: { onPendingOpenConsumed?: (n: number) => void } = $props();
 	let activeFile = $state<string | null>(null);

@@ -7,11 +7,11 @@ import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-import WorkspaceFilePanel from '$lib/components/panels/WorkspaceFilePanel.svelte';
+import WorkspaceFilePanel from '$lib/components/workspace-file/WorkspaceFilePanel.svelte';
 
 describe('File Eye — the delegate stays retired (4.1-T)', () => {
 	it('the panel saves through /api/workspace/file-write', () => {
-		const src = readFileSync('src/lib/components/panels/WorkspaceFilePanel.svelte', 'utf8');
+		const src = readFileSync('src/lib/components/workspace-file/WorkspaceFilePanel.svelte', 'utf8');
 		expect(src).toContain('/api/workspace/file-write');
 		expect(src).not.toContain('/api/dsh/workspace-file/save');
 	});

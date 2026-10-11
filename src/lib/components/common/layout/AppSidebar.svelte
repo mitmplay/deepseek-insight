@@ -225,11 +225,11 @@
 	:global(html[data-theme='dark']) .rail-collapsed {
 		--rail-gradient: linear-gradient(
 			120deg,
-			#2a2431,
-			#1f2733,
-			#2b2333,
-			#1d2b26,
-			#2a2431
+			#382c20,
+			#1e2b3e,
+			#2c2340,
+			#1b332a,
+			#382c20
 		);
 	}
 

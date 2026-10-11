@@ -3,7 +3,7 @@
  * gate at connect, first generation event, ring bumps delivered, abort
  * releases the watcher lease, closed gate answers JSON not a stream.
  */
-import { describe, it, expect, afterEach, vi } from 'vitest';
+import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
 
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
@@ -220,6 +220,106 @@ describe('git-events SSE route — failure and cancel seams', () => {
 			await new Promise((r) => setTimeout(r, 150));
 			expect(watcherRefCount(repo, repo)).toBeNull();
 		} finally {
+			rmSync(repo, { recursive: true, force: true });
+		}
+	});
+});
+
+// --- Coverage round 2: the stream-internal fault seams — the `send` catch
+// (an encode/enqueue failure flips the stream closed) and the 25s comment
+// ping body (flowing, and failing). A flaky TextEncoder subclass lets the
+// tests inject the failure at exactly the route's seam without touching the
+// source; fake timers fire the 25s ping inside the test budget. ---
+
+describe('git-events SSE route — stream-internal fault seams', () => {
+	let realEncoder: typeof TextEncoder;
+
+	beforeEach(() => {
+		realEncoder = globalThis.TextEncoder;
+	});
+
+	afterEach(() => {
+		globalThis.TextEncoder = realEncoder;
+		vi.useRealTimers();
+		(globalThis as any).__dsiPulseGate = false;
+	});
+
+	function flakyUrl(repo: string): URL {
+		return new URL('http://localhost/api/workspace/git-events?sessionId=s1&root=' + encodeURIComponent(repo) + '&repo=' + encodeURIComponent(repo));
+	}
+
+	it('a failed generation encode flips the stream closed (send catch), and the ping then sees closed', async () => {
+		(globalThis as any).__dsiPulseGate = true;
+		const repo = tmpRepo();
+		class DeadEncoder {
+			encode(_input?: string): Uint8Array {
+				throw new Error('encode exploded');
+			}
+		}
+		(globalThis as any).TextEncoder = DeadEncoder;
+		try {
+			const controller = new AbortController();
+			const res = await GET({ url: flakyUrl(repo), request: new Request('http://localhost/', { signal: controller.signal }) } as any);
+			expect(res.status).toBe(200); // the stream is still handed back…
+			// …but the initial generation send already hit the catch: closed=true.
+			vi.useFakeTimers({ shouldAdvanceTime: true });
+			await vi.advanceTimersByTimeAsync(26_000); // ping fires into a closed stream
+			vi.useRealTimers();
+			controller.abort(); // finish() early-returns — already closed
+			await new Promise((r) => setTimeout(r, 50));
+		} finally {
+			globalThis.TextEncoder = realEncoder;
+			rmSync(repo, { recursive: true, force: true });
+		}
+	});
+
+	it('the 25s comment ping flows to the client', { timeout: 30_000 }, async () => {
+		(globalThis as any).__dsiPulseGate = true;
+		const repo = tmpRepo();
+		try {
+			const controller = new AbortController();
+			const res = await GET({ url: flakyUrl(repo), request: new Request('http://localhost/', { signal: controller.signal }) } as any);
+			const reader = res.body!.getReader();
+			const decoder = new TextDecoder();
+			// drain the initial generation event first
+			const gen = await reader.read();
+			expect(decoder.decode((gen as ReadableStreamReadResult<Uint8Array>).value)).toContain('event: generation');
+			// REAL timers: web-stream chunk delivery stalls under fake timers,
+			// so the 25s ping is waited out for real (test timeout raised below)
+			const first = reader.read();
+			await new Promise((r) => setTimeout(r, 25_500)); // the comment ping fires
+			const chunk = (await Promise.race([first, new Promise((r) => setTimeout(() => r('TIMEOUT'), 2000))])) as ReadableStreamReadResult<Uint8Array> | string;
+			expect(chunk).not.toBe('TIMEOUT');
+			expect(decoder.decode((chunk as ReadableStreamReadResult<Uint8Array>).value)).toBe(': ping\n\n');
+			controller.abort();
+			await new Promise((r) => setTimeout(r, 50));
+		} finally {
+			rmSync(repo, { recursive: true, force: true });
+		}
+	});
+
+	it('a failed ping encode closes the stream (ping catch)', async () => {
+		(globalThis as any).__dsiPulseGate = true;
+		const repo = tmpRepo();
+		const realEncode = TextEncoder.prototype.encode;
+		TextEncoder.prototype.encode = function (this: TextEncoder, input?: string): Uint8Array {
+			if (input !== undefined && input.includes(': ping')) throw new Error('ping encode exploded');
+			return realEncode.call(this, input);
+		} as typeof TextEncoder.prototype.encode;
+		try {
+			const controller = new AbortController();
+			const res = await GET({ url: flakyUrl(repo), request: new Request('http://localhost/', { signal: controller.signal }) } as any);
+			const reader = res.body!.getReader();
+			// initial generation flows fine (only ping encoding is booby-trapped)
+			const first = await Promise.race([reader.read(), new Promise((r) => setTimeout(() => r('TIMEOUT'), 2000))]);
+			expect(first).not.toBe('TIMEOUT');
+			vi.useFakeTimers({ shouldAdvanceTime: true });
+			await vi.advanceTimersByTimeAsync(26_000); // ping fires → encode throws → catch
+			vi.useRealTimers();
+			controller.abort(); // finish() early-returns — ping already closed it
+			await new Promise((r) => setTimeout(r, 50));
+		} finally {
+			TextEncoder.prototype.encode = realEncode;
 			rmSync(repo, { recursive: true, force: true });
 		}
 	});

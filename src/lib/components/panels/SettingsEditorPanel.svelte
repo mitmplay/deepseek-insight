@@ -25,7 +25,7 @@
 	// document through the same /api/settings seam — no side-channel write.
 	import LocaleSettingsRow from '$lib/components/language-menu/LocaleSettingsRow.svelte';
 	import ThemeSettingsRow from '$lib/components/panels/ThemeSettingsRow.svelte';
-	import type { YamlEditorHandle } from './settings-monaco';
+	import type { YamlEditorHandle } from '../monaco/settings-monaco';
 
 	let {
 		target,
@@ -85,7 +85,7 @@
 		}
 		savedText = initial;
 		// The lazy Monaco glue — its own chunk (D4), never the floor's paint.
-		const { createYamlEditor } = await import('./settings-monaco');
+		const { createYamlEditor } = await import('../monaco/settings-monaco');
 		if (editorHost !== null) {
 			editor = createYamlEditor(editorHost, initial, () => {
 				dirty = true;
