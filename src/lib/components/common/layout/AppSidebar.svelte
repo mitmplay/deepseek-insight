@@ -38,6 +38,7 @@
 	// collapsed stub's prefix.
 	import AppSidebarHeader from './AppSidebarHeader.svelte';
 	import AboutButton from './AboutButton.svelte';
+	import RestartButton from './RestartButton.svelte';
 	import { type SessionFilterState } from '$lib/utils/session-filters';
 	import { loadSessionFilter, saveSessionFilter } from '$lib/utils/session-filter-prefs';
 
@@ -105,6 +106,7 @@
 	<div class="rail-collapsed" data-testid="app-sidebar-collapsed">
 		<!-- Prefix of the stub: the circled-A About trigger, wearing the
 		     stub label's ink so it reads as part of the vertical stack. -->
+		<RestartButton class="rail-collapsed-label" />
 		<AboutButton class="rail-collapsed-label" />
 		<button
 			type="button"

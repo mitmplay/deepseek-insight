@@ -1,5 +1,27 @@
 # Releases
 
+## v0.6.16
+
+Bumped from v0.6.15 — the DSH host moves in-process (DSI boots its own host with token intercept and bounce), the restart verb finally works end to end, and context chips escape the fold.
+
+### Features
+
+- **In-process DSH host embed (waves 1–4, cb468d5, 0635978, f500b49, 3472ea4, c05a374)** — DSI's dev CLI (`--dev`) boots the DSH host inside the Vite process: dsh entry resolver + GO-verdict spike, vite-dsh-host plugin with token intercept (literal-s stderr split + `DSI_DSH_DEBUG` seam), process-level restart-safe host lifecycle with fiber-dispose stop and unmanaged-port guard, and `DSH_HOST_INTROSPECT` boot path owning the Cordis root (260 plugins live). Proven by a 5/5 e2e in-process floor wave (shape, 401 wall, token sink, page-to-host RPC pin, zero-orphan teardown).
+- **Bounce restores the floor MODE (6cdd316, b3d3d9a)** — `DSI_DEV_MODE` is read via `ps -E` into a `resolveBounceMode` enum so a delayed re-serve relaunches in the same floor mode; `/api/floor/mode` route + bounce-inspect tests pin it.
+- **Restart verb: POST /api/floor/restart + RestartButton (c893f65, 4e53038, 20dbecd)** — port takeover + delayed re-serve from the sidebar; i18n across 4 locales, RestartButton component tests, and pending waitPortFree boot guard landed in vite-dsh-host.
+- **Escaped Injection: context chips never fold (ADR-0022, b19689a, a8ffe58, 064814e)** — injection chips in a chips-run escape the "N tool calls · M messages" fold: a strip above the think pills, expanded fold clusters join the escape row, unknown-event notices join the family with a work-row badge matching the disclosure count.
+- **New DX skills: dsi-ports + dsi-restart (1224073, 7067bfd)** — live port inventory with purpose + memory (Port Ledger KB), and floor restart with a before/after port+pid+RSS delta report; dsi-thin skill removed as redundant.
+- **Dev inspector: --inspect forwards to the vite child argv (f336860)** — one debugger for DSI + the embedded DSH host.
+- **ContextInjectionChip homed with the chip family** — `ContextInjection.svelte` moved to `src/lib/components/message/chips/ContextInjectionChip.svelte` alongside ToolCallChip/SystemPromptChip; all import sites and the 92-test component suite green.
+
+### Bug fixes
+
+- **DSH_HOST_PORT fed dshBase (ffd90a5)** — the in-process page dialed 3080 while the host booted elsewhere; the base now reads the host's actual port.
+- **Token intercept missed announces (0e9d465)** — literal-s split + stderr streaming fixed announce capture; `DSI_DEV` isolated in restart-chain tests.
+- **Realm-proof debug handle (9bdba2d)** — `process.__DSH_HOST__` is visible from every inspector VM context.
+- **peekIcon never reached ToolPeekButton (ba3cf4d)** — the glyph was passed as `peekIcon` but the prop is named `icon`; ToolPeekButton now switches glyphs (regression of ADR-0022 I3).
+- **Injection escape strip order (fa76024)** — the strip renders ABOVE the think pills instead of underneath them.
+
 ## v0.6.15
 
 Bumped from v0.6.14 — the theme token wave finishes (every gradient rides the layer) and the per-file 80% coverage floor holds across the five weakest files.

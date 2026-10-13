@@ -157,7 +157,12 @@ let singleton: DshConnection | undefined;
 
 /** The process-wide transport (BC-5). Creates lazily on first use. */
 export function getDshConnection(opts: DshConnectionOptions = {}): DshConnection {
-	singleton ??= new DshConnection(opts);
+	singleton ??= new DshConnection({
+		...opts,
+		// Gated auth/transport trace (mint/retry paths are silent otherwise);
+		// DSI_DSH_DEBUG=1 on the floor boot turns it on.
+		log: opts.log ?? (process.env.DSI_DSH_DEBUG === '1' ? console.error : undefined)
+	});
 	return singleton;
 }
 

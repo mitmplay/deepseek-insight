@@ -138,4 +138,77 @@ describe('ConversationScrollArea fold wiring (ADR-0010)', () => {
 		// the pill sits INSIDE the expanded body: after the disclosure row
 		expect((sections[0] as Element).compareDocumentPosition(rowEl) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
 	});
+
+	// ── ADR-0022 (The Escaped Injection): injection chips never fold ──
+	const injection = (id: string, seq: number): DsiEntry => ({
+		kind: 'user-message', id, seq, time: 1000 + seq,
+		text: '<system-reminder>Additional instructions from: AGENTS.md</system-reminder>',
+		meta: 'instructions', metaSource: { kind: 'agent-instructions', form: 'instructions', changes: [{ action: 'set', path: 'AGENTS.md' }] }
+	});
+	const injectedEntries: DsiEntry[] = [
+		user('u1', 1),
+		toolCall('c1', 2, 'k1'),
+		injection('n1', 3),
+		answer('a1', 4)
+	];
+
+	it('injection chips escape the fold — visible while the row is CLOSED (D7)', () => {
+		appConfigMock.mockReturnValue({ conversation: { collapsable: true, progressiveFold: false } });
+		const target = document.createElement('div');
+		document.body.appendChild(target);
+		const comp = mount(ConversationScrollArea, {
+			target,
+			props: {
+				entries: injectedEntries,
+				groups: groupTurns(injectedEntries),
+				hasMore: false, loadingOlder: false, olderError: null,
+				onloadolder: () => {}, openChipId: null, ontogglechip: () => {},
+				peekOpenRunKey: null, ontogglepeek: () => {},
+				pendingCards: [], settledCards: [], onanswer: () => {}, sessionId: 's1'
+			}
+		});
+		try {
+			flushSync();
+			const q = (sel: string) => target.querySelector(sel);
+			expect(q('[data-testid="turn-process-disclosure"]')).not.toBeNull();
+			// the AGENTS.md chip is visible WITHOUT expanding the fold
+			const chip = q('[data-testid="context-injection-chip"]');
+			expect(chip).not.toBeNull();
+			expect(chip!.getAttribute('data-producer')).toBe('instructions');
+			// the label never counts injections (D3 half stands)
+			expect(q('[data-testid="turn-process-label"]')?.textContent).toContain('1 tool call');
+		} finally {
+			unmount(comp);
+		}
+	});
+
+	it('expanded fold: the injection chip replays at its wire position — exactly one, never duplicated', async () => {
+		appConfigMock.mockReturnValue({ conversation: { collapsable: true, progressiveFold: false } });
+		const target = document.createElement('div');
+		document.body.appendChild(target);
+		const comp = mount(ConversationScrollArea, {
+			target,
+			props: {
+				entries: injectedEntries,
+				groups: groupTurns(injectedEntries),
+				hasMore: false, loadingOlder: false, olderError: null,
+				onloadolder: () => {}, openChipId: null, ontogglechip: () => {},
+				peekOpenRunKey: null, ontogglepeek: () => {},
+				pendingCards: [], settledCards: [], onanswer: () => {}, sessionId: 's1'
+			}
+		});
+		try {
+			flushSync();
+			const q = (sel: string) => target.querySelector(sel);
+			const qa = (sel: string) => target.querySelectorAll(sel);
+			expect(qa('[data-testid="context-injection-chip"]').length).toBe(1);
+			(q('[data-testid="turn-process-disclosure"]') as HTMLButtonElement).click();
+			flushSync();
+			// open: strip gone, chip lives in the body — still exactly ONE
+			expect(qa('[data-testid="context-injection-chip"]').length).toBe(1);
+			expect(q('[data-testid="turn-process-disclosure"]')!.getAttribute('aria-expanded')).toBe('true');
+		} finally {
+			unmount(comp);
+		}
+	});
 });

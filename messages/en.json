@@ -412,6 +412,7 @@
 	"pluginRackBy": "by",
 	"pluginRackRetry": "Retry",
 	"pluginRackReload": "Reload",
+	"floorRestart": "Restart floor",
 	"commandHelpPluginrackSummary": "Opens the Plugin Rack panel (The Plugin Rack ADR, 2026-09-27): install and uninstall dsh plugins from the plugins reference. Every apply ends with the DSH restart chain - the floor bounces and the page re-attaches.",
 	"commandHelpPluginrackParamReload": "Force a snapshot rebuild from plugins-reff.md before the panel opens. Without it the cached rack snapshot is used as-is.",
 	"commandHelpPluginrackExampleBare": "Opens the rack - install or uninstall with one click per row.",

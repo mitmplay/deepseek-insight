@@ -24,7 +24,7 @@
 	import ToolCallDetail from '$lib/components/message/ToolCallDetail.svelte';
 	import TurnErrorChip from '$lib/components/message/chips/TurnErrorChip.svelte';
 	import ChipPopup from '$lib/components/message/assistant/ChipPopup.svelte';
-	import ContextInjection from '$lib/components/message/ContextInjection.svelte';
+	import ContextInjection from '$lib/components/message/chips/ContextInjectionChip.svelte';
 	import ContextSnapshotBody from '$lib/components/message/ContextSnapshotBody.svelte';
 	import WorkflowRunCard from '$lib/components/message/cards/WorkflowRunCard.svelte';
 	import QuestionCard from '$lib/components/card/QuestionCard.svelte';
@@ -68,7 +68,8 @@
 		ontogglePeek,
 		autoThinkId = null,
 		autoPlanId = null,
-		onFileOpen = undefined
+		onFileOpen = undefined,
+		peekIcon = 'wrench'
 	}: {
 		/** The run's entries, wire order (splitRuns chips branch) — chips
 		 *  and the context injections the open turn absorbed. */
@@ -96,6 +97,9 @@
 		/** Page-owned file-open seat (ADR-0013 D5): the markdown cards'
 		 *  click lands here — the transcript's file-link pipeline. */
 		onFileOpen?: (path: string) => void;
+		/** The peek badge's glyph (ADR-0022 I3): 'context' marks an
+		 *  escape-strip row — attached context, not work. */
+		peekIcon?: 'wrench' | 'context';
 	} = $props();
 
 	/** Effective open of ONE chip: the manual pick, or its auto slot. */
@@ -206,7 +210,7 @@
 	     whole row before the chips — pick by reading, not hunting. -->
 	{#if entries.some(isPeekMember)}
 		{@const chipCount = entries.filter(isPeekMember).length}
-		<ToolPeekButton count={chipCount} active={peekOpen} onclick={ontogglePeek} />
+		<ToolPeekButton count={chipCount} active={peekOpen} icon={peekIcon} onclick={ontogglePeek} />
 	{/if}
 	{#each entries as entry (entry.id)}
 		{#if entry.kind === 'assistant-message' && entry.reasoning !== undefined && entry.reasoning !== ''}

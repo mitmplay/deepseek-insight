@@ -412,6 +412,7 @@
 	"pluginRackBy": "oleh",
 	"pluginRackRetry": "Coba lagi",
 	"pluginRackReload": "Muat ulang",
+	"floorRestart": "Mulai ulang lantai",
 	"commandHelpPluginrackSummary": "Membuka panel Rak Plugin (ADR The Plugin Rack, 2026-09-27): instal dan copot plugin dsh dari referensi plugin. Setiap penerapan diakhiri rantai restart DSH - lantai turun sejenak lalu halaman pulih sendiri.",
 	"commandHelpPluginrackParamReload": "Bangun ulang snapshot dari plugins-reff.md sebelum panel terbuka. Tanpa itu, snapshot rak yang tersimpan dipakai apa adanya.",
 	"commandHelpPluginrackExampleBare": "Membuka rak - instal atau copot dengan satu klik per baris.",

@@ -430,6 +430,62 @@ describe('turnProcess — the fold summary (ADR-0010, The Fold Gate)', () => {
 		turnProcess(entries);
 		expect(JSON.stringify(entries)).toBe(before);
 	});
+
+	// ── ADR-0022 (The Escaped Injection): injections escape the fold ──
+
+	it('injections lift to escapedInjections in wire order (D7)', () => {
+		const s = turnProcess([
+			call('c1', 2, 'k1'),
+			notice('n1', 3),
+			call('c2', 4, 'k2'),
+			notice('n2', 5),
+			assistant('a1', 6)
+		]);
+		expect(s.escapedInjections.map((e) => e.id)).toEqual(['n1', 'n2']);
+		// honest-body rule (A4): the fold body keeps them at wire positions
+		// (a1 is a TEXT run — the answer — so the chips body ends at n2)
+		const chipEntries = s.folded.flatMap((r) => (r.kind === 'chips' ? r.entries : []));
+		expect(chipEntries.map((e) => e.id)).toEqual(['c1', 'n1', 'c2', 'n2']);
+	});
+
+	it('an injection AFTER the last text run never lifts — it already renders open', () => {
+		const s = turnProcess([assistant('a1', 2), notice('n1', 3)]);
+		expect(s.escapedInjections).toEqual([]);
+	});
+
+	it('an injection in a tool-only turn never lifts — tool-only turns do not fold', () => {
+		const s = turnProcess([call('c1', 2, 'k1'), notice('n1', 3)]);
+		expect(s.hasAnswer).toBe(false);
+		expect(s.escapedInjections).toEqual([]);
+	});
+
+	it('escaped injections are uncounted — the disclosure label never changes (D3 half stands)', () => {
+		const s = turnProcess([notice('n1', 2), call('c1', 3, 'k1'), assistant('a1', 4)]);
+		expect(s.toolCallCount).toBe(1);
+		expect(s.messageCount).toBe(1);
+		expect(s.subagentCount).toBe(0);
+	});
+
+	it('a turn with no injections exports an empty escape list', () => {
+		const s = turnProcess([call('c1', 2, 'k1'), assistant('a1', 3)]);
+		expect(s.escapedInjections).toEqual([]);
+	});
+
+	// ── ADR-0022 I4: unknown-event notices are injected stream content ──
+
+	it('an unknown-event notice joins the escape family (I4) — the work row keeps only work', () => {
+		const s = turnProcess([
+			call('c1', 2, 'k1'),
+			unknown('e1', 3),
+			notice('n1', 4),
+			assistant('a1', 5)
+		]);
+		// the notice escapes beside the injection (wire order)
+		expect(s.escapedInjections.map((e) => e.id)).toEqual(['e1', 'n1']);
+		// counts never included unknown-events — disclosure and work row agree
+		expect(s.toolCallCount).toBe(1);
+		expect(s.messageCount).toBe(1);
+	});
 });
 
 // ── Turn End Stamp (2026-09-25, task 1.3-T): markers never group ──

@@ -21,7 +21,7 @@
 	 */
 	import LoadOlderSentinel from '$lib/components/message/LoadOlderSentinel.svelte';
 	import PromptBubble from '$lib/components/message/prompt/PromptBubble.svelte';
-	import ContextInjection from '$lib/components/message/ContextInjection.svelte';
+	import ContextInjection from '$lib/components/message/chips/ContextInjectionChip.svelte';
 	import ContextSnapshotBody from '$lib/components/message/ContextSnapshotBody.svelte';
 	import SystemPromptChip from '$lib/components/message/chips/SystemPromptChip.svelte';
 	import ChipPopup from '$lib/components/message/assistant/ChipPopup.svelte';
@@ -360,6 +360,28 @@
 								open={openTurns.has(group.key)}
 								ontoggle={() => toggleTurn(group.key)}
 							/>
+						{#if fold.escapedInjections.length > 0 && !openTurns.has(group.key)}
+							<!-- ADR-0022 D7: what the model was TOLD never hides — the
+							     injection strip sits ABOVE the escaped reasoning while
+							     the row is closed (operator call, 2026-10-13: the chips
+							     read as the turn's inputs, before the thinking) and
+							     empties when it opens (the chips then replay at their
+							     wire positions in the body). -->
+							{@const escInjKey = 'esc-inj:' + group.key}
+							<InlineToolCalls
+								entries={fold.escapedInjections}
+								runKey={escInjKey}
+								{openChipId}
+								peekOpen={peekOpenRunKey === escInjKey}
+								allEntries={entries}
+								ontoggleChip={ontogglechip}
+								ontogglePeek={() => ontogglepeek(escInjKey)}
+								{autoThinkId}
+								{autoPlanId}
+								{onFileOpen}
+								peekIcon="context"
+							/>
+						{/if}
 						{#if fold.escapedReasoning.length > 0 && !openTurns.has(group.key)}
 							{@const escKey = 'esc:' + group.key}
 							<InlineToolCalls
@@ -376,12 +398,39 @@
 							/>
 						{/if}
 						{#if openTurns.has(group.key)}
+							<!-- ADR-0022 I3 (operator call, 2026-10-13): the expanded
+							     fold reads as TWO rows — the escape cluster (context
+							     glyph, same count as closed) ABOVE the work replay.
+							     Injections are filtered from the replayed runs, so
+							     the cluster row is their ONLY expanded seat — never
+							     a duplicate. -->
+							{#if fold.escapedInjections.length > 0}
+								{@const escInjOpenKey = 'esc-inj-open:' + group.key}
+								<InlineToolCalls
+									entries={fold.escapedInjections}
+									runKey={escInjOpenKey}
+									{openChipId}
+									peekOpen={peekOpenRunKey === escInjOpenKey}
+									allEntries={entries}
+									ontoggleChip={ontogglechip}
+									ontogglePeek={() => ontogglepeek(escInjOpenKey)}
+									{autoThinkId}
+									{autoPlanId}
+									{onFileOpen}
+									peekIcon="context"
+								/>
+							{/if}
 							{#each fold.folded as run (run.key)}
+								{@const workEntries = run.kind === 'chips'
+									? run.entries.filter((e) =>
+											!(e.kind === 'user-message' && e.meta !== undefined) &&
+											e.kind !== 'unknown-event')
+									: run.entries}
 								{#if run.kind === 'text'}
 									<MarkdownContent content={run.entry.text} hideToggle {onFileLink} />
-								{:else}
+								{:else if workEntries.length > 0}
 									<InlineToolCalls
-										entries={run.entries}
+										entries={workEntries}
 										runKey={run.key}
 										{openChipId}
 										peekOpen={peekOpenRunKey === run.key}

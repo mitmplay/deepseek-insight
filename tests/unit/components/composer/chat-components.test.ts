@@ -20,7 +20,7 @@ import AssistantTurn from '$lib/components/message/assistant/AssistantTurn.svelt
 import PromptBubbleSnippetHost from '../../../fixtures/PromptBubbleSnippetHost.svelte';
 import ReasoningSection from '$lib/components/message/ReasoningSection.svelte';
 import RuntimeContextChip from '$lib/components/message/chips/RuntimeContextChip.svelte';
-import ContextInjection from '$lib/components/message/ContextInjection.svelte';
+import ContextInjection from '$lib/components/message/chips/ContextInjectionChip.svelte';
 import ApprovalCard from '$lib/components/card/ApprovalCard.svelte';
 import QuestionCard from '$lib/components/card/QuestionCard.svelte';
 import ModelSelector from '$lib/components/composer/sibling/ModelSelector.svelte';

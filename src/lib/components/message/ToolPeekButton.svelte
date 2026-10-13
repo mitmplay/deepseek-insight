@@ -9,15 +9,20 @@
 <script lang="ts">
 	import { t } from '$lib/services/locale/locale-state.svelte';
 	import * as m from '$lib/paraglide/messages';
-	import { Wrench } from '@lucide/svelte';
+	import { Wrench, BookOpen } from '@lucide/svelte';
 
 	let {
 		count,
 		active = false,
+		icon = 'wrench',
 		onclick
 	}: {
 		count: number;
 		active?: boolean;
+		/** 'wrench' — the work-row default; 'context' — an escape strip
+		 *  row (ADR-0022 I3): attached context, not work, so the count
+		 *  reads with a different glyph at a glance. */
+		icon?: 'wrench' | 'context';
 		onclick?: (e: MouseEvent) => void;
 	} = $props();
 </script>
@@ -35,7 +40,11 @@
 			? 'bg-accent-purple/20 text-accent-purple border border-accent-purple/30'
 			: 'bg-surface-alt text-text-secondary border border-surface-border hover:bg-surface-hover hover:text-text-primary'}"
 >
-	<Wrench size={10} />
+	{#if icon === 'context'}
+		<BookOpen size={10} />
+	{:else}
+		<Wrench size={10} />
+	{/if}
 	<span class="text-[10px]">{count}</span>
 </button>
 

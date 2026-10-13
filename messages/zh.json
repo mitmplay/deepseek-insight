@@ -412,6 +412,7 @@
 	"pluginRackBy": "作者：",
 	"pluginRackRetry": "重试",
 	"pluginRackReload": "重新加载",
+	"floorRestart": "重启楼层",
 	"commandHelpPluginrackSummary": "打开插件架面板（The Plugin Rack ADR，2026-09-27）：从插件参考安装/卸载 dsh 插件。每次应用都会触发 DSH 重启链 - 页面会短暂离开并自动恢复。",
 	"commandHelpPluginrackParamReload": "在面板打开前从 plugins-reff.md 重建快照。不带它时按原样使用缓存的插件架快照。",
 	"commandHelpPluginrackExampleBare": "打开插件架 - 每行一键安装或卸载。",

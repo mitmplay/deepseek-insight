@@ -70,6 +70,53 @@ export function bounceDevMode(flagDev, devFloorAlive) {
 	}
 }
 
+/** The takeover's bounded-wait budget and poll cadence (The Port Takeover
+ *  ADR 2026-10-12, D3): after the SIGTERM sweep the chain waits until every
+ *  DSI port actually frees — at most this budget — then re-serves. A port
+ *  still held at the deadline is an honest exit 64, never a half-boot. */
+export const TAKEOVER_BUDGET_MS = 10_000;
+export const TAKEOVER_POLL_MS = 250;
+
+/**
+ * The takeover sweep (The Port Takeover ADR 2026-10-12, D2/D3/D5): SIGTERM
+ * whatever LISTENS on the given ports, then WAIT until each port frees,
+ * bounded. Pure orchestration — every effect is injected, so unit tests run
+ * it against fakes and the real half stays in dsi.mjs.
+ *
+ * @param {number[]} ports
+ * @param {{ listListeners: (port: number) => number[], terminate: (pid: number) => void,
+ *            portFree: (port: number) => boolean | Promise<boolean>, sleep: (ms: number) => Promise<void>,
+ *            now: () => number, log: (line: string) => void }} effects
+ * @returns {Promise<{ ok: boolean, port?: number, pid?: number | string }>} ok:false names the port and holder (exit 64 is the caller's)
+ */
+export async function takeoverFloorPorts(ports, effects) {
+	const { listListeners, terminate, portFree, sleep, now, log } = effects;
+	const start = now();
+	for (const port of ports) {
+		for (const pid of listListeners(port)) {
+			terminate(pid);
+			log('takeover: SIGTERM pid ' + pid + ' on port ' + port);
+		}
+	}
+	for (const port of ports) {
+		let freed = null;
+		while (now() - start <= TAKEOVER_BUDGET_MS) {
+			if (await portFree(port)) {
+				freed = now() - start;
+				break;
+			}
+			await sleep(TAKEOVER_POLL_MS);
+		}
+		if (freed === null) {
+			const holder = listListeners(port)[0] ?? 'unknown';
+			log('takeover: port ' + port + ' still held by pid ' + holder + ' after ' + TAKEOVER_BUDGET_MS + 'ms — giving up');
+			return { ok: false, port, pid: holder };
+		}
+		log('takeover: port ' + port + ' free after ' + freed + 'ms');
+	}
+	return { ok: true };
+}
+
 /**
  * The dsh launcher rule (runOvPlugin's, generalized): DSH_WEB_CMD override,
  * else the pinned published dsh via npx. The webVersion pin comes from the

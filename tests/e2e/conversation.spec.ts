@@ -1465,18 +1465,25 @@ async function pushFoldFixture(): Promise<number> {
 			role: 'user', id: 'stub-result-fold-one'
 		}
 	}));
-	await stubRuntime!.pushEvent(mk(4, 'assistant/message', {
+	// ADR-0022 fixture member: an agent-instructions injection spliced into
+	// turn 31 — the live-ledger shape (seq 63 of session f48767d8).
+	await stubRuntime!.pushEvent(mk(4, 'user/message', {
+		id: 'e2e-fold-inject',
+		content: [{ type: 'text', text: '<system-reminder>\nAdditional instructions from: deepseek-insight/AGENTS.md\n\nThese instructions apply to work under `deepseek-insight`.\n</system-reminder>' }],
+		source: { kind: 'agent-instructions', form: 'instructions', baseline: false, changes: [{ action: 'set', scope: 'deepseek-insight\u0000AGENTS.md', path: 'deepseek-insight/AGENTS.md', digest: 'e2e-d7' }] }
+	}));
+	await stubRuntime!.pushEvent(mk(5, 'assistant/message', {
 		turn: 31, step: 3,
 		message: { content: [{ type: 'text', text: 'fold-e2e final answer' }] }
 	}));
 	// Turn 2 (fresh prompt): tool-only — nothing to fold.
-	await stubRuntime!.pushEvent(mk(5, 'user/message', {
+	await stubRuntime!.pushEvent(mk(6, 'user/message', {
 		id: 'e2e-fold-prompt-2', content: [{ type: 'text', text: 'fold fixture prompt two' }]
 	}));
-	await stubRuntime!.pushEvent(mk(6, 'tool/call', {
+	await stubRuntime!.pushEvent(mk(7, 'tool/call', {
 		turn: 32, step: 1, callId: 'call_fold_two', name: 'grep', arguments: '{"q":"fold2"}'
 	}));
-	await stubRuntime!.pushEvent(mk(7, 'tool/result', {
+	await stubRuntime!.pushEvent(mk(8, 'tool/result', {
 		turn: 32, step: 1,
 		message: {
 			source: { kind: 'tool', callId: 'call_fold_two' },
@@ -1523,6 +1530,13 @@ test('30 · fold (b) — collapsable: answered turn folds, tool-only stays flat,
 		const d = el.querySelector('[data-testid="turn-process-disclosure"]');
 		return r && d ? !!(r.compareDocumentPosition(d) & Node.DOCUMENT_POSITION_PRECEDING) : false;
 	})).toBe(true);
+	// D7 (ADR-0022): the AGENTS.md injection chip is visible WITHOUT
+	// expanding the fold — what the model was told never hides.
+	const injChip = answerTurn.getByTestId('context-injection-chip');
+	await expect(injChip).toBeVisible();
+	await expect(injChip).toHaveAttribute('data-producer', 'instructions');
+	// The label never counts injections (the ambient half of D3 stands).
+	await expect(row.getByTestId('turn-process-label')).toHaveText('1 tool call · 2 messages');
 	// Closed: the folded tool chip is hidden; the tool-only turn's chip is
 	// not — the transcript's LAST turn is the tool-only fixture turn, and
 	// it renders flat (no disclosure row of its own).
@@ -1544,6 +1558,9 @@ test('30 · fold (b) — collapsable: answered turn folds, tool-only stays flat,
 	// The reasoning pill moved INTO the expanded body at its wire position:
 	// still exactly ONE section — the escaped strip is gone, no duplicate.
 	await expect(answerTurn.getByTestId('reasoning-section')).toHaveCount(1);
+	// D7 open state: the chip replays at its wire position — exactly ONE
+	// (the closed-only escape strip emptied, never doubled).
+	await expect(answerTurn.getByTestId('context-injection-chip')).toHaveCount(1);
 });
 
 test('31 · fold (c) — progressiveFold: an in-flight turn folds mid-stream', async ({ page }) => {

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import { paraglideVitePlugin } from '@inlang/paraglide-js';
 import { autoTrace } from './src/lib/preprocess/auto-trace';
+import { dshHostPlugin } from './vt-plugins/vite-dsh-host.ts';
 
 export default defineConfig({
 	resolve: {
@@ -19,6 +20,10 @@ export default defineConfig({
 		}
 	},
 	plugins: [
+		// The In-Process Host (ADR 2026-10-11): inert unless dsi.mjs spawned
+		// vite with DSI_DEV_IN_PROCESS=1 — the tandem floor never loads a host
+		// from here. Status surface: globalThis.__dshHost.
+		dshHostPlugin(),
 		// Three Tongues W1 (ADR 2026-09-12): compile messages/{en,zh,id}.json into
 		// typed m.* functions under src/lib/paraglide (gitignored, regenerated).
 		paraglideVitePlugin({

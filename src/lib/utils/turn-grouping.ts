@@ -269,6 +269,12 @@ export interface TurnProcessSummary {
 	 *  never hides — and omits the strip when the fold is open (the pills
 	 *  are then visible at their wire positions inside the expanded body). */
 	escapedReasoning: TurnMember[];
+	/** The context-injection entries carried by `folded` (ADR-0022, D7):
+	 *  the caller renders them as chips beside the escaped reasoning while
+	 *  the row is closed — what the model was TOLD never hides — and omits
+	 *  the strip when the fold is open (the chips then sit at their wire
+	 *  positions inside the expanded body). Never counted in the label. */
+	escapedInjections: TurnMember[];
 	/** The last text run and everything after it — render open BELOW the
 	 *  row, wire order preserved. */
 	trailingTextRuns: TurnRun[];
@@ -310,6 +316,7 @@ export function turnProcess(
 	const lastText = runs.findLastIndex((r) => r.kind === 'text');
 	const hasAnswer = lastText !== -1;
 	const escapedReasoning: TurnMember[] = [];
+	const escapedInjections: TurnMember[] = [];
 	const folded: TurnRun[] = [];
 	for (const run of hasAnswer ? runs.slice(0, lastText) : []) {
 		if (run.kind !== 'chips') {
@@ -319,6 +326,20 @@ export function turnProcess(
 		for (const e of run.entries) {
 			if (e.kind === 'assistant-message' && e.reasoning !== undefined && e.reasoning !== '') {
 				escapedReasoning.push(e);
+			}
+			// ADR-0022 D7: every injection producer rides one entry shape
+			// (user-message + meta, ContextEntry); the whole family escapes
+			// together — no producer-string switch here.
+			// I4 (operator call, 2026-10-13): unmodeled wire events
+			// (unknown-event — e.g. 'working-directory/change') are harness
+			// notices relayed INTO the stream, not agent work; they join the
+			// escape family so the work row's badge matches the disclosure's
+			// work count. Unknown-events were never counted in the label.
+			if (e.kind === 'unknown-event') {
+				escapedInjections.push(e);
+			}
+			if (e.kind === 'user-message' && e.meta !== undefined) {
+				escapedInjections.push(e);
 			}
 		}
 		folded.push(run);
@@ -331,6 +352,7 @@ export function turnProcess(
 		subagentCount,
 		folded,
 		escapedReasoning,
+		escapedInjections,
 		trailingTextRuns: hasAnswer ? runs.slice(lastText) : [],
 		hasAnswer,
 		folds,

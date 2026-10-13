@@ -14,6 +14,7 @@
 	import AppSidebarHeaderTitle from './AppSidebarHeaderTitle.svelte';
 	import AppSidebarHeaderAction from './AppSidebarHeaderAction.svelte';
 	import AboutButton from './AboutButton.svelte';
+	import RestartButton from './RestartButton.svelte';
 
 	let {
 		captureContainer = null,
@@ -29,6 +30,7 @@
 
 <header class="rail-header">
 	<!-- Prefix: the circled-A About trigger leads the header row. -->
+	<RestartButton class="rail-collapsed-label" />
 	<AboutButton />
 	<AppSidebarHeaderTitle />
 	<AppSidebarHeaderAction {captureContainer} {onToggleCollapse} />

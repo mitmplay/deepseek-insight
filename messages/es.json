@@ -412,6 +412,7 @@
 	"pluginRackBy": "por",
 	"pluginRackRetry": "Reintentar",
 	"pluginRackReload": "Recargar",
+	"floorRestart": "Reiniciar el suelo",
 	"commandHelpPluginrackSummary": "Abre el panel Rack de plugins (ADR The Plugin Rack, 2026-09-27): instala y desinstala plugins de dsh desde la referencia de plugins. Cada aplicación termina con la cadena de reinicio de DSH: la página se va un momento y vuelve sola.",
 	"commandHelpPluginrackParamReload": "Fuerza a reconstruir el snapshot desde plugins-reff.md antes de abrir el panel. Sin ella se usa el snapshot en caché tal cual.",
 	"commandHelpPluginrackExampleBare": "Abre el rack: instala o desinstala con un clic por fila.",

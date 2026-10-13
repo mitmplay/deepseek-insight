@@ -28,7 +28,8 @@ import { fileURLToPath } from 'node:url';
 import { parse, stringify } from 'yaml';
 
 import { mirrorSkills } from './lib/mirror-skills.mjs';
-import { dshLauncherCmd, parsePluginArgs } from './lib/plugin-chain.mjs';
+import { dshLauncherCmd, parsePluginArgs, takeoverFloorPorts } from './lib/plugin-chain.mjs';
+import { parseDevArg, devModeEnv, modeFromBoolean, resolveBounceMode, extractInspectArgs, parseInspectArgsFromEnv } from './lib/dev-mode.mjs';
 
 // Layman-facing help: wrapped near 76 columns, continuation lines indented,
 // the recommended one-liner first. --zai is optional on purpose — no GLM
@@ -56,7 +57,11 @@ const USAGE = [
 	'               store the dsh launch token as dsh.authToken in',
 	'               ~/.dsi/settings.yaml, then serve',
 	'      --dev    serve the Vite dev server instead of the built page (takes',
-	'               port 5175; needs a full checkout: pnpm install)',
+	'               port 5175; needs a full checkout: pnpm install). Optional',
+	'               value: --dev in-process boots the DSH host INSIDE the dev',
+	'               server process (one process, one Ctrl-C; host still on',
+	'               port 3080; token via in-process intercept). Bare --dev',
+	'               keeps the two-port pair; --dev pair is the same spelled out.',
 	'      --sync-kills',
 	'               kill orphaned dsh/dsi processes left by an earlier run',
 	'      --ov    install the OpenViking memory plugin into the active dsh',
@@ -195,15 +200,16 @@ if (command === 'dsh') {
 		// HMR surface as `pnpm dev`, beside the same synced host.
 		const rest = process.argv.slice(4);
 		const withZai = rest.includes('--zai');
-		const withDev = rest.includes('--dev');
 		const withOv = rest.includes('--ov');
 		if (withZai) addZaiProvider();
 		if (withOv) runOvPlugin();
 		runSkillsMirror();
-		runSyncedPair(
-			rest.filter((arg) => arg !== '--zai' && arg !== '--dev' && arg !== '--ov'),
-			withDev
-		);
+		// --dev parse (D4): 'in-process' | 'pair' consumed as a value; bare
+		// --dev stays 'pair'. dsi-side flags stripped before the host spawn.
+		const { mode, rest: hostArgs0 } = parseDevArg(rest);
+		// D7: inspector flags ride the vite child's execArgv, never the host.
+		const { rest: hostArgs, execArgv: inspectExecArgv } = extractInspectArgs(hostArgs0);
+		runSyncedPair(hostArgs, mode, inspectExecArgv);
 	} else if (flag === '--plugin' || flag === '--plugin-restart') {
 		// The Plugin Rack ADR (2026-09-27, D3/D5): the dsh CLI is the writer,
 		// dsi owns the bounce. Install/remove delegates to the launcher rule
@@ -240,7 +246,20 @@ if (command === 'dsh') {
 		// before the marker existed, or from plain `pnpm dev`, carries none.
 		// The vite dev process itself is visible to pgrep (unlike the npx
 		// shims — different argv rewriting), so ask the process table.
-		const dev = bounceDevMode(parsed.dev === true, isDevFloorAlive);
+		// D6 (2026-10-11): the boolean is no longer enough — an in-process
+		// floor re-served as 'pair' would double-spawn the host. Read the
+		// alive vite's DSI_DEV_MODE via ps -E BEFORE the sweep, resolve the
+		// enum, restore exactly what was running.
+		const floorEnvDump = readFloorEnv(devFloorPid());
+		const mode = resolveBounceMode({
+			flagDev: parsed.dev === true,
+			devFloorAlive: isDevFloorAlive(),
+			floorEnv: floorEnvDump
+		});
+		// The Faithful Bounce (ADR 2026-10-13, D3): the SAME floor env that
+		// records the mode records the inspector flags — re-forward them so
+		// the bounce boot comes back debuggable when it left that way.
+		const bounceExecArgv = parseInspectArgsFromEnv(floorEnvDump);
 		killOrphans();
 		// The pkill sweep cannot see every floor shape (RCA 2026-09-27: the
 		// npx shims — 'npm exec @deepseek-ai/dsh…' and '.bin/dsh web' — are
@@ -248,9 +267,11 @@ if (command === 'dsh') {
 		// 3080 and preflightPort exited 64, killing the detached chain
 		// silently). The bounce chain owns the DSI ports by contract, so
 		// free them by listener, not by name.
-		freeFloorPorts([3080, 5174, 5175]);
-		// Restore the SAME UI mode the floor was serving.
-		runSyncedPair([], dev);
+		await freeFloorPorts(floorPortSet());
+		// Restore the SAME UI mode the floor was serving. The bounce's
+		// boolean signal normalizes to 'pair'/'build' inside runSyncedPair;
+		// 3.5 teaches the bounce the full enum via DSI_DEV_MODE.
+		runSyncedPair([], mode, bounceExecArgv);
 	} else if (flag === '--sync-kills') {
 		killOrphans();
 		process.exit(0);
@@ -367,56 +388,80 @@ function openBrowser(url, delayMs = 2000) {
  *  the Vite dev server (`pnpm dev`'s surface) — as the UI. The pair shares
  *  one lifecycle — a signal or one child's exit tears down the other, so no
  *  orphan survives a Ctrl-C or a crash. */
-async function runSyncedPair(extraArgs, dev = false) {
+async function runSyncedPair(extraArgs, dev = 'build', execArgv = []) {
+	// dev accepts the D4 mode enum ('build' | 'pair' | 'in-process'); the
+	// legacy boolean true is normalized so older call sites keep working.
+	const mode = typeof dev === 'boolean' ? modeFromBoolean(dev) : dev;
 	const script = path.join(packageRoot, 'scripts', 'dsh-web-synced.sh');
-	if (!existsSync(script)) {
+	const inProcess = mode === 'in-process';
+	if (!inProcess && !existsSync(script)) {
 		console.error(`dsi dsh: no sync script at ${script}`);
 		process.exit(66);
 	}
 	// UI port: the built server takes 5174 — the same port `dsi web` uses,
 	// so plain `dsi dsh --sync` listens on ONE port. --dev's Vite dev server
 	// takes 5175 instead (vite.config.ts pins 5174 strictPort, so pair mode
-	// passes 5175 explicitly), giving the two-port dev shape.
-	const uiPort = process.env.PORT ?? (dev ? '5175' : '5174');
+	// passes 5175 explicitly), giving the two-port dev shape. in-process is
+	// also a vite floor: same 5175.
+	const uiPort = process.env.PORT ?? (mode === 'build' ? '5174' : '5175');
 	// The host half takes --port <n> when forwarded (a 3080 held by a
 	// dsh web this CLI does not own — e.g. another live conversation
 	// floor — is exactly the case the preflight must not kill). The
 	// forwarded flag goes to `dsh web` untouched; DSI follows via
 	// DSH_BASE_URL so the page dials the host wherever it landed.
+	// IN-PROCESS: no host child will be spawned, so preflighting 3080 is
+	// pointless — the plugin boots the host on 3080 AFTER vite is up, and
+	// a stale 3080 from a foreign floor is that floor's business (the
+	// embedded boot fails loud in the plugin, killing nothing).
 	warnIfFirstRunDownload();
-	const hostPort = hostPortFromArgs(extraArgs) ?? 3080;
+	// IN-PROCESS: the plugin reads its port from DSH_HOST_PORT (default 3080)
+	// — the UI half MUST dial the same port, so DSH_HOST_PORT participates in
+	// the dshBase derivation exactly like a forwarded --port flag. (Smoke
+	// bug 2026-10-11: DSH_HOST_PORT=3477 booted the host there while the
+	// page dialed 3080 — the production floor — → "Failed to fetch".)
+	const pluginPort = inProcess && process.env.DSH_HOST_PORT ? parseInt(process.env.DSH_HOST_PORT, 10) : undefined;
+	const hostPort = hostPortFromArgs(extraArgs) ?? pluginPort ?? 3080;
 	const dshBase = hostPort === 3080 ? undefined : `http://127.0.0.1:${hostPort}`;
-	// Preflight BOTH halves: a forgotten previous run holds not just the
-	// host port but often the UI port too — the host would only crash
-	// later, and the UI server would crash first with EADDRINUSE.
-	await preflightPort(hostPort, 'dsh host');
-	await preflightPort(uiPort, 'DSI page');
-	const host = spawn('/bin/sh', [script, ...extraArgs], {
+	if (inProcess) {
+		await preflightPort(uiPort, 'DSI page');
+	} else {
+		await preflightPort(hostPort, 'dsh host');
+		await preflightPort(uiPort, 'DSI page');
+	}
+	// IN-PROCESS: no sync script, no host child — the vite plugin owns the
+	// host lifecycle (vite close hook stops it; one Ctrl-C, no orphan).
+	const host = inProcess ? null : spawn('/bin/sh', [script, ...extraArgs], {
 		stdio: 'inherit',
 		env: { ...process.env, DSH_WEB_VERSION: dshWebVersion() }
 	});
-	const ui = dev ? startDsiDevServer(uiPort, dshBase) : startDsiServer(uiPort, dshBase);
+	const ui = mode === 'build' ? startDsiServer(uiPort, dshBase) : startDsiDevServer(uiPort, dshBase, mode, execArgv);
 	// The browser follows the UI: the built page (5174) — or, in --dev mode,
 	// the dev server (5175).
 	openBrowser(`http://localhost:${uiPort}/`);
 	for (const signal of ['SIGINT', 'SIGTERM']) {
 		process.on(signal, () => {
-			host.kill(signal);
+			if (host) host.kill(signal); // in-process: no host child — vite close hook stops it
 			ui.kill(signal);
 		});
 	}
 	const teardown = (code, signal) => {
-		host.kill('SIGTERM');
+		if (host) host.kill('SIGTERM');
 		ui.kill('SIGTERM');
 		process.exit(signal ? 1 : (code ?? 1));
 	};
-	host.on('exit', teardown);
+	if (host) host.on('exit', teardown);
 	ui.on('exit', teardown);
 }
 
 /** Kill orphaned dsh/dsi leftovers — a pair whose parent died before it
  *  could tear down its sibling, or a previous run the terminal lost. */
 function killOrphans() {
+	// Test-floor isolation (Port Ledger 34xx/51xx): a scratch floor's bounce
+	// must never pkill the production floor's shapes.
+	if (process.env.DSI_SKIP_ORPHAN_SWEEP === '1') {
+		console.log('dsi dsh: orphan sweep skipped (DSI_SKIP_ORPHAN_SWEEP=1)');
+		return;
+	}
 	for (const pattern of ORPHAN_PATTERNS) {
 		try {
 			spawnSync('pkill', ['-f', pattern], { stdio: 'pipe' });
@@ -428,20 +473,49 @@ function killOrphans() {
 	console.log('dsi dsh: orphan sweep done (dsh-web-synced.sh, dsh bin, dsi server)');
 }
 
-/** SIGTERM whatever LISTENS on these ports: the bounce chain's name-blind
- * second sweep (RCA 2026-09-27). pkill -f cannot match every floor shape
- * (the npx shim processes are invisible to it on macOS), so a surviving
- * dsh host held 3080, preflightPort exited 64, and the detached chain died
- * silently. Only the bounce uses this; a manual --sync preflight still
- * REFUSES a busy port it does not own. */
-function freeFloorPorts(ports) {
-	for (const port of ports) {
+/** The DSI ports the bounce owns. DSI_FLOOR_PORTS overrides for isolated
+ *  test floors (Port Ledger: 34xx host, 5180+ UI) so a scratch bounce never
+ *  touches the production ports. */
+function floorPortSet() {
+	const raw = process.env.DSI_FLOOR_PORTS;
+	if (!raw) return [3080, 5174, 5175];
+	const ports = raw.split(',').map((s) => Number(s.trim())).filter((n) => Number.isInteger(n) && n > 0);
+	return ports.length ? ports : [3080, 5174, 5175];
+}
+
+/** SIGTERM whatever LISTENS on these ports, then WAIT until they actually
+ *  free (The Port Takeover ADR 2026-10-12, D2/D3/D5): the fire-and-forget
+ *  kill of RCA 2026-09-27 raced the successor's bind — the dying in-process
+ *  host still held 3080 two seconds later and the new floor died on
+ *  EADDRINUSE (incident: tmp/bounce.log 2026-10-12T03:49:06Z). Every kill
+ *  and every freed port gets a receipt line; a port still held at the
+ *  budget exits 64 naming the port and the holder. Only the bounce uses
+ *  this — the click is the consent (ADR D1); a manual --sync preflight
+ *  still REFUSES a busy port it does not own. */
+async function freeFloorPorts(ports) {
+	const listListeners = (port) => {
 		try {
-			spawnSync('/bin/sh', ['-c', 'lsof -ti tcp:' + port + ' -sTCP:LISTEN | xargs kill 2>/dev/null || true'], { stdio: 'pipe' });
+			const probe = spawnSync('/bin/sh', ['-c', 'lsof -ti tcp:' + port + ' -sTCP:LISTEN 2>/dev/null || true'], { stdio: 'pipe', encoding: 'utf8' });
+			return (probe.stdout || '').split('\n').map((s) => Number(s.trim())).filter((n) => Number.isInteger(n) && n > 0);
 		} catch {
-			// no lsof (or no xargs): the pattern sweep above and the 5s
-			// preflight wait remain the honest fallbacks.
+			// no lsof (or no sh): nothing to signal; the wait loop below will
+			// report the port honestly if it never frees.
+			return [];
 		}
+	};
+	const result = await takeoverFloorPorts(ports, {
+		listListeners,
+		terminate: (pid) => {
+			try { process.kill(pid, 'SIGTERM'); } catch { /* already gone — the wait decides */ }
+		},
+		portFree: (port) => portInUse(port).then((busy) => !busy),
+		sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+		now: () => Date.now(),
+		log: (line) => console.log(line)
+	});
+	if (!result.ok) {
+		console.error('dsi dsh: port ' + result.port + ' is still in use by a process the takeover does not own (pid ' + result.pid + ') — free it yourself, then re-run');
+		process.exit(64);
 	}
 }
 
@@ -453,6 +527,28 @@ function freeFloorPorts(ports) {
 function isDevFloorAlive() {
 	const probe = spawnSync('pgrep', ['-f', 'deepseek-insight/node_modules/vite/bin/vite.js'], { stdio: 'pipe' });
 	return (probe.status ?? 1) === 0;
+}
+
+/** The alive dev floor's vite pid (first match), or null. Same match rule
+ *  as isDevFloorAlive — the pid feeds the D6 mode read (ps -E). */
+function devFloorPid() {
+	const probe = spawnSync('pgrep', ['-f', 'deepseek-insight/node_modules/vite/bin/vite.js'], { stdio: 'pipe' });
+	if ((probe.status ?? 1) !== 0) return null;
+	const first = (probe.stdout?.toString() || '').split('\n').find(Boolean);
+	return first ? first.trim() : null;
+}
+
+/** The floor's DSI_DEV_MODE via ps -E (macOS: own processes only). Returns
+ *  '' when the read fails for any reason — resolveBounceMode then falls back
+ *  to the boolean arms, the pre-D6 behavior, never a wrong restore. */
+function readFloorEnv(pid) {
+	if (!pid) return '';
+	try {
+		const ps = spawnSync('ps', ['-E', '-p', String(pid)], { stdio: 'pipe', timeout: 5000 });
+		return ps.status === 0 ? ps.stdout?.toString() || '' : '';
+	} catch {
+		return '';
+	}
 }
 
 /** Add the ZAI provider and default model to ~/.dsh/settings.yaml when
@@ -573,7 +669,7 @@ function runSkillsMirror() {
  *  sources and devDependencies exist — a published tarball (bin + build)
  *  refuses loudly instead of half-booting. The --port CLI flag overrides the
  *  config's server.port while strictPort keeps the fail-loud contract. */
-function startDsiDevServer(defaultPort = '5175', dshBase = undefined) {
+function startDsiDevServer(defaultPort = '5175', dshBase = undefined, mode = 'pair', execArgv = []) {
 	const viteBin = path.join(packageRoot, 'node_modules', 'vite', 'bin', 'vite.js');
 	if (!existsSync(viteBin)) {
 		console.error(`dsi dsh --dev: no vite at ${viteBin} — --dev needs a full DSI checkout (pnpm install); use the built server instead`);
@@ -581,7 +677,13 @@ function startDsiDevServer(defaultPort = '5175', dshBase = undefined) {
 	}
 	// --host matches the built server's 127.0.0.1 bind: vite's default
 	// 'localhost' can resolve ::1-only and strand a 127.0.0.1 client.
-	return spawn(process.execPath, [viteBin, 'dev', '--host', process.env.HOST ?? '127.0.0.1', '--port', process.env.PORT ?? defaultPort], {
+	return spawn(process.execPath, [...execArgv, viteBin, 'dev', '--host', process.env.HOST ?? '127.0.0.1', '--port', process.env.PORT ?? defaultPort], {
+		// D7: inspector flags lead the child argv — node consumes options before
+		// the script path, so `node --inspect vite.js dev` debugs THIS process
+		// (vite + the embedded DSH host share one heap). The spawn execArgv
+		// OPTION was tried first and empirically never activated the inspector
+		// (silent no-op, probed 2026-10-11); leading args are the reliable form.
+		// NODE_OPTIONS is banned — it leaks to every child and collides on port.
 		stdio: 'inherit',
 		cwd: packageRoot,
 		env: {
@@ -592,6 +694,13 @@ function startDsiDevServer(defaultPort = '5175', dshBase = undefined) {
 			// this from the API server's env to re-serve --dev instead of the
 			// stale build. Nothing else may set it.
 			DSI_DEV: '1',
+			// D4/D6: the mode rides as env, never past the CLI to the host.
+			...devModeEnv(mode),
+			// The Faithful Bounce (ADR 2026-10-13, D1): the inspector flags are
+			// part of the launch record — stamped so every restorer (the bounce
+			// boot via ps -E, the delayed re-serve via inherited env) can put
+			// them back exactly as launched.
+			...(execArgv.length ? { DSI_INSPECT_ARGS: execArgv.join(' ') } : {}),
 			...(dshBase !== undefined ? { DSH_BASE_URL: dshBase } : {})
 		}
 	});
