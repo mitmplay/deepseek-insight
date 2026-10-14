@@ -1,5 +1,25 @@
 # Releases
 
+## v0.6.17
+
+Bumped from v0.6.16 — the embedded host becomes a window and a verb: the cordis lens reads the living plugin tree (ADR-0024), and the host-level bounce keeps vite alive through an in-place re-boot (ADR-0025), proven on the real floor.
+
+### Features
+
+- **The cordis lens — named queries + structured census (ADR-0024, fbb1a87)** — with `DSH_HOST_INTROSPECT=1` the embedded host boots via `runProfile` directly, captures the live Cordis root, and exposes a lens: introspection named queries plus a 15-second structured census print (grouped per block, degrading per block); the KB note documents reading the tree through it. `createLens` is exported on the host surface.
+- **Host-level bounce verb (ADR-0025 Wave 1, 593fd8a)** — `bounceDshHost()` stops ONLY the embedded host, waits for the port, and re-boots in place while the vite process never dies; typed fallback result (`no-handle`, `port-held`, `boot-failed`, `in-progress`) so callers can degrade; re-entry guarded; pinned by `tests/unit/vite-dsh-host.test.ts`.
+- **Host-bounce route + chain fork (ADR-0025 Wave 2, 0445c43)** — `POST /api/plugins/host-bounce` (localhost-only, 409 no-verb/failure, 403 remote) calls the surface verb; the plugin-restart chain now forks: in-process floors POST the live route (2 tries, 1 s window) and skip the whole-floor sweep on success — pair/build/unreachable keep today's sweep byte-for-byte. Both fork branches pinned by `hostBounceDecision` twins.
+- **In-process floors boot WITH the bounce handle (d2b90df)** — `devModeEnv('in-process')` now sets `DSH_HOST_INTROSPECT=1` by default: a runCli boot has no stop handle, so the bounce verb could never exist on the default floor (real-floor gate finding; also lights the ADR-0024 lens by default).
+- **Fresh launch URL after a bounce (D4 amended, ec89036)** — the launch token is minted inside the host process (`dsh-client-connection` `processLaunchToken`, a private WeakMap on the cordis root — no preset seam), so same-token re-boot is unimplementable DSI-side; the chain instead reads the NEW token from the sink and prints a launch URL that works on first click (loaded pages keep working via the durable signed cookie). `launchUrl`/`tokenFromSettings` twins pin it.
+
+### Bug fixes
+
+- **The bounce chain POSTed the wrong port (d2b90df)** — the host-bounce route is a DSI (vite) route; the chain dialed `DSH_HOST_PORT` (3080) and hit the auth fence/404. New pure `floorUiPort` resolves PORT env → vite `--port` arg → 5175 (all three arms unit-pinned).
+- **pgrep went blind to the vite floor (cf4c725)** — `pgrep -f` exited 1 for the RUNNING vite process on the live floor, so the chain misread the mode and swept floors it could have host-bounced; floor discovery now parses one `ps -eo pid=,command=` dump via the pure `parseDevFloorPids` twin.
+- **Inspector flags took the wrong ride (e24b3f0)** — inspector args ride the dsi CLI arguments, not node execArgv, across process restarts.
+- **Cordis lens tree missed registry-runtime fibers (d96344a)** — `tree()` now enumerates them; the KB open question is answered.
+- **Real-floor RCA: the "session-record poisoning" wedge (fa9d85c)** — the dead session's confirmed-DSH-bug diagnosis was disproven by its own ledger: all 43 `missing required property "description"` rejections were calls genuinely missing the argument; no harness state was corrupted. RCA note with ledger forensics in `dev/kb/rca/`.
+
 ## v0.6.16
 
 Bumped from v0.6.15 — the DSH host moves in-process (DSI boots its own host with token intercept and bounce), the restart verb finally works end to end, and context chips escape the fold.

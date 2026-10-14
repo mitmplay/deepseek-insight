@@ -7,7 +7,7 @@
 import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { bounceDevMode, dshLauncherCmd, parsePluginArgs } from '../../bin/lib/plugin-chain.mjs';
+import { bounceDevMode, dshLauncherCmd, parsePluginArgs, hostBounceDecision, floorUiPort, parseDevFloorPids, launchUrl, tokenFromSettings } from '../../bin/lib/plugin-chain.mjs';
 
 const BIN = resolve(import.meta.dirname, '../../bin/dsi.mjs');
 
@@ -103,4 +103,167 @@ describe('dsi.mjs flag surface (smoke — spawns the real CLI, no floor)', () =>
 		expect(r.stdout).toContain('--plugin add');
 		expect(r.stdout).toContain('--plugin-restart');
 	});
+});
+
+// ADR-0025 D1/D3 — the bounce fork (hostBounceDecision): BOTH branches are
+// pinned so the fallback cannot rot silently (Wave 2 risk register).
+const noSleep = async () => {};
+
+describe('hostBounceDecision (ADR-0025)', () => {
+	it('pair/build mode sweeps without ever posting', async () => {
+		let posted = 0;
+		let swept = 0;
+		const verdict = await hostBounceDecision({
+			mode: 'pair',
+			post: async () => { posted += 1; return true; },
+			sweep: () => { swept += 1; },
+			sleep: noSleep
+		});
+		expect(verdict).toBe('sweep');
+		expect(posted).toBe(0);
+		expect(swept).toBe(1);
+	});
+
+	it('in-process + route ok: host bounce, sweep SKIPPED (vite survives)', async () => {
+		let posted = 0;
+		let swept = 0;
+		const verdict = await hostBounceDecision({
+			mode: 'in-process',
+			post: async () => { posted += 1; return true; },
+			sweep: () => { swept += 1; },
+			sleep: noSleep
+		});
+		expect(verdict).toBe('host');
+		expect(posted).toBe(1);
+		expect(swept).toBe(0);
+	});
+
+	it('in-process + route refused twice: fallback sweep runs (D3)', async () => {
+		let posted = 0;
+		let swept = 0;
+		const sleeps: number[] = [];
+		const verdict = await hostBounceDecision({
+			mode: 'in-process',
+			post: async () => { posted += 1; return false; },
+			sweep: () => { swept += 1; },
+			sleep: async (ms) => { sleeps.push(ms); },
+			tries: 2
+		});
+		expect(verdict).toBe('sweep');
+		expect(posted).toBe(2);
+		expect(swept).toBe(1);
+		expect(sleeps).toEqual([1000]); // retry window between the tries
+	});
+
+	it('in-process + route unreachable then ok: retry recovers the host path', async () => {
+		let posted = 0;
+		let swept = 0;
+		const verdict = await hostBounceDecision({
+			mode: 'in-process',
+			post: async () => {
+				posted += 1;
+				if (posted === 1) throw new Error('ECONNREFUSED');
+				return true;
+			},
+			sweep: () => { swept += 1; },
+			sleep: noSleep
+		});
+		expect(verdict).toBe('host');
+		expect(swept).toBe(0);
+	});
+
+	it('the fallback sweep is AWAITED — the chain cannot exit under a re-serve', async () => {
+		let done = false;
+		const verdict = await hostBounceDecision({
+			mode: 'build',
+			post: async () => true,
+			sweep: async () => {
+				await new Promise((r) => setTimeout(r, 5));
+				done = true;
+			},
+			sleep: noSleep
+		});
+		expect(verdict).toBe('sweep');
+		expect(done).toBe(true);
+	});
+});
+
+// ADR-0025 Wave 3 gate finding (2026-10-14): the bounce POST must reach the
+// DSI (vite) route - the DSH host port fences it (401) or 404s. The port
+// rides the floor's own env/command, never DSH_HOST_PORT.
+describe('floorUiPort (ADR-0025 W3 - POST the vite port)', () => {
+  it('PORT= in the floor env dump wins', () => {
+    expect(floorUiPort({
+      floorEnv: 'TERM=x PORT=6190 DSI_DEV_MODE=in-process',
+      command: 'vite dev --port 5175'
+    })).toBe(6190);
+  });
+
+  it('else --port from the vite command line', () => {
+    expect(floorUiPort({
+      floorEnv: 'TERM=x DSI_DEV_MODE=in-process',
+      command: 'node vite.js dev --host 127.0.0.1 --port 5175'
+    })).toBe(5175);
+  });
+
+  it('else the 5175 launcher default', () => {
+    expect(floorUiPort({ floorEnv: '', command: '' })).toBe(5175);
+    expect(floorUiPort()).toBe(5175);
+  });
+
+  it('partial reads fall through arm by arm', () => {
+    expect(floorUiPort({ floorEnv: 'PORT=abc', command: '' })).toBe(5175);
+    expect(floorUiPort({ floorEnv: 'no port here', command: 'vite --port 6190 extra' })).toBe(6190);
+  });
+});
+
+// ADR-0025 Wave 3 gate finding (2026-10-14): pgrep -f went blind to the
+// vite process on the live floor, so floor discovery moved to a ps -eo
+// dump parsed by this pure twin.
+describe('parseDevFloorPids (ADR-0025 W3 - ps-based floor discovery)', () => {
+  const dump = [
+    '  41939 /Users/wharsojo/.hermes/node/bin/node /Users/me/deepseek-insight/node_modules/vite/bin/vite.js dev --port 5175',
+    '    399 /usr/libexec/logd',
+    '    555 node /somewhere/else/server.js',
+    '  42000 node /Users/me/deepseek-insight/node_modules/.bin/vite --version'
+  ].join('\n');
+
+  it('finds ONLY the real vite.js floor lines, pids as strings', () => {
+    expect(parseDevFloorPids(dump)).toEqual(['41939']);
+  });
+
+  it('ignores .bin shims and lookalike paths', () => {
+    expect(parseDevFloorPids('  9 node /x/node_modules/.bin/vite')).toEqual([]);
+  });
+
+  it('empty / failed dump yields no pids', () => {
+    expect(parseDevFloorPids('')).toEqual([]);
+    expect(parseDevFloorPids(undefined as unknown as string)).toEqual([]);
+  });
+});
+
+// D4 amended (2026-10-14): the launch token has no preset seam (minted
+// inside the host process), so the chain hands the operator the FRESH URL
+// after an in-place bounce instead of pretending the old one survives.
+describe('launchUrl + tokenFromSettings (D4 amended)', () => {
+  it('builds the launch URL from port and token', () => {
+    expect(launchUrl({ port: 3080, token: 'abc_-123' })).toBe('http://127.0.0.1:3080/?token=abc_-123');
+    expect(launchUrl({ port: 4400, token: 'x', host: 'localhost' })).toBe('http://localhost:4400/?token=x');
+  });
+
+  it('empty token means no URL to hand over', () => {
+    expect(launchUrl({ token: '' })).toBe('');
+    expect(launchUrl()).toBe('');
+  });
+
+  it('reads authToken from the settings.yaml text', () => {
+    expect(tokenFromSettings('dsh:\n  authToken: T0k-3n')).toBe('T0k-3n');
+
+    expect(tokenFromSettings('dsh:\n  authToken: \"quoted\"')).toBe('quoted');
+  });
+
+  it('absent or empty settings yield no token', () => {
+    expect(tokenFromSettings('')).toBe('');
+    expect(tokenFromSettings('other: value')).toBe('');
+  });
 });

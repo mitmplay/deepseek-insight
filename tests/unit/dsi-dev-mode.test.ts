@@ -56,11 +56,12 @@ describe('devModeEnv (D4/D6 — mode rides as env)', () => {
     expect(devModeEnv('pair')).toEqual({ DSI_DEV: '1', DSI_DEV_MODE: 'pair' });
   });
 
-  it('in-process: all three markers', () => {
+  it('in-process: all four markers (introspect = the boot that owns the bounce handle, ADR-0025 W3)', () => {
     expect(devModeEnv('in-process')).toEqual({
       DSI_DEV: '1',
       DSI_DEV_MODE: 'in-process',
-      DSI_DEV_IN_PROCESS: '1'
+      DSI_DEV_IN_PROCESS: '1',
+      DSH_HOST_INTROSPECT: '1'
     });
   });
 });

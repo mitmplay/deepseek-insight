@@ -51,7 +51,16 @@ export function parseDevArg(rest) {
 export function devModeEnv(mode) {
 	if (mode === 'build') return {};
 	const env = { DSI_DEV: '1', DSI_DEV_MODE: mode };
-	if (mode === 'in-process') env.DSI_DEV_IN_PROCESS = '1';
+	if (mode === 'in-process') {
+		env.DSI_DEV_IN_PROCESS = '1';
+		// ADR-0025 Wave 3 (real-floor gate finding, 2026-10-14): the bounce
+		// verb only exists when the embed OWNS the host - a runCli boot has
+		// no stop handle and the host-bounce route answers 409 no-handle,
+		// sending every in-process bounce down the whole-floor sweep. The
+		// introspection boot (DSH_HOST_INTROSPECT=1, ADR-0024) is the boot
+		// that carries the handle, so in-process floors default to it.
+		env.DSH_HOST_INTROSPECT = '1';
+	}
 	return env;
 }
 

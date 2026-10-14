@@ -28,7 +28,7 @@ import { fileURLToPath } from 'node:url';
 import { parse, stringify } from 'yaml';
 
 import { mirrorSkills } from './lib/mirror-skills.mjs';
-import { dshLauncherCmd, parsePluginArgs, takeoverFloorPorts } from './lib/plugin-chain.mjs';
+import { dshLauncherCmd, parsePluginArgs, takeoverFloorPorts, hostBounceDecision, floorUiPort, parseDevFloorPids, launchUrl, tokenFromSettings } from './lib/plugin-chain.mjs';
 import { parseDevArg, devModeEnv, modeFromBoolean, resolveBounceMode, extractInspectArgs, parseInspectArgsFromEnv } from './lib/dev-mode.mjs';
 
 // Layman-facing help: wrapped near 76 columns, continuation lines indented,
@@ -260,18 +260,53 @@ if (command === 'dsh') {
 		// records the mode records the inspector flags — re-forward them so
 		// the bounce boot comes back debuggable when it left that way.
 		const bounceExecArgv = parseInspectArgsFromEnv(floorEnvDump);
-		killOrphans();
-		// The pkill sweep cannot see every floor shape (RCA 2026-09-27: the
-		// npx shims — 'npm exec @deepseek-ai/dsh…' and '.bin/dsh web' — are
-		// invisible to pkill -f on macOS, so the dsh host survived holding
-		// 3080 and preflightPort exited 64, killing the detached chain
-		// silently). The bounce chain owns the DSI ports by contract, so
-		// free them by listener, not by name.
-		await freeFloorPorts(floorPortSet());
-		// Restore the SAME UI mode the floor was serving. The bounce's
-		// boolean signal normalizes to 'pair'/'build' inside runSyncedPair;
-		// 3.5 teaches the bounce the full enum via DSI_DEV_MODE.
-		runSyncedPair([], mode, bounceExecArgv);
+		// ADR-0025 D1/D3 — the bounce fork: an in-process floor with a live
+		// bounce verb bounces AT THE HOST via the running floor's route; the
+		// vite process never dies and the sweep is SKIPPED. Pair/build floors,
+		// a missing verb, or an unreachable route take the sweep below.
+		const sweepAndReserve = async () => {
+			killOrphans();
+			// The pkill sweep cannot see every floor shape (RCA 2026-09-27: the
+			// npx shims — 'npm exec @deepseek-ai/dsh…' and '.bin/dsh web' — are
+			// invisible to pkill -f on macOS, so the dsh host survived holding
+			// 3080 and preflightPort exited 64, killing the detached chain
+			// silently). The bounce chain owns the DSI ports by contract, so
+			// free them by listener, not by name.
+			await freeFloorPorts(floorPortSet());
+			// Restore the SAME UI mode the floor was serving. The bounce's
+			// boolean signal normalizes to 'pair'/'build' inside runSyncedPair;
+			// 3.5 teaches the bounce the full enum via DSI_DEV_MODE.
+			runSyncedPair([], mode, bounceExecArgv);
+		};
+		const bounceVerdict = await hostBounceDecision({
+			mode,
+			post: async () => {
+				// ADR-0025 Wave 3 gate finding (2026-10-14): the route is a DSI
+				// (vite) route - POST the vite UI port, not the DSH host port.
+				const uiPort = floorUiPort({
+					floorEnv: floorEnvDump,
+					command: floorCommand(devFloorPid())
+				});
+				const res = await fetch('http://127.0.0.1:' + uiPort + '/api/plugins/host-bounce', { method: 'POST' });
+				return res.ok;
+			},
+			sweep: sweepAndReserve,
+		});
+		if (bounceVerdict === 'host') {
+			console.log('dsi dsh: host-level bounce done via the running floor — vite never died, sweep skipped (ADR-0025)');
+			// D4 amended (2026-10-14): the DSH launch token is minted inside the
+			// host process (dsh-client-connection processLaunchToken, a WeakMap on
+			// the cordis root — no preset seam), so the bounce CANNOT re-boot with
+			// the old token. The bounce's announce intercept lands the NEW token in
+			// settings.yaml; hand the operator a URL that works on first click.
+			await new Promise((r) => setTimeout(r, 1500));
+			const fresh = tokenFromSettings(readFileSync(dsiConfigPath(), 'utf-8'));
+			const url = launchUrl({ port: process.env.DSH_HOST_PORT ?? 3080, token: fresh });
+			if (url) console.log('dsi dsh: fresh launch URL after the bounce (loaded pages keep working — durable cookie):\n\t  ' + url);
+		} else {
+			console.log('dsi dsh: host bounce unavailable — whole-floor sweep fallback (ADR-0025 D3)');
+			await sweepAndReserve();
+		}
 	} else if (flag === '--sync-kills') {
 		killOrphans();
 		process.exit(0);
@@ -521,21 +556,42 @@ async function freeFloorPorts(ports) {
 
 /** True when a vite dev server of THIS checkout is alive. Only the
  *  checkout's own vite matches — a foreign project's dev server never
- *  carries the deepseek-insight path segment. pgrep sees this process
- *  (it does not rewrite argv the way the npm/npx shims do), so the probe
- *  is reliable where the orphan sweep's name matching is not. */
+ *  carries the deepseek-insight path segment. ADR-0025 Wave 3 (2026-10-14):
+ *  the probe rides devFloorPid's ps -eo discovery — pgrep -f went blind to
+ *  the vite process on the live floor, so this boolean read false-negative
+ *  and the bounce chain swept floors it could have host-bounced. */
 function isDevFloorAlive() {
-	const probe = spawnSync('pgrep', ['-f', 'deepseek-insight/node_modules/vite/bin/vite.js'], { stdio: 'pipe' });
-	return (probe.status ?? 1) === 0;
+	return devFloorPid() !== null;
 }
 
 /** The alive dev floor's vite pid (first match), or null. Same match rule
  *  as isDevFloorAlive — the pid feeds the D6 mode read (ps -E). */
 function devFloorPid() {
-	const probe = spawnSync('pgrep', ['-f', 'deepseek-insight/node_modules/vite/bin/vite.js'], { stdio: 'pipe' });
+
+	// ADR-0025 Wave 3 gate finding (2026-10-14): pgrep -f went BLIND to the
+	// vite process on the live floor (exit 1 while ps listed it), so the
+	// chain misread the floor as absent and swept a bounceable in-process
+	// floor. ps -eo pid,command sees what pgrep does not; the parse is the
+	// pure parseDevFloorPids twin in plugin-chain.mjs.
+	const probe = spawnSync('ps', ['-eo', 'pid=,command='], { stdio: 'pipe', timeout: 5000 });
 	if ((probe.status ?? 1) !== 0) return null;
-	const first = (probe.stdout?.toString() || '').split('\n').find(Boolean);
-	return first ? first.trim() : null;
+	const first = parseDevFloorPids(probe.stdout?.toString() || '')[0];
+	return first ?? null;
+}
+
+/** The floor process's command line (ps -o command), or '' on any failure -
+ *  feeds floorUiPort's --port arm (the launcher passes the vite port as an
+ *  argument, not as env). */
+function floorCommand(pid) {
+	if (!pid) return '';
+	try {
+		const ps = spawnSync('ps', ['-o', 'command', '-p', String(pid)], { stdio: 'pipe', timeout: 5000 });
+		if (ps.status !== 0) return '';
+		const lines = (ps.stdout?.toString() || '').split('\n').filter(Boolean);
+		return lines.length > 1 ? lines.slice(1).join('\n') : '';
+	} catch {
+		return '';
+	}
 }
 
 /** The floor's DSI_DEV_MODE via ps -E (macOS: own processes only). Returns

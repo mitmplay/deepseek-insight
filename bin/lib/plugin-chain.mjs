@@ -77,6 +77,103 @@ export function bounceDevMode(flagDev, devFloorAlive) {
 export const TAKEOVER_BUDGET_MS = 10_000;
 export const TAKEOVER_POLL_MS = 250;
 
+/** The host-level bounce's retry window (ADR-0025 D3): the chain POSTs the
+ *  running floor's /api/plugins/host-bounce at most this many times before
+ *  giving up and taking the whole-floor sweep fallback. */
+export const HOST_BOUNCE_TRIES = 2;
+export const HOST_BOUNCE_RETRY_MS = 1_000;
+
+/**
+ * The bounce fork (ADR-0025 D1/D3): an in-process floor with a live bounce
+ * verb bounces AT THE HOST — the chain POSTs the route and, on ok, sweeps
+ * NOTHING (vite never dies). Any other mode, refusal, or unreachable route
+ * falls back to today's whole-floor sweep. Pure orchestration: the POST and
+ * the sweep are injected, so unit tests pin BOTH branches.
+ *
+ * @param {{ mode: string, post: () => Promise<boolean>, sweep: () => void | Promise<void>,
+ *            sleep?: (ms: number) => Promise<void>, tries?: number }} params
+ * @returns {Promise<'host' | 'sweep'>} which body ran
+ */
+export async function hostBounceDecision({ mode, post, sweep, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), tries = HOST_BOUNCE_TRIES }) {
+	if (mode !== 'in-process') {
+		await sweep();
+		return 'sweep';
+	}
+	for (let attempt = 1; attempt <= tries; attempt++) {
+		try {
+			if ((await post()) === true) return 'host';
+		} catch {
+			// unreachable or refused — retry, then sweep
+		}
+		if (attempt < tries) await sleep(HOST_BOUNCE_RETRY_MS);
+	}
+	await sweep();
+	return 'sweep';
+}
+
+/** The browser launch URL after a bounce (ADR-0025 D4, amended
+ *  2026-10-14): the DSH launch token is minted INSIDE the host process
+ *  (WeakMap keyed on the cordis root, dsh-client-connection processLaunchToken)
+ *  and has no preset seam, so an in-place bounce cannot re-boot with the OLD
+ *  token. The equivalent guarantee: after the bounce the chain reads the NEW
+ *  token from the sink and hands the operator a URL that works on first
+ *  click. Pure: port and token are injected.
+ *
+ * @param {{ port?: number|string, token?: string, host?: string }} p
+ * @returns {string} the launch URL ('' when the token is unknown)
+ */
+export function launchUrl({ port = 3080, token = '', host = '127.0.0.1' } = {}) {
+	if (!token) return '';
+	return 'http://' + host + ':' + port + '/?token=' + encodeURIComponent(token);
+}
+
+/** Reads dsh.authToken out of the DSI settings.yaml text. Pure: the file
+ *  text is injected; dsi.mjs reads the file.
+ *
+ * @param {string} yamlText - full settings.yaml text
+ * @returns {string} the token ('' when absent or not parseable)
+ */
+export function tokenFromSettings(yamlText) {
+	const m = /authToken:\s*['"]?([^"'/\s]+)/.exec(String(yamlText || ''));
+	return m ? m[1] : '';
+}
+
+/** The dev floor's vite pid(s) parsed from ONE ps -eo pid,command dump
+ *  (ADR-0025 Wave 3 gate finding, 2026-10-14): pgrep -f proved blind to the
+ *  vite process on the live floor (exit 1 while ps listed it), which made
+ *  the bounce chain misread the mode and sweep a bounceable floor. ps -eo
+ *  sees what pgrep does not, and parsing is pure + unit-pinned here; the
+ *  ps invocation stays in dsi.mjs.
+ *
+ * @param {string} psOutput - full `ps -eo pid=,command=` dump
+ * @returns {string[]} matching pids (as strings), oldest-first order kept
+ */
+export function parseDevFloorPids(psOutput) {
+	return String(psOutput || '').split('\n').flatMap((line) => {
+		const m = /^\s*(\d+)\s+(.*)$/.exec(line);
+		return m && m[2].includes('node_modules/vite/bin/vite.js') ? [m[1]] : [];
+	});
+}
+
+/** The port the floor's DSI UI answers on (ADR-0025 Wave 3 gate finding,
+ *  2026-10-14): the host-bounce route is a DSI (vite) route, so the bounce
+ *  chain must POST the VITE port - the DSH host port only knows the fence
+ *  (401) or 404. Resolution order: PORT= in the floor env dump, then
+ *  --port N on the vite command line, then the 5175 default the launcher
+ *  pins. Pure: both inputs are strings read by dsi.mjs (ps -E and ps -o
+ *  command), so unit tests pin all three arms.
+ *
+ * @param {{ floorEnv?: string, command?: string }} params
+ * @returns {number} the UI port
+ */
+export function floorUiPort({ floorEnv = '', command = '' } = {}) {
+	const envPort = /(?:^|\s)PORT=(\d+)/.exec(floorEnv || '');
+	if (envPort) return Number(envPort[1]);
+	const argPort = /--port\s+(\d+)/.exec(command || '');
+	if (argPort) return Number(argPort[1]);
+	return 5175;
+}
+
 /**
  * The takeover sweep (The Port Takeover ADR 2026-10-12, D2/D3/D5): SIGTERM
  * whatever LISTENS on the given ports, then WAIT until each port frees,

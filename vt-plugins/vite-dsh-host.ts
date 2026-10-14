@@ -17,11 +17,19 @@
  */
 import type { Plugin, ViteDevServer } from 'vite';
 import { resolveDshEntry, readPinFromPackageJson } from './lib/dsh-entry-resolver.ts';
+import { createLens, formatCensus, type CordisLens } from './lib/cordis-lens.ts';
 import { tokenFromLine } from './lib/dsh-token-line.ts';
 import { writeAuthToken } from './lib/dsh-token-sink.ts';
 import { existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { join, resolve } from 'node:path';
+
+/** Result of the host-level bounce (ADR-0025 D1): ok means the host was
+ *  stopped and re-booted in-place — the vite process never died. */
+export interface DshHostBounceResult {
+  ok: boolean;
+  reason?: 'no-handle' | 'in-progress' | 'port-held' | 'boot-failed';
+}
 
 export interface DshHostSurface {
   status: 'running' | 'disabled' | 'failed' | 'not-found';
@@ -32,6 +40,11 @@ export interface DshHostSurface {
   /** Port the embedded host listens on (config seam for tests). */
   port: number;
   stats: () => { tokenWrites: number; lastTokenAt: string | null };
+  /** ADR-0025 D1: stop the embedded host, wait for the port, re-boot
+   *  in-place with the CURRENT token pinned (D4). Present only when the
+   *  plugin instance can own the boot (always, in this implementation);
+   *  absent on surfaces minted before this ADR (defensive optional). */
+  bounce?: () => Promise<DshHostBounceResult>;
 }
 
 export const DSH_HOST_PORT_DEFAULT = 3080;
@@ -93,6 +106,12 @@ export function dshHostPlugin(options: {
   let tokenWrites = 0;
   let lastTokenAt: string | null = null;
   let streamHooksInstalled = false;
+  /** The token the CURRENT browser URL holds — captured from the boot's
+   *  announce and re-written before an in-place bounce so the re-booted host
+   *  announces the SAME token (ADR-0025 D4). Lives in the plugin closure:
+   *  a bounce runs inside one plugin instance's lifetime. */
+  let lastAnnouncedToken: string | null = null;
+  let bounceInFlight = false;
 
   /** Extract the launch token from one announce line, or null. The token
    *  is base64url-ish (letters, digits, - and _) and runs to end of line. */
@@ -102,6 +121,7 @@ export function dshHostPlugin(options: {
     const text = typeof chunk === 'string' ? chunk : String(chunk);
     const token = tokenFromAnnounce(text);
     if (!token) return;
+    lastAnnouncedToken = token;
     const r = writeAuthToken(token, configPath);
     if (r.ok) {
       tokenWrites += 1;
@@ -130,6 +150,89 @@ export function dshHostPlugin(options: {
     }
   }
 
+  /** The boot, extracted (ADR-0025 Task 1.1): configureServer fires it
+   *  without awaiting; the in-place bounce awaits it. Same TWO paths the
+   *  inline block ran since the 2026-10-11 spike — introspect or runCli. */
+  async function bootHost(resolution: { packageDir: string; version: string; source: string; entryPath: string }): Promise<void> {
+    installTokenIntercept();
+    const useIntrospect = process.env.DSH_HOST_INTROSPECT === '1';
+    const mod = await import(/* @vite-ignore */ 'file://' + resolution.entryPath) as { runCli?: () => Promise<void> };
+    if (useIntrospect) {
+      await bootWithIntrospection(resolution, surface, configPath);
+      return;
+    }
+    if (typeof mod.runCli !== 'function') {
+      console.error('[dsh-host] runCli not exported — skipping');
+      surface.status = 'failed';
+      return;
+    }
+    process.argv = ['node', 'dsh', 'web', '--port', String(surface.port), '--no-open'];
+    console.log('[dsh-host] lens unavailable in runCli mode (no captured cordis root) — set DSH_HOST_INTROSPECT=1 for the lens (ADR-0024 D4)');
+    surface.status = 'running';
+    surface.startedAt = new Date().toISOString();
+    const st = hostState();
+    st.status = 'running';
+    st.port = surface.port;
+    st.shutdown = undefined; // runCli has no stop handle — restart keeps the host
+    console.log(`[dsh-host] booting dsh ${resolution.version} in-process on port ${surface.port} (${resolution.source})`);
+    try {
+      await mod.runCli();
+      // Spike note: runCli RESOLVES while the server keeps the process alive
+      // (fire-and-forget boot) — a resolve is NOT a stop.
+      console.log('[dsh-host] runCli resolved — server keeps serving in-process');
+    } catch (e) {
+      surface.status = 'failed';
+      console.error('[dsh-host] runCli threw:', (e as Error).message);
+    }
+  }
+
+  /** ADR-0025 D1 — the host-level bounce: stop ONLY the embedded host,
+   *  wait for the port, re-boot in-place with the CURRENT token pinned
+   *  (D4). The vite process never dies; the browser page and its URL
+   *  survive. Fallback contract: any failure returns a typed result with
+   *  ok=false so the caller (host-bounce route, then the chain) can fall
+   *  back to the whole-floor sweep (D3). */
+  async function bounceDshHost(): Promise<DshHostBounceResult> {
+    if (bounceInFlight) return { ok: false, reason: 'in-progress' };
+    const st = hostState();
+    if (st.status !== 'running' || typeof st.shutdown !== 'function') {
+      return { ok: false, reason: 'no-handle' };
+    }
+    bounceInFlight = true;
+    try {
+      console.log('[dsh-host] host-level bounce — stopping embedded host (vite stays up)');
+      const stop = st.shutdown;
+      st.shutdown = undefined;
+      surface.status = 'failed'; // pessimistic until the re-boot proves otherwise
+      try {
+        await stop();
+      } catch (e) {
+        console.error('[dsh-host] bounce stop threw:', (e as Error).message);
+      }
+      const freed = await waitPortFree(surface.port, 10_000);
+      if (!freed) return { ok: false, reason: 'port-held' };
+      // D4 token pinning: re-write the token the CURRENT browser URL holds
+      // so the re-booted host announces the same one (the sink is noop when
+      // the value already matches — the log says so).
+      if (lastAnnouncedToken) writeAuthToken(lastAnnouncedToken, configPath);
+      const pin = readPinFromPackageJson(join(dsiRoot, 'package.json'));
+      const resolution = resolveDshEntry({ pin: pin ?? undefined });
+      if (resolution.status === 'not-found' || !existsSync(resolution.entryPath)) {
+        surface.status = 'failed';
+        return { ok: false, reason: 'boot-failed' };
+      }
+      surface.entryPath = resolution.entryPath;
+      surface.version = resolution.version;
+      surface.source = resolution.source;
+      await bootHost(resolution);
+      if (surface.status !== 'running') return { ok: false, reason: 'boot-failed' };
+      console.log('[dsh-host] host-level bounce complete — same process, same URL');
+      return { ok: true };
+    } finally {
+      bounceInFlight = false;
+    }
+  }
+
   return {
     name: 'dsh-host-embed',
     async configureServer(server: ViteDevServer) {
@@ -137,10 +240,11 @@ export function dshHostPlugin(options: {
       if (process.env.DSI_DEV_IN_PROCESS !== '1') {
         surface.status = 'disabled';
         console.log('[dsh-host] disabled (DSI_DEV_IN_PROCESS not set) — tandem floor owns the host');
-        expose(surface);
+      expose(surface);
         return;
       }
 
+      surface.bounce = bounceDshHost; // ADR-0025 D1 — before expose, so __dshHost carries it
       expose(surface);
       // RESTART (vite re-runs configureServer when vt-plugins files change):
       // the OLD embedded host still owns its port — stop it if we hold the
@@ -174,11 +278,25 @@ export function dshHostPlugin(options: {
         // EADDRINUSE→exit(1)→no-node-process death (operator report +
         // bounce.log, 2026-10-12). Only an UNMANAGED holder after the wait
         // downgrades to UI-only.
-        const freed = await waitPortFree(surface.port, 20_000);
-        if (!freed) {
-          console.warn(`[dsh-host] port ${surface.port} still held after 20s by an unmanaged process — booting UI-only (stop the holder to reclaim the port)`);
+        // Fast path, synchronous: if the port is already free there is
+        // nothing to wait for — and configureServer must set the surface
+        // status WITHOUT yielding (tests and the inspector read
+        // globalThis.__dshHost right after the call; an unconditional
+        // await left them seeing the initial 'disabled', 2026-10-13).
+        const heldNow = spawnSync('lsof', ['-ti', 'tcp:' + surface.port, '-sTCP:LISTEN'], { stdio: 'pipe' }).status === 0;
+        if (heldNow) {
+          // Publish the pessimistic verdict SYNCHRONOUSLY: a holder at entry
+          // means UI-only until proven otherwise (surface consumers read
+          // __dshHost without awaiting configureServer). If the holder
+          // releases inside the wait window, restore the baseline — the
+          // boot path below then sets the real status.
           surface.status = 'not-found';
-          return;
+          const freed = await waitPortFree(surface.port, 20_000);
+          if (!freed) {
+            console.warn(`[dsh-host] port ${surface.port} still held after 20s by an unmanaged process — booting UI-only (stop the holder to reclaim the port)`);
+            return;
+          }
+          surface.status = 'disabled';
         }
       }
       const pin = readPinFromPackageJson(join(dsiRoot, 'package.json'));
@@ -210,51 +328,18 @@ export function dshHostPlugin(options: {
         return;
       }
 
-      // Boot. TWO paths (spike 2026-10-11):
-      //  - DSH_HOST_INTROSPECT=1: call the package's runProfile DIRECTLY (the
-      //    stable profile-boot.js re-export) and OWN the returned Cordis root
-      //    — bin.js's runCli awaits runProfile and DISCARDS { ctx, shutdown }.
-      //    Enables __dshHost.introspect() (registry keys, fiber states).
-      //    Fragility: bypasses bin.js's arg expansion/StartupError reporting.
+      // Boot. TWO paths (spike 2026-10-11) — the logic lives in bootHost(),
+      //  - DSH_HOST_INTROSPECT=1: runProfile DIRECTLY (owns the Cordis root,
+      //    enables __dshHost.introspect(); bypasses bin.js arg expansion).
       //  - default: runCli (spike-proven, version-tolerant).
-      installTokenIntercept();
-      const entryUrl = 'file://' + resolution.entryPath;
-      const useIntrospect = process.env.DSH_HOST_INTROSPECT === '1';
-      import(/* @vite-ignore */ entryUrl)
-        .then(async (mod: { runCli?: () => Promise<void> }) => {
-          if (useIntrospect) {
-            await bootWithIntrospection(resolution, surface, configPath);
-            return;
-          }
-          if (typeof mod.runCli !== 'function') {
-            console.error('[dsh-host] runCli not exported — skipping');
-            surface.status = 'failed';
-            return;
-          }
-          process.argv = ['node', 'dsh', 'web', '--port', String(surface.port), '--no-open'];
-          surface.status = 'running';
-          surface.startedAt = new Date().toISOString();
-          const st = hostState();
-          st.status = 'running';
-          st.port = surface.port;
-          st.shutdown = undefined; // runCli has no stop handle — restart keeps the host
-          console.log(`[dsh-host] booting dsh ${resolution.version} in-process on port ${surface.port} (${resolution.source})`);
-          try {
-            await mod.runCli();
-            // Spike note: runCli RESOLVES while the server keeps the process
-            // alive (fire-and-forget boot) — a resolve is NOT a stop. The
-            // real stop is this process dying (vite close), which takes the
-            // listener with it.
-            console.log('[dsh-host] runCli resolved — server keeps serving in-process');
-          } catch (e) {
-            surface.status = 'failed';
-            console.error('[dsh-host] runCli threw:', (e as Error).message);
-          }
-        })
-        .catch((e: Error) => {
-          surface.status = 'failed';
-          console.error('[dsh-host] failed to load entry:', e.message);
-        });
+      // bootHost() lives in this plugin closure so the ADR-0025 in-place
+      // bounce re-runs the SAME boot a vite restart runs. configureServer
+      // fires it WITHOUT awaiting (tests read __dshHost right after the
+      // call — 2026-10-13 sync fast-path note).
+      void bootHost(resolution).catch((e: Error) => {
+        surface.status = 'failed';
+        console.error('[dsh-host] bootHost threw:', e.message);
+      });
 
       // Ownership-aware teardown: on the FINAL close the process dies anyway
       // (host listener goes with it); on a vite RESTART the shutdown handle
@@ -328,25 +413,16 @@ async function bootWithIntrospection(
         console.error('[dsh-host] fiber dispose threw:', (e as Error).message);
       }
     };
-    // Spike evidence: print the plugin census once the tree has settled.
+    // Census (ADR-0024 D2): one structured multi-block print once the tree
+    // has settled — grouped, per-block degrading, only if still running.
+    const lens = createLens(ctx);
+    (surface as DshHostSurface & { ctx?: unknown; introspect?: () => unknown; lens?: CordisLens }).ctx = ctx;
+    (surface as DshHostSurface & { introspect?: () => unknown; lens?: CordisLens }).introspect = () => introspectCtx(ctx);
+    (surface as DshHostSurface & { lens?: CordisLens }).lens = lens;
     setTimeout(() => {
-      try {
-        const snap = introspectCtx(ctx) as {
-          pluginCount?: number; fiberState?: number;
-          named?: string[]; anonymous?: string[];
-          loaderEntries?: string[]; startedBundles?: string[] | null;
-        };
-        console.log(`[dsh-host] introspect: fiberState=${snap.fiberState} plugins=${snap.pluginCount} named=${(snap.named ?? []).length} anonymous=${snap.anonymousCount}`);
-        console.log(`[dsh-host] introspect named: ${(snap.named ?? []).slice(0, 15).join(', ')}`);
-        console.log(`[dsh-host] introspect bundles: ${(snap.startedBundles ?? []).join(', ')}`);
-        console.log(`[dsh-host] introspect loader entries: ${(snap.loaderEntries ?? []).slice(0, 15).join(', ')}`);
-        console.log(`[dsh-host] introspect anonymous top: ${(snap.anonymous ?? []).slice(0, 10).join(', ')}`);
-      } catch (e) {
-        console.error('[dsh-host] introspect failed:', (e as Error).message);
-      }
+      if (surface.status !== 'running') return;
+      for (const line of formatCensus(lens.snapshot())) console.log(line);
     }, 15_000);
-    (surface as DshHostSurface & { ctx?: unknown; introspect?: () => unknown }).ctx = ctx;
-    (surface as DshHostSurface & { introspect?: () => unknown }).introspect = () => introspectCtx(ctx);
   } catch (e) {
     // One fallback retry through runCli — the spike must never leave the
     // floor down when the direct seam moved (chunk names shift per build).
@@ -357,6 +433,7 @@ async function bootWithIntrospection(
       return;
     }
     process.argv = ['node', 'dsh', 'web', '--port', String(surface.port), '--no-open'];
+    console.log('[dsh-host] lens unavailable in runCli fallback (no captured cordis root) — set DSH_HOST_INTROSPECT=1 (ADR-0024 D4)');
     surface.status = 'running';
     await mod.runCli().catch((err: Error) => {
       surface.status = 'failed';

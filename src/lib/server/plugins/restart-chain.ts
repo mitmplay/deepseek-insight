@@ -82,7 +82,13 @@ const delayedRestart: ChainSpawner = (node, bin) => {
 		// hardcoded mode. The receipt names mode + inspect BEFORE arming.
 		const { mode, inspectArgs, startArgs } = delayedStartArgs(process.env);
 		appendFileSync(log, '[' + new Date().toISOString() + '] delayed re-serve armed: ' + seconds + 's mode=' + mode + ' inspect=' + (inspectArgs.length ? inspectArgs.join(' ') : 'none') + ' (skips if port 3080 is already up)\n');
-		const startCmd = node + ' ' + inspectArgs.map((a) => JSON.stringify(a)).join(' ') + (inspectArgs.length ? ' ' : '') + JSON.stringify(bin) + ' ' + startArgs.map((a) => JSON.stringify(a)).join(' ') + ' >> ' + JSON.stringify(join(process.cwd(), 'tmp', 'delayed-start.log')) + ' 2>&1';
+		// Inspector flags ride the dsi CLI ARGS, never node execArgv (fix
+		// 2026-10-13): extractInspectArgs (bin/lib/dev-mode.mjs:127) peels them
+		// from dsi's argv and leads the VITE child's argv with them — the child
+		// that owns the embedded host is the debuggable one. Node-level flags
+		// before the bin only ever debugged the dsi parent, leaving the vite
+		// process (lens + host) without an inspector after every bounce.
+		const startCmd = node + ' ' + JSON.stringify(bin) + ' ' + startArgs.concat(inspectArgs).map((a) => JSON.stringify(a)).join(' ') + ' >> ' + JSON.stringify(join(process.cwd(), 'tmp', 'delayed-start.log')) + ' 2>&1';
 		const script = 'sleep ' + seconds + '; ' +
 			'if lsof -ti tcp:3080 -sTCP:LISTEN | grep -q .; then echo "[delayed] port 3080 already up — skip"; ' +
 			'else cd ' + JSON.stringify(process.cwd()) + ' && ' + startCmd + '; fi';

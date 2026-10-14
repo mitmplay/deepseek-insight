@@ -40,12 +40,21 @@ let savedBin: string | undefined;
 // in-process host floor exports DSI_DEV=1 into every descendant env), so
 // the dev-marker tests must pin the ambient value, not inherit it.
 let savedDev: string | undefined;
+// Same hygiene for the Faithful Bounce stamps (ADR 2026-10-13): a runner
+// inside a dev floor inherits DSI_DEV_MODE / DSI_INSPECT_ARGS, which the
+// launch record honestly restores — pin them like DSI_DEV above.
+let savedMode: string | undefined;
+let savedInspect: string | undefined;
 
 beforeEach(() => {
 	spawnMock.mockClear();
 	savedBin = process.env.DSI_BIN;
 	savedDev = process.env.DSI_DEV;
+	savedMode = process.env.DSI_DEV_MODE;
+	savedInspect = process.env.DSI_INSPECT_ARGS;
 	delete process.env.DSI_DEV;
+	delete process.env.DSI_DEV_MODE;
+	delete process.env.DSI_INSPECT_ARGS;
 	writeFileSync(fakeBin, '#!/bin/sh');
 });
 
@@ -54,6 +63,10 @@ afterEach(() => {
 	else process.env.DSI_BIN = savedBin;
 	if (savedDev === undefined) delete process.env.DSI_DEV;
 	else process.env.DSI_DEV = savedDev;
+	if (savedMode === undefined) delete process.env.DSI_DEV_MODE;
+	else process.env.DSI_DEV_MODE = savedMode;
+	if (savedInspect === undefined) delete process.env.DSI_INSPECT_ARGS;
+	else process.env.DSI_INSPECT_ARGS = savedInspect;
 	setChainSpawner(null);
 });
 
@@ -210,14 +223,16 @@ describe('delayedRestart arm (faithful command via inherited env)', () => {
 		process.env.DSI_DEV_MODE = 'in-process';
 		expect(armScript()).toContain('"dsh" "--sync" "--dev" "in-process" >> ');
 	});
-	it('inspector flags lead the node invocation', () => {
+	it('inspector flags ride the dsi CLI args after the mode (vite child D7)', () => {
 		process.env.DSI_DEV = '1';
 		process.env.DSI_DEV_MODE = 'in-process';
 		process.env.DSI_INSPECT_ARGS = '--inspect=127.0.0.1:9229 --inspect-brk';
 		const script = armScript();
 		expect(script).toContain('"--inspect=127.0.0.1:9229" "--inspect-brk"');
-		// flags land BEFORE the bin (node execArgv order, D7)
-		expect(script.indexOf('--inspect=127.0.0.1:9229')).toBeLessThan(script.indexOf('dsi.mjs'));
+		// flags land AFTER dsi.mjs (dsi CLI args — extractInspectArgs re-peels
+		// them and leads the vite child's argv, so the host-owning process is
+		// the debuggable one; node-level flags only ever debugged the parent)
+		expect(script.indexOf('dsi.mjs')).toBeLessThan(script.indexOf('--inspect=127.0.0.1:9229'));
 	});
 	it('the journal names mode and inspect (receipt, D5)', () => {
 		process.env.DSI_DEV = '1';

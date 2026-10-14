@@ -111,6 +111,10 @@ export default defineConfig({
 			// text-summary — the headline numbers; text — the per-file table;
 			// json-summary — machine-readable totals (coverage/coverage-summary.json)
 			reporter: ['text-summary', 'text', 'json-summary'],
+			// Emit the report even when tests fail — otherwise failing tests
+			// silently hide coverage output (Vitest 4 default is false;
+			// observed 2026-10-13 when 3 failing tests suppressed the report).
+			reportOnFailure: true,
 			// Product code only — tests/fixtures and tests/stubs are test
 			// support and stay out of the measured set.
 			include: ['src/**'],
