@@ -47,7 +47,7 @@ describe('installOwned (2.2 owned species)', () => {
 
 describe('restoreClobberedBundles (2.2 clobber guard)', () => {
   it('re-appends bundle entries and dep entries dropped by a plugin add', () => {
-    const manifestPath = writeManifest({ '@deepseek-insight/dsi': 'github:mitmplay/deepseek-insight#main' }, ['@deepseek-insight/dsi']);
+    const manifestPath = writeManifest({ '@deepseek-insight/dsi': 'github:mitmplay/dsh-insight#main' }, ['@deepseek-insight/dsi']);
     const preOwned = [
       { id: '@local/dsh-app-dev-preset', group: 'owned', installSpec: 'link:/Users/x/plugins/dsh-app-dev-preset', pkg: '@local/dsh-app-dev-preset' },
       { id: '@local/dsh-research-preset', group: 'owned', installSpec: 'link:/Users/x/plugins/dsh-research-preset', pkg: '@local/dsh-research-preset' }

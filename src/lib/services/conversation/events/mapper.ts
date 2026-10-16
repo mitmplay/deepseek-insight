@@ -44,6 +44,11 @@ const SILENT_TYPES: ReadonlySet<string> = new Set([
 	'goal/change', // a long-running goal was created/updated — project management, not conversation
 	'hook/invoked', // an automation script was triggered — plumbing behind the wall
 	'hook/result', // that automation script finished — plumbing behind the wall
+	// 0.2.1: one background job registered/settled (packages/jobs/jobs/src/types.ts,
+	// DSH 0.2.1-alpha.1) — the job's tool calls and the jobs panel show the work;
+	// falling through rendered one unknown-event chip per job.
+	'job/registered',
+	'job/settled',
 	'llm/retry', // the AI hiccuped and was re-asked — you only care that an answer eventually came
 	'llm/retry-started', // the re-ask began — same hiccup rule
 	// 0.1.3 ledger v2: one model attempt that settled WITHOUT a surface

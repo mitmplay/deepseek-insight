@@ -15,15 +15,15 @@ describe('reff demoted to external catalog (2.1)', () => {
   });
 
   it('an owned-repo line, if present, still resolves (back-compat)', () => {
-    const text = '1. [app-dev](https://github.com/mitmplay/deepseek-insight)';
+    const text = '1. [app-dev](https://github.com/mitmplay/dsh-insight)';
     const { plugins, warnings } = parseReff(text);
     expect(plugins).toHaveLength(1);
-    expect(plugins[0].repo).toBe('https://github.com/mitmplay/deepseek-insight');
+    expect(plugins[0].repo).toBe('https://github.com/mitmplay/dsh-insight');
     expect(warnings).toHaveLength(0);
   });
 
   it('a /tree/ browse URL line still parses (engine normalizes at match time)', () => {
-    const text = '1. [app-dev](https://github.com/mitmplay/deepseek-insight/tree/main/plugins/dsh-app-dev-preset)';
+    const text = '1. [app-dev](https://github.com/mitmplay/dsh-insight/tree/main/plugins/dsh-app-dev-preset)';
     const { plugins } = parseReff(text);
     expect(plugins[0].repo).toContain('/tree/main/');
   });

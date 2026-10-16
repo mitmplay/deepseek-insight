@@ -12,7 +12,7 @@ allowBuilds:
   esbuild: true
   node-pty: true
   # git-hosted package, exact tarball sha — what the error prints verbatim
-  "@deepseek-insight/dsi@https://codeload.github.com/mitmplay/deepseek-insight/tar.gz/de43c9658dd2bc4221b116fc1420be167facb353": true
+  "@deepseek-insight/dsi@https://codeload.github.com/mitmplay/dsh-insight/tar.gz/de43c9658dd2bc4221b116fc1420be167facb353": true
   # wildcard bet — cover future shas of the same repo
   "@deepseek-insight/dsi@https://codeload.github.com/mitmplay/**": true
 ```

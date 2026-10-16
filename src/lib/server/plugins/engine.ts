@@ -29,7 +29,7 @@ const execFileP = promisify(execFile);
  *  with RACK_GARDEN_PATH / RACK_GARDEN_REPO when the checkout lives elsewhere. */
 function gardenArgs(): string[] {
 	const gardenPath = process.env.RACK_GARDEN_PATH ?? join(process.cwd(), 'plugins');
-	const gardenRepo = process.env.RACK_GARDEN_REPO ?? 'https://github.com/mitmplay/deepseek-insight';
+	const gardenRepo = process.env.RACK_GARDEN_REPO ?? 'https://github.com/mitmplay/dsh-insight';
 	return existsSync(gardenPath) ? ['--garden', gardenPath, '--garden-repo', gardenRepo] : [];
 }
 /** Refresh is a local parse (no network harvest like the shelf) — one

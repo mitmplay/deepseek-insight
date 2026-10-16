@@ -1,19 +1,19 @@
 ---
 name: dsi-sync
-description: Use when the user runs /dsi-sync or says to sync/mirror DeepSeek Insight (DSI) to its GitHub mirror — re-syncs ~/agentic-ai/deepseek-insight into ~/github/deepseek-insight (excluding dev/ and .git/), then commits and pushes the mirror. Covers resync, commit, push, and no-change skip.
+description: Use when the user runs /dsi-sync or says to sync/mirror DeepSeek Insight (DSI) to its GitHub mirror — re-syncs ~/agentic-ai/deepseek-insight into ~/github/dsh-insight (excluding dev/ and .git/), then commits and pushes the mirror. Covers resync, commit, push, and no-change skip.
 ---
 
 # DSI → GitHub Mirror Sync
 
 Mirror DSI into a publishable GitHub repo, then commit & push. The mirror lives at
-`~/github/deepseek-insight` and has its own `.git` (origin:
-`git@github.com:mitmplay/deepseek-insight.git`). Never touch the mirror's `.git`
+`~/github/dsh-insight` and has its own `.git` (origin:
+`git@github.com-mitmplay:mitmplay/dsh-insight.git`). Never touch the mirror's `.git`
 or DSI's `dev/` folder.
 
 ## Source of truth
 
 - SOURCE: `~/agentic-ai/deepseek-insight/`
-- MIRROR: `~/github/deepseek-insight/`
+- MIRROR: `~/github/dsh-insight/`
 - EXCLUDED from sync (always): `dev/`, `.git/`
 - The mirror's own `.git` is protected because rsync excludes `.git/` — with
   `--delete`, excluded target paths are never deleted.
@@ -25,7 +25,7 @@ rsync -a --delete \
   --exclude 'dev/' \
   --exclude '.git/' \
   ~/agentic-ai/deepseek-insight/ \
-  ~/github/deepseek-insight/
+  ~/github/dsh-insight/
 ```
 
 Trailing slashes matter: they copy CONTENTS of source into target, not the folder itself.
@@ -33,8 +33,8 @@ Trailing slashes matter: they copy CONTENTS of source into target, not the folde
 ## 2. Verify the exclusions held
 
 ```bash
-test -d ~/github/deepseek-insight/dev && echo 'BAD: dev leaked' || echo 'ok: no dev'
-test -d ~/github/deepseek-insight/.git && echo 'ok: .git intact' || echo 'BAD: .git lost'
+test -d ~/github/dsh-insight/dev && echo 'BAD: dev leaked' || echo 'ok: no dev'
+test -d ~/github/dsh-insight/.git && echo 'ok: .git intact' || echo 'BAD: .git lost'
 ```
 
 If either BAD line prints, stop and fix before committing — do not push a broken mirror.
@@ -42,7 +42,7 @@ If either BAD line prints, stop and fix before committing — do not push a brok
 ## 3. Commit & push (skip if nothing changed)
 
 ```bash
-cd ~/github/deepseek-insight
+cd ~/github/dsh-insight
 git add -A
 if git diff --cached --quiet; then
   echo 'no changes to sync'

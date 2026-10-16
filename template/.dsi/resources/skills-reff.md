@@ -5,5 +5,5 @@ Skills Resources:
 4. [superpowers](https://github.com/obra/superpowers) - [Jesse Vincent](https://www.linkedin.com/in/jessevincent/)
 5. [web-quality-skills](https://github.com/addyosmani/web-quality-skills) - [Addy Osmani](https://www.linkedin.com/in/addyosmani/)
 6. [impeccable](https://github.com/pbakaus/impeccable) - [Paul Bakaus](https://www.linkedin.com/in/paulbakaus/)
-7. [deepseek-insight](https://github.com/mitmplay/deepseek-insight) - [Wharsojo](https://www.linkedin.com/in/wharsojo/)
+7. [deepseek-insight](https://github.com/mitmplay/dsh-insight) - [Wharsojo](https://www.linkedin.com/in/wharsojo/)
 8. [svelte-skills](https://github.com/full-stack-skills/svelte-skills) - [full-stack-skills](https://github.com/full-stack-skills)

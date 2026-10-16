@@ -33,22 +33,22 @@ function makeReff(lines: string[]) {
 
 describe('reff shadowed by garden (ADR-0016 D2/D3)', () => {
   it('same-repo reff line yields ONE group, no duplicate id, warning emitted', () => {
-    const { garden, gardenRepo } = makeGarden('https://github.com/mitmplay/deepseek-insight');
+    const { garden, gardenRepo } = makeGarden('https://github.com/mitmplay/dsh-insight');
     const reff = makeReff([
-      '2. [deepseek-insight](https://github.com/mitmplay/deepseek-insight/tree/main/plugins) - [deepseek-insight](https://github.com/mitmplay)',
+      '2. [deepseek-insight](https://github.com/mitmplay/dsh-insight/tree/main/plugins) - [deepseek-insight](https://github.com/mitmplay)',
       '3. [superpowers-dsh](https://github.com/LayneChai/superpowers-dsh) - [LayneChai](https://github.com/LayneChai)'
     ]);
     const { snapshot, warnings } = buildSnapshot({ reffPath: reff, manifestPath: join(tmp, 'none.json'), gardenPath: garden, gardenRepo, profile: 'web' });
     expect(snapshot.plugins.map((p) => p.id)).not.toContain('deepseek-insight');
     expect(snapshot.plugins.some((p) => p.id === 'superpowers-dsh')).toBe(true);
     expect(snapshot.sources).toHaveLength(2);
-    expect(snapshot.sources.map((s) => s.id)).toContain('mitmplay/deepseek-insight');
+    expect(snapshot.sources.map((s) => s.id)).toContain('mitmplay/dsh-insight');
     expect(snapshot.sources.map((s) => s.id)).not.toContain('main/plugins');
     expect(warnings.some((w) => w.code === 'reff-shadowed-by-garden' && w.detail === 'deepseek-insight')).toBe(true);
   });
 
   it('a /tree URL on a FOREIGN repo is NOT shadowed', () => {
-    const { garden, gardenRepo } = makeGarden('https://github.com/mitmplay/deepseek-insight');
+    const { garden, gardenRepo } = makeGarden('https://github.com/mitmplay/dsh-insight');
     const reff = makeReff(['1. [sub-plugin](https://github.com/NanmiCoder/dsh-agent-teams/tree/main/pkg) - [NanmiCoder](https://github.com/NanmiCoder)']);
     const { snapshot, warnings } = buildSnapshot({ reffPath: reff, manifestPath: join(tmp, 'none.json'), gardenPath: garden, gardenRepo, profile: 'web' });
     expect(snapshot.plugins.some((p) => p.id === 'sub-plugin')).toBe(true);
@@ -56,7 +56,7 @@ describe('reff shadowed by garden (ADR-0016 D2/D3)', () => {
   });
 
   it('no garden present — nothing shadows', () => {
-    const reff = makeReff(['1. [deepseek-insight](https://github.com/mitmplay/deepseek-insight/tree/main/plugins) - [deepseek-insight](https://github.com/mitmplay)']);
+    const reff = makeReff(['1. [deepseek-insight](https://github.com/mitmplay/dsh-insight/tree/main/plugins) - [deepseek-insight](https://github.com/mitmplay)']);
     const { snapshot, warnings } = buildSnapshot({ reffPath: reff, manifestPath: join(tmp, 'none.json'), gardenPath: undefined, gardenRepo: undefined, profile: 'web' });
     expect(snapshot.plugins).toHaveLength(1);
     expect(warnings.some((w) => w.code === 'reff-shadowed-by-garden')).toBe(false);

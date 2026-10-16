@@ -1,6 +1,6 @@
 # DeepSeek Insight
 
-> [DeepSeek Insight](https://github.com/mitmplay/deepseek-insight) (**DSI**) **See your multiple agents run on the floor (agent, sub-agent, etc)**, each **conversation on the floor are updated instantly**. 
+> [DeepSeek Insight](https://github.com/mitmplay/dsh-insight) (**DSI**) **See your multiple agents run on the floor (agent, sub-agent, etc)**, each **conversation on the floor are updated instantly**. 
 
 > A `Control room` built on [Deepseek Harness's](https://github.com/deepseek-ai/deepseek-harness) (**DSH**) **records**: any (running) session, show side by side on the floor; **Lineage tree** of **parent to sub-agents**; Clean conversation with **tool-call(s) chips** with status **+** auto-expand **thingking chips**. 
 
@@ -43,7 +43,7 @@ The workspace explorer is DSI's window into the folder your agents are working i
 
 <details>
   <summary>Deepseek-insight-panels</summary>
-  <img src="https://raw.githubusercontent.com/mitmplay/deepseek-insight/refs/heads/main/docs/images/dsi-panels.png"/>
+  <img src="https://raw.githubusercontent.com/mitmplay/dsh-insight/refs/heads/main/docs/images/dsi-panels.png"/>
 </details>
 
 ---
