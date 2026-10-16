@@ -303,12 +303,12 @@ describe('tool-workflow partials', () => {
 		const full = entryForEvent(
 			ev('tool-workflow/agent-start', { runId: 'r1', seq: 5, label: 'L', childId: 'ch', phase: 'research' })
 		)!;
-		expect((full as { agents: Record<string, unknown>[] }).agents[0]).toEqual({
+		expect((full as unknown as { agents: Record<string, unknown>[] }).agents[0]).toEqual({
 			seq: 5, label: 'L', childId: 'ch', phase: 'research', status: 'running', startedAt: 1700000000000
 		});
 
 		const bare = entryForEvent(ev('tool-workflow/agent-start', {}))!;
-		expect((bare as { agents: Record<string, unknown>[] }).agents[0]).toEqual({
+		expect((bare as unknown as { agents: Record<string, unknown>[] }).agents[0]).toEqual({
 			seq: -1, label: 'agent -1', childId: '', status: 'running', startedAt: 1700000000000
 		});
 	});

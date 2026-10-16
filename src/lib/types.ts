@@ -858,3 +858,56 @@ export interface DsiGestureRow {
 	/** One-line human description — the help card's summary, verbatim. */
 	description: string;
 }
+
+// ── Jobs (ADR-0026 D2/D3) ────────────────────────────────────────────────
+// Mirrored verbatim from the host's client-safe vocabulary
+// (deepseek-harness packages/jobs/jobs/src/view.ts JobView and
+// packages/api/job-controller/src/types.ts JobListFrame/JobKillValue,
+// dsh-v0.2.1-alpha.4). DSI never invents settlement data: finishedAt
+// arrives only when the registry itself reports it (ADR fact 10).
+
+/** Job lifecycle: running, optionally stopping, then exactly one terminal status. */
+export type DsiJobStatus = 'running' | 'stopping' | 'completed' | 'killed' | 'failed';
+
+/**
+ * Read-only projection of one job — the host registry's fresh object per
+ * frame, never live registry state. Identity is (ownerSessionId, jobId);
+ * owner is absent for an unowned job, which every session's roster lists
+ * (ADR-0026 flowchart ANY/POP).
+ */
+export interface DsiJobView {
+	/** The registry-issued id (kind-short-uuid). */
+	id: string;
+	/** Producer kind the job was registered with (open string — plugins merge kinds). */
+	kind: string;
+	/** The producer-supplied one-line label. */
+	label: string;
+	/** Owning session; absent for an unowned job. */
+	owner?: string;
+	/** Current lifecycle state. */
+	status: DsiJobStatus;
+	/** The producer's live progress line; cleared at settlement. */
+	progress?: string;
+	/** Terminal reason (exit code: 3); a recorded kill reason is merged in. */
+	detail?: string;
+	/** Epoch ms when the job was registered. */
+	startedAt: number;
+	/** Epoch ms when the job settled; absent while live — never synthesized. */
+	finishedAt?: number;
+	/** Output ring coordinates: total bytes written, oldest retained byte. */
+	output: { total: number; earliest: number };
+}
+
+/**
+ * One job.list frame: the COMPLETE set the session can see — its own jobs
+ * plus every unowned job — after a lifecycle change. Whole-set replacement:
+ * the store overwrites, never merges (host JobListFrame contract).
+ */
+export interface DsiJobListFrame {
+	jobs: DsiJobView[];
+}
+
+/** Receipt after the registry accepted the human kill request. */
+export interface DsiJobKillResult {
+	outcome: 'requested' | 'already-finished';
+}

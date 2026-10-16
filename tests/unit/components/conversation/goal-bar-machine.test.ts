@@ -98,7 +98,7 @@ describe("GoalBarMachine — runGoalVerb outcomes", () => {
 		const { machine } = makeMachine();
 		machine.openGoalEditor();
 		await machine.runGoalVerb("edit", { objective: "new", maxGoalRounds: 5 });
-		const sent = JSON.parse(vi.mocked(fetch).mock.calls[0][1].body as string);
+		const sent = JSON.parse((vi.mocked(fetch).mock.calls[0]![1]!).body as string);
 		expect(sent.edit).toEqual({ objective: "new", maxGoalRounds: 5 });
 		expect(machine.goalEditor).toBeNull();
 	});
@@ -163,7 +163,7 @@ describe("GoalBarMachine — editor state", () => {
 		machine.editGoalField("maxGoalRounds", "12");
 		expect(machine.goalEditor).toEqual({ objective: "rewritten", maxGoalRounds: 12 });
 		machine.editGoalField("maxGoalRounds", "not-a-number");
-		expect(machine.goalEditor.maxGoalRounds).toBe(12);
+		expect((machine.goalEditor as { maxGoalRounds: number }).maxGoalRounds).toBe(12);
 	});
 });
 
@@ -199,7 +199,7 @@ describe("GoalBarMachine — submitGoalEditor diff (ADR D3)", () => {
 		machine.editGoalField("objective", "  new objective  ");
 		machine.submitGoalEditor();
 		await vi.waitFor(() => expect(machine.goalBusy).toBe(false));
-		const sent = JSON.parse(vi.mocked(fetch).mock.calls[0][1].body as string);
+		const sent = JSON.parse((vi.mocked(fetch).mock.calls[0]![1]!).body as string);
 		expect(sent.edit).toEqual({ objective: "new objective" });
 	});
 
@@ -209,7 +209,7 @@ describe("GoalBarMachine — submitGoalEditor diff (ADR D3)", () => {
 		machine.editGoalField("maxGoalRounds", "12");
 		machine.submitGoalEditor();
 		await vi.waitFor(() => expect(machine.goalBusy).toBe(false));
-		const sent = JSON.parse(vi.mocked(fetch).mock.calls[0][1].body as string);
+		const sent = JSON.parse((vi.mocked(fetch).mock.calls[0]![1]!).body as string);
 		expect(sent.edit).toEqual({ maxGoalRounds: 12 });
 
 		const second = makeMachine();

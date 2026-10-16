@@ -172,7 +172,7 @@ function readTree(c: CtxShape): LensField<LensTreeFiber> {
           seenFibers.add(fb);
           const fib = fb as { state?: unknown; runtime?: { plugin?: { name?: string } } };
           root.children.push({
-            pluginName: rt.name ?? fib.runtime?.plugin?.name ?? null,
+            pluginName: rt?.name ?? fib.runtime?.plugin?.name ?? null,
             state: typeof fib.state === 'number' ? fib.state : null,
             children: []
           });

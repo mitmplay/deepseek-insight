@@ -118,7 +118,21 @@ export const DSH_METHODS = {
 	 * workspace-file/not-text. Same refusals as read.
 	 */
 	workspaceFileReadBytes: 'workspaceFiles/readBytes',
-	workspaceFileList: 'workspaceFiles/list'
+	workspaceFileList: 'workspaceFiles/list',
+	/**
+	 * Jobs (ADR-0026 D2/D3, Job Badge Wave 1): the per-session roster and the
+	 * human kill — host job-controller (dsh-v0.2.1-alpha.4). job/list answers
+	 * one JobListFrame (whole-set jobs replacement); job/kill is the pure
+	 * RPC passthrough answering {outcome: 'requested' | 'already-finished'}.
+	 * Wire names mirror the host remote namespace job (job.list / job.kill →
+	 * slash form, same convention as session/list). Args use the request
+	 * wrapper like skillsList; live-pinning lands with the route probe.
+	 */
+	// jobList: retired DSI-side (ADR 2026-10-17, The Roster Mirror) — the
+	// host serves job/list stream-only; DSI consumes the stream, never a
+	// unary call. Name kept for wire-map completeness only.
+	jobList: 'job/list',
+	jobKill: 'job/kill'
 } as const;
 
 /** Per-endpoint args-key layout: the JS parameter name on the wire (0.1.2). */
@@ -169,12 +183,18 @@ export const DSH_ARGS = {
 		path
 	}),
 	/** Flat args like the read — WorkspaceByteRange {offset, length}, 0-based
-	 *  bytes; `{}` = the host's window defaults. */
+	 *  bytes; {} = the host's window defaults. */
 	workspaceFileReadBytes: (
 		sessionId: string,
 		path: string,
 		range?: { offset?: number; length?: number }
-	): Record<string, unknown> => ({ workspaceFileScopeId: sessionId, path, range: range ?? {} })
+	): Record<string, unknown> => ({ workspaceFileScopeId: sessionId, path, range: range ?? {} }),
+	/** Jobs (Job Badge Wave 1): request-wrapped like skillsList —
+	 *  job/list {request:{sessionId}}, job/kill {request:{sessionId, jobId}}. */
+	jobList: (sessionId: string): Record<string, unknown> => ({ request: { sessionId } }),
+	jobKill: (sessionId: string, jobId: string): Record<string, unknown> => ({
+		request: { sessionId, jobId }
+	})
 } as const;
 
 /**

@@ -221,6 +221,12 @@ export class DshConnection {
 		});
 		this.downlinks = new DownlinkManager(this);
 		this.relay = new RpcRelay(this, ringCapacity, { answerReapGraceMs, staleGenerationRetryMs });
+		// The Roster Mirror's mux bridge (ADR 2026-10-17 D1/D2): the mirror
+		// owns policy; the downlink manager owns the socket.
+		this.relay.wireJobRosterTransport({
+			open: (sessionId) => this.downlinks.openJobRosterStream(sessionId),
+			close: (sessionId) => this.downlinks.closeJobRosterStream(sessionId)
+		});
 	}
 
 	// ── Generation lifecycle (W3: connection/downlinks.ts owns the machine;
@@ -303,6 +309,21 @@ export class DshConnection {
 				this.relay.registerSettlement(frame);
 				return;
 			default:
+				// Job roster frames (Job Badge Wave 1, ADR-0026): the host's
+				// job.list stream pushes whole-set frames — forward any job
+				// frame carrying a jobs array to the relay's listener registry
+				// (forward-compatible with the exact wire type name).
+				if (
+					typeof frame?.type === 'string' &&
+					frame.type.startsWith('job/') &&
+					Array.isArray((frame as { jobs?: unknown }).jobs)
+				) {
+					this.relay.dispatchJobRoster(
+						String(frame.sessionId ?? ''),
+						(frame as unknown as { jobs: never }).jobs
+					);
+					return;
+				}
 				// queue/jobs/projection/… — not ring-buffer state; ignored here
 				this.log('dsh-connection: mux frame ignored', frame?.type);
 		}

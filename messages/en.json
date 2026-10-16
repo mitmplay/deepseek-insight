@@ -448,5 +448,10 @@
 	"themeSettings_label": "Theme",
 	"themeChoice_system": "System",
 	"themeChoice_light": "Light",
-	"themeChoice_dark": "Dark"
+	"themeChoice_dark": "Dark",
+	"jobs": "Jobs",
+	"killJob": "Kill",
+	"confirmKill": "Confirm kill",
+	"jobsLiveTitle_one": "{n} live job",
+	"jobsLiveTitle_other": "{n} live jobs"
 }

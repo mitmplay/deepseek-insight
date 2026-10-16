@@ -35,6 +35,8 @@ import type {
 import type {
 	DsiDirectoryEntry,
 	DsiDirectoryListing,
+	DsiJobKillResult,
+	DsiJobView,
 	DsiModelDirectory,
 	DsiModelSelection,
 } from '$lib/types';
@@ -85,6 +87,14 @@ export interface AnswerSettlement {
 export type CatalogInvalidationListener = (scope: string | 'all') => void;
 
 /**
+ * Job roster listener (Job Badge Wave 1, ADR-0026 D2): fired by the mux push
+ * path whenever the host's job.list stream frames a per-session whole-set
+ * replacement. The roster store subscribes per watched sessionId; the
+ * sidebar badge and the conversation JobsButton share what it delivers.
+ */
+export type JobRosterListener = (sessionId: string, jobs: readonly DsiJobView[]) => void;
+
+/**
  * Parent-address facts for one subagent-origin session, folded from its
  * session.list row: the host requires spawned sessions to be addressed with
  * the subagent form (parentSessionId, childSessionId, mode) and rejects the
@@ -119,6 +129,28 @@ export class RpcRelay {
 	private settledAnswers = new Map<string, AnswerSettlement>();
 	/** Catalog-invalidation registry (Slash Menu W1) — listeners see every arm. */
 	private catalogInvalidated: Set<CatalogInvalidationListener> = new Set();
+	/** Job roster registry (Job Badge Wave 1) — per-frame fan-out to watchers. */
+	private jobRosterListeners: Set<JobRosterListener> = new Set();
+	/**
+	 * The Roster Mirror (ADR 2026-10-17, The Roster Mirror — D1): the newest
+	 * job/list stream frame per session. Authority stays the host registry;
+	 * this is the derived copy GET /api/dsh/jobs serves. Pending (no frame
+	 * yet) is honest darkness, never a synthesized empty set.
+	 */
+	private jobRosterCache = new Map<string, { jobs: DsiJobView[] }>();
+	/** Poll-liveness per watched session — the HTTP-native watch (D2): the
+	 *  browser's 2s poll is the heartbeat; silence past the grace reaps. */
+	private jobRosterTouch = new Map<string, number>();
+	/** First stream failure per session logged once (D3 loudness budget). */
+	private jobRosterFailureLogged = new Set<string>();
+	/** The roster reaper interval (armed on first touch, disarmed at zero). */
+	private jobRosterReapTimer: ReturnType<typeof setInterval> | undefined;
+	/** Open/close transports wired once by DshConnection (mux bridge). */
+	jobRosterTransport: { open: (sessionId: string) => void; close: (sessionId: string) => void } | null = null;
+	/** Grace before an unpolled session's stream closes (tests shrink it). */
+	jobRosterGraceMs = 10_000;
+	/** Sessions whose stream is believed open — one open per watch period. */
+	private jobRosterOpened = new Set<string>();
 	/**
 	 * Parent-address hints for subagent-origin sessions (SubagentAddressHint),
 	 * folded from session.list rows by rawListSessions.
@@ -777,6 +809,129 @@ export class RpcRelay {
 	/** session.cancel */
 	async cancel(sessionId: string): Promise<{ accepted: boolean }> {
 		return (await this.conn.rpc(DSH_METHODS.cancel, DSH_ARGS.cancel({ sessionId }))) as { accepted: boolean };
+	}
+
+	// ── Jobs (ADR-0026 D2/D3, Job Badge Wave 1) ──────────────────────────
+
+	/**
+	 * Subscribe to per-session job roster pushes (mux frame fan-out). Returns
+	 * the unsubscribe — the roster store's unwatch MUST call it, or the
+	 * listener outlives its row (ADR give-up: streams are refcounted).
+	 */
+	onJobRoster(listener: JobRosterListener): () => void {
+		this.jobRosterListeners.add(listener);
+		return () => this.jobRosterListeners.delete(listener);
+	}
+
+	/**
+	 * Deliver one whole-set roster frame to listeners. Called by the mux push
+	 * path (dsh-connection frame switch); a frame REPLACES the session's set —
+	 * consumers overwrite, never merge (host JobListFrame contract).
+	 */
+	dispatchJobRoster(sessionId: string, jobs: readonly DsiJobView[]): void {
+		for (const listener of this.jobRosterListeners) listener(sessionId, jobs);
+	}
+
+	// ── Jobs — the Roster Mirror (ADR 2026-10-17 D1–D3) ──────────────────
+
+	/** Wire the open/close transports (called once by DshConnection). */
+	wireJobRosterTransport(transport: {
+		open: (sessionId: string) => void;
+		close: (sessionId: string) => void;
+	}): void {
+		this.jobRosterTransport = transport;
+	}
+
+	/**
+	 * One browser poll tick — the HTTP-native watch (D2): touch liveness and
+	 * make sure the session's job/list stream is open. The browser store's
+	 * refcounted watch lifecycle expresses itself here as a 2s heartbeat;
+	 * silence past the grace window is the unwatch.
+	 */
+	touchJobRoster(sessionId: string): void {
+		this.jobRosterTouch.set(sessionId, Date.now());
+		if (!this.jobRosterOpened.has(sessionId)) {
+			this.jobRosterOpened.add(sessionId);
+			this.jobRosterTransport?.open(sessionId);
+		}
+		this.armJobRosterReaper();
+	}
+
+	/** Arm the reaper lazily; it disarms itself when no session is watched. */
+	private armJobRosterReaper(): void {
+		if (this.jobRosterReapTimer !== undefined) return;
+		this.jobRosterReapTimer = setInterval(
+			() => this.reapJobRosters(),
+			Math.max(1_000, Math.floor(this.jobRosterGraceMs / 2))
+		);
+		this.jobRosterReapTimer.unref?.();
+	}
+
+	/** Close streams (and drop their caches) for sessions not polled within the grace. */
+	reapJobRosters(now = Date.now()): void {
+		for (const [sessionId, last] of this.jobRosterTouch) {
+			if (now - last <= this.jobRosterGraceMs) continue;
+			this.jobRosterTouch.delete(sessionId);
+			this.jobRosterCache.delete(sessionId);
+			this.jobRosterFailureLogged.delete(sessionId);
+			this.jobRosterOpened.delete(sessionId);
+			this.jobRosterTransport?.close(sessionId);
+		}
+		if (this.jobRosterTouch.size === 0 && this.jobRosterReapTimer !== undefined) {
+			clearInterval(this.jobRosterReapTimer);
+			this.jobRosterReapTimer = undefined;
+		}
+	}
+
+	/**
+	 * One job/list stream item — a whole-set frame (the host frames on open,
+	 * then per coalesced commit burst; typert.host.js contract). Replaces the
+	 * session's mirror and fans out to the roster listeners.
+	 */
+	onJobRosterItem(sessionId: string, value: unknown): void {
+		if (sessionId === '') return;
+		const raw = value as { jobs?: unknown } | unknown[] | null;
+		const jobs = Array.isArray(raw)
+			? (raw as DsiJobView[])
+			: Array.isArray((raw as { jobs?: unknown } | null)?.jobs)
+				? ((raw as { jobs: DsiJobView[] }).jobs)
+				: null;
+		if (jobs === null) return;
+		this.jobRosterCache.set(sessionId, { jobs });
+		this.dispatchJobRoster(sessionId, jobs);
+	}
+
+	/** Stream-level failure — logged once per session per watch (D3). */
+	onJobRosterStreamError(sessionId: string, code: string | undefined, message: string | undefined): void {
+		// Self-heal: the next poll touch reopens the dead stream.
+		this.jobRosterOpened.delete(sessionId);
+		if (sessionId === '' || this.jobRosterFailureLogged.has(sessionId)) return;
+		this.jobRosterFailureLogged.add(sessionId);
+		this.conn.log('dsh-connection: job/list stream failed', sessionId, code, message);
+	}
+
+	/**
+	 * The mirror's answer for one session: the cached frame, or an honest
+	 * pending (D3) — unknown is not empty. Replaces the retired unary
+	 * job/list call (RCA 2026-10-17: the host refuses unary on a stream-only
+	 * method).
+	 */
+	jobRosterSnapshot(sessionId: string): { jobs: DsiJobView[]; pending: boolean } {
+		const cached = this.jobRosterCache.get(sessionId);
+		return cached ? { jobs: cached.jobs, pending: false } : { jobs: [], pending: true };
+	}
+
+	/**
+	 * job.kill passthrough — the human's ONLY direct job verb (ADR fact 6:
+	 * starting is always the owner Agent's tool call). The fence stays
+	 * server-side: DSI sends the caller's sessionId verbatim and surfaces a
+	 * refusal (belongs to another session) instead of masking it.
+	 */
+	async jobKill(sessionId: string, jobId: string): Promise<DsiJobKillResult> {
+		return (await this.conn.rpc(
+			DSH_METHODS.jobKill,
+			DSH_ARGS.jobKill(sessionId, jobId)
+		)) as DsiJobKillResult;
 	}
 
 	/**

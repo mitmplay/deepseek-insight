@@ -225,7 +225,7 @@ export function dshHostPlugin(options: {
       surface.version = resolution.version;
       surface.source = resolution.source;
       await bootHost(resolution);
-      if (surface.status !== 'running') return { ok: false, reason: 'boot-failed' };
+      if ((surface.status as string) !== 'running') return { ok: false, reason: 'boot-failed' };
       console.log('[dsh-host] host-level bounce complete — same process, same URL');
       return { ok: true };
     } finally {
@@ -378,7 +378,7 @@ async function bootWithIntrospection(
 ): Promise<void> {
   try {
     const bootUrl = 'file://' + join(resolution.packageDir, 'lib', 'profile-boot.js');
-    const boot = await import(/* @vite-ignore */ bootUrl) as { runProfile?: (o: unknown) => Promise<{ ctx?: unknown }> };
+    const boot = await import(/* @vite-ignore */ bootUrl) as { runProfile?: (o: unknown) => Promise<{ ctx?: unknown; shutdown?: unknown }> };
     if (typeof boot.runProfile !== 'function') throw new Error('profile-boot.js did not export runProfile');
     // loadLayeredEnv from the host's own dependency tree — same env the CLI
     // would have loaded (createRequire resolves inside the npx dir).
@@ -408,7 +408,7 @@ async function bootWithIntrospection(
       // handle (shutdown.shutdown(code)) and may exit the process; disposing
       // the fiber closes the webserver without killing the floor.
       try {
-        (ctx as { fiber?: { dispose?: () => unknown } }).fiber?.dispose();
+        (ctx as { fiber?: { dispose?: () => unknown } }).fiber?.dispose?.();
       } catch (e) {
         console.error('[dsh-host] fiber dispose threw:', (e as Error).message);
       }

@@ -425,7 +425,7 @@
 									? run.entries.filter((e) =>
 											!(e.kind === 'user-message' && e.meta !== undefined) &&
 											e.kind !== 'unknown-event')
-									: run.entries}
+									: []}
 								{#if run.kind === 'text'}
 									<MarkdownContent content={run.entry.text} hideToggle {onFileLink} />
 								{:else if workEntries.length > 0}

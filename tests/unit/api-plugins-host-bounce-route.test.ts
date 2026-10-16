@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { POST, GET } from '../../src/routes/api/plugins/host-bounce/+server.ts';
+import { POST } from '../../src/routes/api/plugins/host-bounce/+server.ts';
+import * as hostBounceRoute from '../../src/routes/api/plugins/host-bounce/+server.ts';
 
 // ADR-0025 D1/D3 route contract: localhost-only; 200 + { ok, bounced } when
 // the surface verb reports success; 409 when no verb or the verb fails
@@ -56,6 +57,6 @@ describe('POST /api/plugins/host-bounce', () => {
   });
 
   it('is POST-only (GET is not the bounce verb)', () => {
-    expect(GET).toBeUndefined();
+    expect((hostBounceRoute as { GET?: unknown }).GET).toBeUndefined();
   });
 });

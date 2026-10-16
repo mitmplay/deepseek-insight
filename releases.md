@@ -1,5 +1,22 @@
 # Releases
 
+## 0.6.18
+
+Bumped from 0.6.17 — Job Badge feature completion (ADR-0026) hardened: svelte-check at zero errors, BC-7 page-owned roster cadence, and coverage over the 80% per-file floor.
+
+### Features
+- Job Badge feature wave (ADR-0026): job.list/job.kill relay, refcounted roster store with listener registry, `/api/dsh/jobs` route (344184d); RowJobBadge on owner rows with kill arm→confirm popover and sidebar DOM contract tests (d7061f4); JobsButton on the floating anchor with shared JobRosterList readout and virgin-session fill fix (741ed40)
+- The Roster Mirror — job roster served from a job/list stream cache in the relay, retiring the unary call the host refuses (218d9d0, RCA 2026-10-17); roster store consumes the mirror pending flag — honest darkness, never a blanked set (385bad9)
+- Roster status as icons — RUNNING spins, words become tooltips (57daa48, operator request); JobsButton popup hosted in FloatingAnchorContainerPopup per Popup Shell ADR (3a2d446)
+
+### Bug fixes
+- svelte-check: 41 type errors across 18 files fixed, type-level only — zero errors, zero warnings at `pnpm check` (d66d3c0)
+- BC-7 timer contract: roster-store's client `setInterval(2000)` retired — `watch()` is refcount-only plus immediate first load; `refreshWatched()` rides the page-owned 5000ms spine tick in spine-feed `loadOnce()`; pinned by tests/unit/a2a-chip.test.ts, conversation-page.test.ts (3×5000ms intervals) and a "watch schedules ZERO setInterval" pin in jobs-roster-store.test.ts (d66d3c0)
+- i18n: JobsButton raw-copy `title` moved to paraglide `jobsLiveTitle_one/_other` keys across en/es/id/zh — ui-i18n-clean repo scan back to zero violations (d66d3c0)
+- Route-test contracts: floor/restart and plugins/host-bounce are POST-only by design — tests use namespace imports asserting GET is undefined (d66d3c0)
+- Coverage floor: JobRosterList branches 70%→95%, functions 75%→100% (new tests/unit/job-roster-list.test.ts, 14 tests); RowJobBadge branches 72.72%→100% (row-job-badge.test.ts 7→13 tests) — `pnpm test:coverage` exit 0, 5400 tests, no floor violations (737f255)
+
+
 ## v0.6.17
 
 Bumped from v0.6.16 — the embedded host becomes a window and a verb: the cordis lens reads the living plugin tree (ADR-0024), and the host-level bounce keeps vite alive through an in-place re-boot (ADR-0025), proven on the real floor.

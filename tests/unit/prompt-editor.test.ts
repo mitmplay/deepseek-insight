@@ -6,8 +6,9 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PromptEditor } from '$lib/components/prompt-manager/editor.svelte';
+import type { SuggestedPrompt } from '$lib/services/chat/prompt-trigger.js';
 
-type Row = { id: number; text: string; label: string | null; use_count: number; macro: number; tags: string | null };
+type Row = SuggestedPrompt;
 
 const row = (partial: Partial<Row> = {}): Row => ({
 	id: 7,
@@ -15,6 +16,7 @@ const row = (partial: Partial<Row> = {}): Row => ({
 	label: "greet",
 	use_count: 2,
 	macro: 0,
+	last_used_at: "2026-01-01T00:00:00Z",
 	tags: "a, b",
 	...partial
 });
@@ -45,8 +47,9 @@ afterEach(() => {
 
 describe("PromptEditor — dialog state", () => {
 	it("startEdit prefills from the row; null label/tags become empty strings", () => {
-		const { editor } = make([row({ label: null, tags: null, macro: 1 })]);
-		editor.startEdit(row({ id: 9, label: null, tags: null, macro: 1 }));
+		const nullish = { label: null, tags: null, macro: 1 } as unknown as Partial<Row>;
+		const { editor } = make([row(nullish)]);
+		editor.startEdit(row({ ...nullish, id: 9 }));
 		expect(editor.editingId).toBe(9);
 		expect(editor.editText).toBe("hello world");
 		expect(editor.editLabel).toBe("");

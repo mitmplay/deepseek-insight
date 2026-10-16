@@ -448,5 +448,10 @@
 	"themeSettings_label": "Tema",
 	"themeChoice_system": "Sistem",
 	"themeChoice_light": "Terang",
-	"themeChoice_dark": "Gelap"
+	"themeChoice_dark": "Gelap",
+	"jobs": "Pekerjaan",
+	"killJob": "Hentikan",
+	"confirmKill": "Konfirmasi hentikan",
+	"jobsLiveTitle_one": "{n} pekerjaan aktif",
+	"jobsLiveTitle_other": "{n} pekerjaan aktif"
 }

@@ -35,7 +35,10 @@ function fakeServer() {
 function surfaceOf(pluginOptions: Parameters<typeof dshHostPlugin>[0]): DshHostSurface {
   delete (globalThis as { __dshHost?: unknown }).__dshHost;
   const p = dshHostPlugin(pluginOptions);
-  p.configureServer!(fakeServer());
+  const hook = p.configureServer!;
+  const hookFn = typeof hook === 'function' ? hook : hook.handler;
+  const hookCtx = {} as import('vite').MinimalPluginContextWithoutEnvironment;
+  hookFn.call(hookCtx, fakeServer());
   const s = (globalThis as { __dshHost?: DshHostSurface }).__dshHost;
   expect(s).toBeDefined();
   return s as DshHostSurface;

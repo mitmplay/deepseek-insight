@@ -630,6 +630,7 @@
 		{groups}
 		container={viewport}
 		todos={store.todos ?? null}
+		jobsessionid={sessionId}
 		onloadall={() => paging.loadAllOlder()}
 		onleavebottom={() => onStickToggle(false)}
 		shelfentries={store.entries}

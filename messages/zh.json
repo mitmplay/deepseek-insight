@@ -448,5 +448,10 @@
 	"themeSettings_label": "主题",
 	"themeChoice_system": "跟随系统",
 	"themeChoice_light": "浅色",
-	"themeChoice_dark": "深色"
+	"themeChoice_dark": "深色",
+	"jobs": "后台任务",
+	"killJob": "终止",
+	"confirmKill": "确认终止",
+	"jobsLiveTitle_one": "{n} 个进行中的任务",
+	"jobsLiveTitle_other": "{n} 个进行中的任务"
 }

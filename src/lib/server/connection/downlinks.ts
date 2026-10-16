@@ -43,6 +43,14 @@ export class DownlinkManager {
 	private workspaceBaselineWaiters = new Set<PromiseWithResolvers<void>>();
 	/** Subscribes parked while the carrier is CONNECTING (flushed on open). */
 	private pendingSubscribes = new Set<string>();
+	/**
+	 * The Roster Mirror's mux bridge (ADR 2026-10-17 D1/D2): sessions with a
+	 * job/list logical stream this generation, sessions the server-side watch
+	 * holds, and sessions parked while the carrier connects.
+	 */
+	private jobRosterStreams = new Set<string>();
+	private jobRosterWatched = new Set<string>();
+	private pendingJobRoster = new Set<string>();
 	private reconnectTimer: ReturnType<typeof setTimeout> | undefined;
 	/** Wave 4.2 — consecutive failed generations; drives the backoff ladder. */
 	reconnectAttempt = 0;
@@ -97,6 +105,8 @@ export class DownlinkManager {
 		this.openEventStream(socket);
 		this.openStateStream(socket, `workspaces-${String(this.streamSeq)}`, 'workspace/follow');
 		this.openStateStream(socket, `control-${String(this.streamSeq)}`, 'session/control');
+		for (const sessionId of this.jobRosterWatched) this.openJobRosterStream(sessionId);
+		this.pendingJobRoster.clear();
 	}
 
 	/** Open one state stream (workspace/follow | session/control) with empty args. */
@@ -118,6 +128,54 @@ export class DownlinkManager {
 				}
 			}
 		});
+	}
+
+	/**
+	 * Open (or ensure) the job/list logical stream for one watched session
+	 * (ADR 2026-10-17 D1/D2). Parked while the carrier connects; reopened per
+	 * generation for every watched session; 'end'/'error' drops the tracking
+	 * entry so the next poll touch reopens and self-heals.
+	 */
+	openJobRosterStream(sessionId: string): void {
+		this.ensureDownlinks();
+		this.jobRosterWatched.add(sessionId);
+		const socket = this.wsMux;
+		if (socket === undefined || this.opened === false) {
+			this.pendingJobRoster.add(sessionId);
+			return;
+		}
+		if (this.jobRosterStreams.has(sessionId)) return;
+		this.sendStreamOpen(
+			socket,
+			`jobs-${sessionId}-${String(this.streamSeq)}`,
+			'job/list',
+			{ args: { request: { sessionId } } }
+		);
+		this.jobRosterStreams.add(sessionId);
+	}
+
+	/** The reaper's close: stop tracking and tell the carrier (best-effort;
+	 *  a carrier without stream-close semantics just gets ignored items). */
+	closeJobRosterStream(sessionId: string): void {
+		this.jobRosterWatched.delete(sessionId);
+		this.pendingJobRoster.delete(sessionId);
+		this.jobRosterStreams.delete(sessionId);
+		for (const key of [...this.streamSockets.keys()]) {
+			if (!key.startsWith(`jobs-${sessionId}-`)) continue;
+			this.streamSockets.delete(key);
+			try {
+				this.wsMux?.send?.(JSON.stringify({ type: 'close', streamId: key }));
+			} catch {
+				// best-effort — an unwatched session's items are ignored below
+			}
+		}
+	}
+
+	/** Extract the sessionId from a jobs-<sessionId>-<seq> stream id. */
+	private jobRosterSessionIdOf(streamId: string): string | null {
+		const rest = streamId.slice('jobs-'.length);
+		const cut = rest.lastIndexOf('-');
+		return cut > 0 ? rest.slice(0, cut) : null;
 	}
 
 	private openEventStream(socket: WebSocketLike): void {
@@ -172,6 +230,8 @@ export class DownlinkManager {
 		this.wsMux = undefined;
 		this.opened = false;
 		this.streamSockets.clear();
+		this.jobRosterStreams.clear();
+		this.pendingJobRoster.clear();
 		this.projections.clear();
 		this.workspaces = [];
 		for (const waiter of this.workspaceBaselineWaiters) waiter.resolve();
@@ -208,15 +268,26 @@ export class DownlinkManager {
 				this.onWorkspaceItem(value);
 			} else if (frame.streamId.startsWith('control-')) {
 				this.onControlItem(value);
+			} else if (frame.streamId.startsWith('jobs-')) {
+				const sessionId = this.jobRosterSessionIdOf(frame.streamId);
+				if (sessionId !== null) this.conn.relay.onJobRosterItem(sessionId, value);
 			}
 			return;
 		}
 		if (frame.type === 'error') {
-			this.conn.log(
-				`dsh-connection: stream ${frame.streamId} failed`,
-				frame.error?.code,
-				frame.error?.message
-			);
+			if (frame.streamId.startsWith('jobs-')) {
+				const sessionId = this.jobRosterSessionIdOf(frame.streamId);
+				if (sessionId !== null) {
+					this.conn.relay.onJobRosterStreamError(sessionId, frame.error?.code, frame.error?.message);
+					this.jobRosterStreams.delete(sessionId);
+				}
+			} else {
+				this.conn.log(
+					`dsh-connection: stream ${frame.streamId} failed`,
+					frame.error?.code,
+					frame.error?.message
+				);
+			}
 		}
 		this.streamSockets.delete(frame.streamId);
 	}

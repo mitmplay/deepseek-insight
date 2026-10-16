@@ -81,7 +81,13 @@ function fakeSession(tail: Record<string, unknown> = { text: 'tail', nextOffset:
 /** Scriptable controller the stubbed ReadableStream hands to start(). */
 const closeRef: { realClose: () => void } = { realClose: () => undefined };
 
-const controller = {
+/** Explicit scriptable-controller shape — avoids a self-referential `typeof controller`. */
+interface ScriptableController {
+	enqueue: ReturnType<typeof vi.fn>;
+	close: ReturnType<typeof vi.fn>;
+}
+
+const controller: ScriptableController = {
 	enqueue: vi.fn((_chunk: Uint8Array) => undefined),
 	close: vi.fn(() => undefined)
 };
@@ -95,9 +101,9 @@ beforeEach(() => {
 	controller.close.mockReset().mockImplementation(() => closeRef.realClose());
 	// extends the REAL ReadableStream: the scriptable controller is handed to
 	// start() synchronously, and cancel stays drivable via res.body.cancel()
-	class FakeReadableStream extends ReadableStream {
+	class FakeReadableStream extends ReadableStream<Uint8Array> {
 		constructor(spec: {
-			start: (controller: typeof controller) => void;
+			start: (controller: ScriptableController) => void;
 			cancel: () => void;
 		}) {
 			super({ start: (c) => spec.start(controller), cancel: spec.cancel });

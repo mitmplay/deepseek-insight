@@ -12,6 +12,7 @@
 	import UserMessagesButton from '$lib/components/common/buttons/UserMessagesButton.svelte';
 	import BackToTheEdgeButton from '$lib/components/common/buttons/BackToTheEdgeButton.svelte';
 	import PlanButton from '$lib/components/common/buttons/PlanButton.svelte';
+	import JobsButton from '$lib/components/common/buttons/JobsButton.svelte';
 	import InjectedShelfButton from '$lib/components/conversation/InjectedShelfButton.svelte';
 	import { groupTurns } from '$lib/utils/turn-grouping';
 	import type { TodoItem } from '$lib/utils/todo-lists';
@@ -23,6 +24,7 @@
 		onloadall,
 		onleavebottom,
 		todos = null,
+		jobsessionid = '',
 		shelfentries = undefined,
 		shelfsessionid = '',
 		shelfworkspace = null,
@@ -42,6 +44,9 @@
 		/** The host's live todos projection — the Current Plan button's
 		 *  readout; null/undefined renders nothing (no current plan). */
 		todos?: TodoItem[] | null;
+		/** The conversation's sessionId — the JobsButton's roster key;
+		 *  '' renders no jobs button (hosts outside a conversation). */
+		jobsessionid?: string;
 		/** The conversation's dispatched entries — the Injected shelf
 		 *  derives from them (Loadinjected ADR D6); undefined renders no
 		 *  shelf button (hosts outside a conversation panel). */
@@ -61,6 +66,7 @@
 {#if container !== undefined}
 	<FloatingAnchor>
 		<PlanButton todos={todos ?? []} />
+		<JobsButton sessionId={jobsessionid} />
 		{#if shelfentries !== undefined}
 			<InjectedShelfButton
 				entries={shelfentries}

@@ -21,6 +21,7 @@
  */
 import type { DsiA2aExchangeView, DsiPreset, DsiSessionSummary, DsiWorkspaceSummary } from '$lib/types';
 import { appConfig } from '$lib/services/config/app-config.svelte';
+import { jobsRoster } from '$lib/services/jobs/roster-store.svelte';
 
 /** The shared feed state — reactive for every importer that reads it. */
 export const spineFeed = $state({
@@ -82,6 +83,10 @@ async function loadOnce(): Promise<void> {
 	} catch {
 		// Ledger read failed — chips stay as they were.
 	}
+	// Job roster piggyback (BC-7 / Roster Mirror ADR 2026-10-17): the
+	// watched sessions' mirror snapshot rides THIS page-owned tick — the
+	// roster store owns no client timer, ever. No watchers → no fetch.
+	jobsRoster.refreshWatched();
 }
 
 /**

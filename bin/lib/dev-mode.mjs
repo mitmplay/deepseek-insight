@@ -24,6 +24,7 @@ const DEV_VALUES = new Set(['in-process', 'pair']);
  */
 export function parseDevArg(rest) {
 	const out = [];
+	/** @type {'build' | 'pair' | 'in-process'} */
 	let mode = 'build';
 	for (let i = 0; i < rest.length; i++) {
 		const arg = rest[i];
@@ -48,8 +49,12 @@ export function parseDevArg(rest) {
  * DSI_DEV=1 is the pre-existing dev-floor marker (RCA 2026-09-27) — kept for
  * the bounce chain's boolean probe; DSI_DEV_MODE is the D6 mode enum.
  */
+/** @param {string} mode
+ * @returns {Record<string, string>}
+ */
 export function devModeEnv(mode) {
 	if (mode === 'build') return {};
+	/** @type {Record<string, string>} */
 	const env = { DSI_DEV: '1', DSI_DEV_MODE: mode };
 	if (mode === 'in-process') {
 		env.DSI_DEV_IN_PROCESS = '1';
@@ -68,6 +73,9 @@ export function devModeEnv(mode) {
  * Map the legacy boolean dev signal (bounceDevMode's return, older floors)
  * to a mode. Wave 3.5 will teach the bounce the enum; until then the bounce
  * can only ever restore 'pair' or 'build'.
+ */
+/** @param {boolean} dev
+ * @returns {'pair' | 'build'}
  */
 export function modeFromBoolean(dev) {
 	return dev ? 'pair' : 'build';

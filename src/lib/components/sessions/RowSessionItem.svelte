@@ -18,6 +18,7 @@
 	 */
 	import { relativeTime } from '$lib/utils/time';
 	import WorkspaceRowItem from './WorkspaceRowItem.svelte';
+	import RowJobBadge from './RowJobBadge.svelte';
 	import {
 		addPanelFromSidebar,
 		replaceSelectedFromRegistry,
@@ -93,6 +94,10 @@
 		{depth}
 		fork={session.parentSessionId != null && session.origin !== 'subagent'}
 	/>
+	<!-- The Job Badge (ADR-0026 D2): state ON the owner row, never a new
+	     row. The badge's root stops propagation, so a badge or popover
+	     click never fires the row's open/replace verbs. -->
+	<RowJobBadge sessionId={session.sessionId} />
 	<span class="time">{relativeTime(session.updatedAt)}</span>
 </a>
 

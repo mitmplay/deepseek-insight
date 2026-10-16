@@ -171,8 +171,8 @@ describe('dsh-connection — RPC pass-through delegates', () => {
 		const { conn, rpcCalls } = makeStubbedConn();
 		await conn.forkSession('s1');
 		await conn.forkSession('s1', 12);
-		expect(rpcCalls[0].payload.request.atSeq).toBeUndefined();
-		expect(rpcCalls[1].payload.request.atSeq).toBe(12);
+		expect((rpcCalls[0].payload.request as { atSeq?: number }).atSeq).toBeUndefined();
+		expect((rpcCalls[1].payload.request as { atSeq?: number }).atSeq).toBe(12);
 	});
 
 	it('fetchHostPath re-mints once on 401 then returns the response', async () => {

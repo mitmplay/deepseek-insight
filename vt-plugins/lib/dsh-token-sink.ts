@@ -12,8 +12,8 @@ import { createRequire } from 'node:module';
 
 // Load yaml from DSI's own node_modules — the plugin runs inside DSI's vite
 // process, but keep the createRequire pattern so unit tests can run standalone.
-let parseFn: (s: string) => unknown;
-let stringifyFn: (v: unknown) => string;
+let parseFn: ((s: string) => unknown) | undefined;
+let stringifyFn: ((v: unknown) => string) | undefined;
 function ensureYaml(): void {
   if (parseFn) return;
   const req = createRequire(process.cwd() + '/package.json');
@@ -50,7 +50,7 @@ export function writeAuthToken(
     }
     if (raw.trim() !== '') {
       try {
-        const parsed = parseFn(raw);
+        const parsed = parseFn!(raw);
         if (parsed === null || parsed === undefined) {
           doc = {};
         } else if (typeof parsed === 'object' && !Array.isArray(parsed)) {
@@ -76,7 +76,7 @@ export function writeAuthToken(
   // filesystem), then rename over the target.
   const tmp = configPath + '.tmp-token-' + process.pid;
   try {
-    writeFileSync(tmp, stringifyFn(doc));
+    writeFileSync(tmp, stringifyFn!(doc));
     renameSync(tmp, configPath);
   } catch (e) {
     try { if (existsSync(tmp)) unlinkSync(tmp); } catch { /* tmp already gone — fine */ }

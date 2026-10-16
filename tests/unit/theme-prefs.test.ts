@@ -12,7 +12,7 @@ const setOs = (dark: boolean) => {
 		matches: dark ? q.includes('dark') : false,
 		media: q,
 		onchange: null,
-		addEventListener: (_t: string, fn: EventListener) => listeners.push(fn),
+		addEventListener: (_t: string, fn: EventListener) => listeners.push(fn as unknown as (e: { matches: boolean }) => void),
 		removeEventListener: () => {},
 		addListener: () => {},
 		removeListener: () => {},

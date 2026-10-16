@@ -34,7 +34,7 @@ vi.mock('mermaid', () => ({
 // groups columns by bbox center-x, so derive x from the element's own
 // x attribute to exercise the multi-column arms.
 const installFakeGetBBox = () => {
-	const proto = (globalThis as { SVGElement?: { prototype: Record<string, unknown> } }).SVGElement;
+	const proto = (globalThis as unknown as { SVGElement?: { prototype: Record<string, unknown> } }).SVGElement;
 	if (!proto) return () => {};
 	const had = "getBBox" in proto.prototype;
 	const original = (proto.prototype as Record<string, unknown>).getBBox;

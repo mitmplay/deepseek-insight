@@ -448,5 +448,10 @@
 	"themeSettings_label": "Tema",
 	"themeChoice_system": "Sistema",
 	"themeChoice_light": "Claro",
-	"themeChoice_dark": "Oscuro"
+	"themeChoice_dark": "Oscuro",
+	"jobs": "Trabajos",
+	"killJob": "Terminar",
+	"confirmKill": "Confirmar terminación",
+	"jobsLiveTitle_one": "{n} trabajo en curso",
+	"jobsLiveTitle_other": "{n} trabajos en curso"
 }
